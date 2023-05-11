@@ -105,8 +105,8 @@ class UserController extends Controller
         //Image
         if ($request->hasFile('image')) {
             $file = $request->file('image');
-            $pathImage = $file->store('users'); // Specify the storage path
-            $user->image = $pathImage;
+            $pathImage = $file->store('public/users'); // Specify the storage path
+            $user->image = str_replace("public/", "storage/", $pathImage);
         }
 
         $user->save();
@@ -223,8 +223,8 @@ class UserController extends Controller
         //Image
         if ($request->hasFile('image')) {
             $file = $request->file('image');
-            $pathImage = $file->store('users'); // Specify the storage path
-            $user->image = $pathImage;
+            $pathImage = $file->store('public/users'); // Specify the storage path
+            $user->image = str_replace("public/", "storage/", $pathImage);
         }
 
 

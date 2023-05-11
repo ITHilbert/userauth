@@ -48,6 +48,13 @@ trait UserAuth
         return $this->id;
     }
 
+    public function getImagePath(){
+        if($this->image !== ''){
+            return asset($this->image);
+        }
+        return asset('vendor/userauth/img/default-user.jpg');
+    }
+
     public function role(){
         return $this->hasOne('ITHilbert\UserAuth\Entities\Role', 'id', 'role_id');
     }
