@@ -1,0 +1,39 @@
+{
+    "name": "ithilbert/user-auth",
+    "type": "module",
+    "license": "MIT",
+    "description": "User Auth system with Roles",
+    "keywords": [
+        "it-hilbert",
+        "laravel",
+        "permissions",
+        "roles",
+        "user",
+        "security"
+    ],
+    "authors": [{
+        "name": "Jörg Hilbert",
+        "homepage": "https://www.it-hilbert.com",
+        "role": "Developer"
+    }],
+    "homepage": "https://github.com/ITHilbert/user-auth",
+    "minimum-stability": "dev",
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "ITHilbert\\UserAuth\\": "src/",
+            "ITHilbert\\UserAuth\\Database\\Seeds\\": "Database/Seeders/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "ITHilbert\\UserAuth\\UserAuthServiceProvider"
+            ],
+            "aliases": {
+
+            }
+        }
+    }
+
+}
