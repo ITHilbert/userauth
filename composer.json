@@ -1,5 +1,5 @@
 {
-    "name": "ithilbert/user-auth",
+    "name": "ithilbert/userauth",
     "type": "module",
     "license": "MIT",
     "description": "User Auth system with Roles",
@@ -16,7 +16,7 @@
         "homepage": "https://www.it-hilbert.com",
         "role": "Developer"
     }],
-    "homepage": "https://github.com/ITHilbert/user-auth",
+    "homepage": "https://github.com/ITHilbert/userauth",
     "minimum-stability": "dev",
     "require": {},
     "autoload": {
