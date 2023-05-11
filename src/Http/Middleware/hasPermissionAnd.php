@@ -18,7 +18,7 @@ class hasPermissionAnd
      */
     public function handle(Request $request, Closure $next, $permissions)
     {
-        $user = User::find(Auth::id());
+        $user = User::find(Auth::user());
         //Admin und Developer  haben immer das Recht
         if($user->role_id <= 2){
             return $next($request);

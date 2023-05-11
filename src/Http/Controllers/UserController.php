@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\Lang;
 use Yajra\DataTables\Facades\DataTables;
 
 use App\Models\User;
-use ITHilbert\LaravelKit\Entities\Log;
 use ITHilbert\LaravelKit\Helpers\HButton;
 use ITHilbert\UserAuth\Entities\Role;
 
@@ -23,7 +22,7 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $data = User::latest()->where('deleted_at', NULL)->get();
+        $data = User::latest()->where('deleted_at', NULL)->with('role')->get();
 
         if ($request->ajax()) {
             $user = Auth::user();
