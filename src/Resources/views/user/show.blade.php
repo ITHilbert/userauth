@@ -6,9 +6,10 @@
 @stop --}}
 
 @section('content')
-<j-card title="@lang('customer::customer.header_show')">
-<div>
-    @include('include.message')
+<card-main>
+    <card-header>@lang('customer::customer.header_show')</card-header>
+    <card-body>
+        @include('include.message')
         <div class="form-group row mb-2">
             <label for="customer_type_id" class="col-md-4 col-form-label text-md-right">@lang('customer::customer.customer_type_id')</label>
             <div class="col-md-6">
@@ -166,19 +167,16 @@
                 <txt>{{ $customer->comment }}</txt>
             </div>
         </div>
-
-
+    </card-body>
+    <card-footer>
         <div class="form-group row mb-2">
-            <div class="col-md-4 text-right">
+            <div class="col">
                 <button-back route="{{ route('customer.list') }}">@Lang('master.btn-back')</button-back>
-            </div>
-            <div class="col-md-6 text-left">
-                <button-edit route="{{ route('customer.edit', $customer->id) }}" >@lang('master.btn-edit')</button-save>
+                <button-edit class="float-end" route="{{ route('customer.edit', $customer->id) }}" >@lang('master.btn-edit')</button-save>
             </div>
         </div>
-
-</div>
-</j-card>
+    </card-footer>
+</card-main>
 @stop
 
 @section('adminlte_css')

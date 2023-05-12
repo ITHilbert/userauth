@@ -11,10 +11,11 @@ use ITHilbert\UserAuth\App\Classes\SignatureRule;
 @stop --}}
 
 @section('content')
-<j-card title="@lang('userauth::user.header_edit')">
-<div>
-    @include('include.message')
+<card-main title="@lang('userauth::user.header_edit')">
     <hform action="{{ route('user.update', $user->id) }}" enctype="multipart/form-data" >
+    <card-header>@lang('userauth::user.header_edit')</card-header>
+    <card-body>
+        @include('include.message')
 
         {{-- Anrede --}}
         @if (config('userauth.user.anrede'))
@@ -272,18 +273,18 @@ use ITHilbert\UserAuth\App\Classes\SignatureRule;
                 </div>
             </div>
         @endif
-
-
+    </card-body>
+    <card-footer>
         {{-- Buttons --}}
         <div class="form-group row mb-2">
-            <div class="col-md-4 text-right">
+            <div class="col">
                 <button-back route="{{ route('user') }}">@lang('userauth::button.back')</button-back>
             </div>
-            <div class="col-md-6 text-left">
-                <button-save>@lang('userauth::button.save')</button-save>
+            <div class="col">
+                <button-save class="float-end">@lang('userauth::button.save')</button-save>
             </div>
         </div>
+    </card-footer>
     </hform>
-</div>
-</j-card>
+</card-main>
 @stop

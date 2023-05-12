@@ -48,6 +48,14 @@ trait UserAuth
         return $this->id;
     }
 
+    public function getName(){
+        if(config('userauth.firstname')== true && config('userauth.lastname')== true){
+            return $this->firstname .' ' . $this->lastname;
+        }
+        return $this->name;
+    }
+
+
     public function getImagePath(){
         if($this->image !== ''){
             return asset($this->image);
@@ -240,3 +248,5 @@ trait UserAuth
 
 
 }
+
+

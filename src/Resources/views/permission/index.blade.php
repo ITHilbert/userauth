@@ -8,27 +8,29 @@
 @stop --}}
 
 @section('content')
-<j-card title="@lang('userauth::permission.header_list')">
+<card-main>
+    <card-header>@lang('userauth::permission.header_list')</card-header>
+    <card-body>
+        @include('include.message')
 
-  @include('include.message')
-
-  <table class="table table-bordered data-table table-sm table-hover">
-      <thead>
-      <tr>
-          <th>@lang('userauth::permission.id')</th>
-          <th>@lang('userauth::permission.permission_display')</th>
-          <th>@lang('userauth::permission.permission')</th>
-          <th width="165px">
-            @hasPermission('permission_create')
-                <button-create route="{{ route('permission.create') }}">@lang('userauth::button.addPermission')</button-create>
-            @endhasPermission
-          </th>
-      </tr>
-      </thead>
-      <tbody>
-      </tbody>
-  </table>
-</j-card>
+        <table class="table table-bordered data-table table-sm table-hover">
+            <thead>
+            <tr>
+                <th>@lang('userauth::permission.id')</th>
+                <th>@lang('userauth::permission.permission_display')</th>
+                <th>@lang('userauth::permission.permission')</th>
+                <th width="165px">
+                    @hasPermission('permission_create')
+                        <button-create route="{{ route('permission.create') }}">@lang('userauth::button.addPermission')</button-create>
+                    @endhasPermission
+                </th>
+            </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </card-body>
+</card-main>
 
 
 <dialog-delete title="Recht löschen" body="Wollen Sie wirklich dieses Recht löschen?" route="{{ route('permission.delete',0) }}" ></dialog-delete>

@@ -105,6 +105,7 @@ class UserController extends Controller
         if ($request->hasFile('image')) {
             $file = $request->file('image');
             $pathImage = $file->store('public/users'); // Specify the storage path
+            //Neuer Bildpfad speichern
             $user->image = str_replace("public/", "storage/", $pathImage);
         }
 
@@ -221,8 +222,18 @@ class UserController extends Controller
 
         //Image
         if ($request->hasFile('image')) {
+            $pfadAlt = str_replace("storage/", "", $user->image);
+
             $file = $request->file('image');
             $pathImage = $file->store('public/users'); // Specify the storage path
+            //Altes Bild Löschen
+            if($pfadAlt !== ''){
+                $pfadAlt = storage_path('app/public/' . $pfadAlt);
+                if (file_exists($pfadAlt)) {
+                    unlink($pfadAlt);
+                }
+            }
+            //Neuer Bildpfad speichern
             $user->image = str_replace("public/", "storage/", $pathImage);
         }
 

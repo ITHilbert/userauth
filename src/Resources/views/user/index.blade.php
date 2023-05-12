@@ -6,33 +6,33 @@
 @stop --}}
 
 @section('content')
-<j-card title="@lang('userauth::user.header_list')">
+    <card-main>
+        <card-header>@lang('userauth::user.header_list')</card-header>
+        <card-body>
+            @include('include.message')
 
-  @include('include.message')
+            <table class="table table-bordered data-table table-sm table-hover">
+                <thead>
+                <tr>
+                    <th>@lang('userauth::user.id')</th>
+                    <th>@lang('userauth::user.name')</th>
+                    <th>@lang('userauth::user.email')</th>
+                    <th>@lang('userauth::user.role')</th>
+                    <th width="165px">
+                        @hasPermission('user_create')
+                            <button-create route="{{ route('user.create') }}">@lang('userauth::button.addUser')</button-create>
+                        @endhasPermission()
+                    </th>
+                </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </card-body>
+    </card-main>
 
 
-
-  <table class="table table-bordered data-table table-sm table-hover">
-      <thead>
-      <tr>
-          <th>@lang('userauth::user.id')</th>
-          <th>@lang('userauth::user.name')</th>
-          <th>@lang('userauth::user.email')</th>
-          <th>@lang('userauth::user.role')</th>
-          <th width="165px">
-            @hasPermission('user_create')
-                <button-create route="{{ route('user.create') }}">@lang('userauth::button.addUser')</button-create>
-            @endhasPermission()
-          </th>
-      </tr>
-      </thead>
-      <tbody>
-      </tbody>
-  </table>
-</j-card>
-
-
-<dialog-delete title="Benutzer löschen" body="Wollen Sie wirklich diesen Benutzer löschen?" route="{{ route('user.delete',0) }}" ></dialog-delete>
+    <dialog-delete title="Benutzer löschen" body="Wollen Sie wirklich diesen Benutzer löschen?" route="{{ route('user.delete',0) }}" ></dialog-delete>
 
 @stop
 
