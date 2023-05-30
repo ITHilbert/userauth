@@ -7,7 +7,7 @@
 
 @section('content')
 <card-main>
-    <caed-header>@lang('userauth::role.header_list')</caed-header>
+    <card-header>@lang('userauth::role.header_list')</card-header>
     <card-body>
         @include('include.message')
 
