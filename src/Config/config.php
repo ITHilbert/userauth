@@ -1,6 +1,14 @@
 <?php
 
 return [
+    'routes' => [
+        'users_prefix' => 'users',
+        'users_middleware' => ['auth'],
+        'roles_prefix' => 'roles',
+        'roles_middleware' => ['auth', 'hasPermission:role_read'],
+        'permissions_prefix' => 'permissions',
+        'permissions_middleware' => ['auth', 'hasRole:dev'],
+    ],
     //Feld 'name' befüllen
     'name' => 0,  // 0 = Manuell 1 = Vorname Nachname 2 = Nachname, Vorname 3 = Nachname 4 = Vorname
     //Sollen die Views von ressources or vendor verwendet werden

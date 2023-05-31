@@ -24,22 +24,22 @@ Route::middleware(['web'])
 
 
 	//Permission routes
-	Route::middleware(['auth', 'hasPermission:permission_read'])
-        ->prefix('admin/permissions')
+	Route::middleware(config('userauth.routes.permissions_middleware'))
+        ->prefix(config('userauth.routes.permissions_prefix'))
         ->group(function () {
 
 	    Route::any('/',             [PermissionController::class, 'index'])->name('permission');
-	    Route::get('create',        [PermissionController::class, 'create'])->name('permission.create')->middleware('hasPermission:permission_create');
-	    Route::post('store',        [PermissionController::class, 'store'])->name('permission.store')->middleware('hasPermission:permission_create');
-	    Route::get('edit/{id}',     [PermissionController::class, 'edit'])->name('permission.edit')->middleware('hasPermission:permission_edit');
-	    Route::post('update/{id}',  [PermissionController::class, 'update'])->name('permission.update')->middleware('hasPermission:permission_edit');
-	    Route::delete('delete/{id}',[PermissionController::class, 'delete'])->name('permission.delete')->middleware('hasPermission:permission_edit');
+	    Route::get('create',        [PermissionController::class, 'create'])->name('permission.create');
+	    Route::post('store',        [PermissionController::class, 'store'])->name('permission.store');
+	    Route::get('edit/{id}',     [PermissionController::class, 'edit'])->name('permission.edit');
+	    Route::post('update/{id}',  [PermissionController::class, 'update'])->name('permission.update');
+	    Route::delete('delete/{id}',[PermissionController::class, 'delete'])->name('permission.delete');
 	});
 
 
 	//role
-	Route::middleware(['auth', 'hasPermission:role_read'])
-	        ->prefix('admin/roles')
+	Route::middleware(config('userauth.routes.roles_middleware'))
+	        ->prefix(config('userauth.routes.roles_prefix'))
             ->group(function () {
 
 	    Route::any('/',             [RoleController::class, 'index'])->name('role');
@@ -53,8 +53,8 @@ Route::middleware(['web'])
 
 	//User
     //'hasPermission:user_read'
-    Route::middleware(['auth' ])
-        ->prefix('admin/users')
+    Route::middleware(config('userauth.routes.users_middleware'))
+        ->prefix(config('userauth.routes.users_prefix'))
         ->group(function () {
 
 	    Route::any('/',             [UserController::class, 'index'])->name('user');
