@@ -166,14 +166,31 @@ class UserAuthServiceProvider extends ServiceProvider
                 list($permission, $guard) = explode(',', $arguments.',');
                 return "<?php if(auth({$guard})->check() && auth({$guard})->user()->hasPermission({$permission})): ?>";
             });
+            /* elsehasPermission */
+            $bladeCompiler->directive('elsehasPermission', function ($arguments, $guard= '') {
+                list($permission, $guard) = explode(',', $arguments.',');
+                return "<?php elseif(auth({$guard})->check() && auth({$guard})->user()->hasPermission({$permission})): ?>";
+            });
+
             /* hasPermissionOr */
             $bladeCompiler->directive('hasPermissionOr', function ($permissions, $guard = '') {
                 return "<?php if(auth({$guard})->check() && auth({$guard})->user()->hasPermissionOr({$permissions})): ?>";
             });
+
+            /* elsehasPermissionOr */
+            $bladeCompiler->directive('elsehasPermissionOr', function ($permissions, $guard = '') {
+                return "<?php elseif(auth({$guard})->check() && auth({$guard})->user()->hasPermissionOr({$permissions})): ?>";
+            });
+
             /* hasPermissionAnd */
             $bladeCompiler->directive('hasPermissionAnd', function ($permissions, $guard = '') {
                  return "<?php if(auth({$guard})->check() && auth({$guard})->user()->hasPermissionAnd({$permissions})): ?>";
             });
+
+            /* elsehasPermissionAnd */
+            $bladeCompiler->directive('elsehasPermissionAnd', function ($permissions, $guard = '') {
+                return "<?php elseif(auth({$guard})->check() && auth({$guard})->user()->hasPermissionAnd({$permissions})): ?>";
+           });
 
             /* endhasPermission */
             $bladeCompiler->directive('endhasPermission', function () {
