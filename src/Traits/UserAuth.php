@@ -98,6 +98,24 @@ trait UserAuth
         return false;
     }
 
+    /**
+     * Prüft ob der User eine bestimmte Rolle hat
+     *
+     * @param string|int|array| $roles
+     * @return bool
+     */
+    public function hasRoleOr($roles): bool
+    {
+        foreach( $roles as $role) {
+            if($role == $this->roleName()){
+                return true;
+            }
+        }
+
+        //kein Treffer
+        return false;
+    }
+
     public function roleDisplayname(){
         return $this->role->role_display;
     }
@@ -132,9 +150,8 @@ trait UserAuth
         }
 
         $this->loadPermissions();
-        $permission = explode(',', $permissions);
 
-        foreach( $permission as $perm) {
+        foreach( $permissions as $perm) {
             if( in_array(trim($perm), $this->permissions)){
                 return true;
             }
@@ -157,9 +174,8 @@ trait UserAuth
         }
 
         $this->loadPermissions();
-        $permission = explode(',', $permissions);
 
-        foreach( $permission as $perm) {
+        foreach( $permissions as $perm) {
             if(!in_array(trim($perm), $this->permissions)){
                 return false;
             }

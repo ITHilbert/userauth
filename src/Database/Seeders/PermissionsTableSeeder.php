@@ -109,50 +109,6 @@ class PermissionsTableSeeder extends Seeder
                 'updated_at' => '2020-08-12 12:31:35',
                 'deleted_at' => NULL,
             ),
-            8 =>
-            array (
-                'id' => 9,
-                'permission' => 'permission_create',
-                'permission_display' => 'Rechte erstellen',
-                'group_id' => 3,
-                'crud' => 'create',
-                'created_at' => '2020-08-12 12:32:06',
-                'updated_at' => '2020-08-12 12:32:06',
-                'deleted_at' => NULL,
-            ),
-            9 =>
-            array (
-                'id' => 10,
-                'permission' => 'permission_read',
-                'permission_display' => 'Rechte lesen',
-                'group_id' => 3,
-                'crud' => 'read',
-                'created_at' => '2020-08-12 12:32:06',
-                'updated_at' => '2020-08-12 12:32:06',
-                'deleted_at' => NULL,
-            ),
-            10 =>
-            array (
-                'id' => 11,
-                'permission' => 'permission_edit',
-                'permission_display' => 'Rechte ändern',
-                'group_id' => 3,
-                'crud' => 'edit',
-                'created_at' => '2020-08-12 12:32:06',
-                'updated_at' => '2020-08-12 12:32:06',
-                'deleted_at' => NULL,
-            ),
-            11 =>
-            array (
-                'id' => 12,
-                'permission' => 'permission_delete',
-                'permission_display' => 'Rechte delete',
-                'group_id' => 3,
-                'crud' => 'delete',
-                'created_at' => '2020-08-12 12:32:06',
-                'updated_at' => '2020-08-12 12:32:06',
-                'deleted_at' => NULL,
-            ),
         ));
 
 

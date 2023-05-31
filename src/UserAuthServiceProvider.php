@@ -134,62 +134,59 @@ class UserAuthServiceProvider extends ServiceProvider
     {
         $this->app->afterResolving('blade.compiler', function (BladeCompiler $bladeCompiler) {
 
-            $bladeCompiler->directive('Role', function ($arguments) {
-                list($role, $guard) = explode(',', $arguments.',');
-
+            /* hasRole */
+            $bladeCompiler->directive('hasRole', function ($role, $guard= '') {
                 return "<?php if(auth({$guard})->check() && auth({$guard})->user()->hasRole({$role})): ?>";
             });
-            $bladeCompiler->directive('elseRole', function ($arguments) {
-                list($role, $guard) = explode(',', $arguments.',');
-
+            /* elsehasRole */
+            $bladeCompiler->directive('elsehasRole', function ($role, $guard= '') {
                 return "<?php elseif(auth({$guard})->check() && auth({$guard})->user()->hasRole({$role})): ?>";
             });
-            $bladeCompiler->directive('endRole', function () {
-                return '<?php endif; ?>';
-            });
-
-            $bladeCompiler->directive('hasRole', function ($arguments) {
-                list($role, $guard) = explode(',', $arguments.',');
-
-                return "<?php if(auth({$guard})->check() && auth({$guard})->user()->hasRole({$role})): ?>";
-            });
+            /* endhasRole */
             $bladeCompiler->directive('endhasRole', function () {
                 return '<?php endif; ?>';
             });
 
-            $bladeCompiler->directive('hasanyrole', function ($arguments) {
-                list($roles, $guard) = explode(',', $arguments.',');
-
-                return "<?php if(auth({$guard})->check() && auth({$guard})->user()->hasAnyRole({$roles})): ?>";
+            /* hasRoleOr */
+            $bladeCompiler->directive('hasRoleOr', function ($roles, $guard= '') {
+                return "<?php if(auth({$guard})->check() && auth({$guard})->user()->hasRoleOr({$roles})): ?>";
             });
-            $bladeCompiler->directive('endhasanyrole', function () {
+            /* elsehasRole */
+            $bladeCompiler->directive('elsehasRoleOr', function ($roles, $guard= '') {
+                return "<?php elseif(auth({$guard})->check() && auth({$guard})->user()->hasRoleOr({$roles})): ?>";
+            });
+            /* endhasRoleOr */
+            $bladeCompiler->directive('endhasRoleOr', function () {
                 return '<?php endif; ?>';
             });
 
-            $bladeCompiler->directive('hasallroles', function ($arguments) {
-                list($roles, $guard) = explode(',', $arguments.',');
-
-                return "<?php if(auth({$guard})->check() && auth({$guard})->user()->hasAllRoles({$roles})): ?>";
-            });
-            $bladeCompiler->directive('endhasallroles', function () {
-                return '<?php endif; ?>';
-            });
-
-            $bladeCompiler->directive('unlessrole', function ($arguments) {
-                list($role, $guard) = explode(',', $arguments.',');
-
-                return "<?php if(!auth({$guard})->check() || ! auth({$guard})->user()->hasRole({$role})): ?>";
-            });
-            $bladeCompiler->directive('endunlessrole', function () {
-                return '<?php endif; ?>';
-            });
-
-            $bladeCompiler->directive('hasPermission', function ($arguments) {
+            /* ##################################################### */
+            /* hasPermission */
+            $bladeCompiler->directive('hasPermission', function ($arguments, $guard= '') {
                 list($permission, $guard) = explode(',', $arguments.',');
-
                 return "<?php if(auth({$guard})->check() && auth({$guard})->user()->hasPermission({$permission})): ?>";
             });
+            /* hasPermissionOr */
+            $bladeCompiler->directive('hasPermissionOr', function ($permissions, $guard = '') {
+                return "<?php if(auth({$guard})->check() && auth({$guard})->user()->hasPermissionOr({$permissions})): ?>";
+            });
+            /* hasPermissionAnd */
+            $bladeCompiler->directive('hasPermissionAnd', function ($permissions, $guard = '') {
+                 return "<?php if(auth({$guard})->check() && auth({$guard})->user()->hasPermissionAnd({$permissions})): ?>";
+            });
+
+            /* endhasPermission */
             $bladeCompiler->directive('endhasPermission', function () {
+                return '<?php endif; ?>';
+            });
+
+            /* endhasPermissionOr */
+            $bladeCompiler->directive('endhasPermissionOr', function () {
+                return '<?php endif; ?>';
+            });
+
+            /* endhasPermissionAnd */
+            $bladeCompiler->directive('endhasPermissionAnd', function () {
                 return '<?php endif; ?>';
             });
 
