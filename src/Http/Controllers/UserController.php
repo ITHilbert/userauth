@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Lang;
 use Yajra\DataTables\Facades\DataTables;
 
 use App\Models\User;
+use ITHilbert\LaravelKit\Helpers\Breadcrumb;
 use ITHilbert\LaravelKit\Helpers\HButton;
 use ITHilbert\UserAuth\Entities\Role;
 
@@ -46,7 +47,11 @@ class UserController extends Controller
                 ->rawColumns(['action'])
                 ->make(true);
         }
-        return view('userauth::user.index');
+
+        $breadcrumb = new Breadcrumb();
+        $breadcrumb->add( trans('userauth::user.header_list'));
+
+        return view('userauth::user.index')->with(compact('breadcrumb'));
     }
 
     /**
@@ -57,7 +62,11 @@ class UserController extends Controller
     {
         $roles = Role::getComboBoxData();
 
-        return view('userauth::user.create')->with(compact('roles'));
+        $breadcrumb = new Breadcrumb();
+        $breadcrumb->add( trans('userauth::user.header_list'), route('user'));
+        $breadcrumb->add( trans('userauth::user.header_create'));
+
+        return view('userauth::user.create')->with(compact('roles', 'breadcrumb'));
     }
 
     /**
@@ -153,7 +162,11 @@ class UserController extends Controller
         $user = User::findOrFail($id);
         $roles = Role::all();
 
-        return view('userauth::user.edit')->with(compact('roles', 'user'));
+        $breadcrumb = new Breadcrumb();
+        $breadcrumb->add( trans('userauth::user.header_list'), route('user'));
+        $breadcrumb->add( trans('userauth::user.header_edit'));
+
+        return view('userauth::user.edit')->with(compact('roles', 'user', 'breadcrumb'));
     }
 
     /**

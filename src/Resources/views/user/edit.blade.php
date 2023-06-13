@@ -13,7 +13,10 @@ use ITHilbert\UserAuth\App\Classes\SignatureRule;
 @section('content')
 <card-main title="@lang('userauth::user.header_edit')">
     <hform action="{{ route('user.update', $user->id) }}" enctype="multipart/form-data" >
-    <card-header>@lang('userauth::user.header_edit')</card-header>
+    <card-main-header>
+        <h1>@lang('userauth::user.header_edit')</h1>
+        @include('include.breadcrumb')
+    </card-main-header>
     <card-body>
         @include('include.message')
 

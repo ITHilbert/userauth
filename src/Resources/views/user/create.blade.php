@@ -10,7 +10,10 @@ use ITHilbert\UserAuth\App\Classes\SignatureRule;
 @section('content')
     <card-main>
         <hform action="{{ route('user.store') }}" enctype="multipart/form-data">
-            <card-header>@lang('userauth::user.header_create')</card-header>
+            <card-main-header>
+                <h1>@lang('userauth::user.header_create')</h1>
+                @include('include.breadcrumb')
+            </card-main-header>
             <card-body>
                 @include('include.message')
 

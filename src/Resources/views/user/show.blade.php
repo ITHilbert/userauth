@@ -7,7 +7,10 @@
 
 @section('content')
 <card-main>
-    <card-header>@lang('customer::customer.header_show')</card-header>
+    <card-main-header>
+        <h1>@lang('customer::customer.header_show')</h1>
+        @include('include.breadcrumb')
+    </card-main-header>
     <card-body>
         @include('include.message')
         <div class="form-group row mb-2">

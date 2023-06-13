@@ -9,7 +9,10 @@
 
 @section('content')
 <card-main>
-    <card-header>@lang('userauth::permission.header_list')</card-header>
+    <card-main-header>
+        <h1>@lang('userauth::permission.header_list')</h1>
+        @include('include.breadcrumb')
+    </card-main-header>
     <card-body>
         @include('include.message')
 

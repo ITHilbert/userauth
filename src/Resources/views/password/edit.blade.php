@@ -8,7 +8,10 @@
         <div class="col-md-7">
             <hform action="{{ route('password.update') }}">
                 <card>
-                    <card-header>@lang('userauth::password.header_change')"</card-header>
+                    <card-main-header>
+                        <h1>@lang('userauth::password.header_change')</h1>
+                        @include('include.breadcrumb')
+                    </card-main-header>
                     <card-body>
                         @include('include.message')
 

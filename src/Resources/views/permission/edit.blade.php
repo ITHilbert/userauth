@@ -11,7 +11,10 @@
         <div class="col-md-7">
             <card-main>
                 <hform action="{{ route('permission.update', $permissiongroup->id) }}">
-                    <card-header>@lang('userauth::permission.header_edit')</card-header>
+                    <card-main-header>
+                        <h1>@lang('userauth::permission.header_edit')</h1>
+                        @include('include.breadcrumb')
+                    </card-main-header>
                     <card-body>
                         @include('include.message')
 

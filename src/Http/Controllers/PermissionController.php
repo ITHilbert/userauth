@@ -8,6 +8,7 @@ use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Lang;
+use ITHilbert\LaravelKit\Helpers\Breadcrumb;
 use Yajra\DataTables\Facades\DataTables;
 use ITHilbert\LaravelKit\Helpers\HButton;
 use ITHilbert\UserAuth\Entities\Permission;
@@ -24,8 +25,6 @@ class PermissionController extends Controller
      */
     public function index(Request $request)
     {
-
-
         $data = PermissionGroup::latest()->where('deleted_at', NULL)->get();
 
         if ($request->ajax()) {
@@ -54,8 +53,10 @@ class PermissionController extends Controller
                     ->make(true);
         }
 
+        $breadcrumb = new Breadcrumb();
+        $breadcrumb->add( trans('userauth::permission.header_list'));
 
-        return view('userauth::permission.index');
+        return view('userauth::permission.index')->with(compact('breadcrumb'));
     }
 
     /**
@@ -64,7 +65,11 @@ class PermissionController extends Controller
      */
     public function create()
     {
-        return view('userauth::permission.create');
+        $breadcrumb = new Breadcrumb();
+        $breadcrumb->add( trans('userauth::permission.header_list'), route('permission'));
+        $breadcrumb->add( trans('userauth::permission.header_create'));
+
+        return view('userauth::permission.create')->with(compact('breadcrumb'));
     }
 
     /**
@@ -174,7 +179,11 @@ class PermissionController extends Controller
         $permissiongroup = PermissionGroup::findOrFail($id);
         $permissions = Permission::where('group_id', $id)->where('deleted_at', NULL)->get();
 
-        return view('userauth::permission.edit')->with(compact('permissiongroup', 'permissions'));
+        $breadcrumb = new Breadcrumb();
+        $breadcrumb->add( trans('userauth::permission.header_list'), route('permission'));
+        $breadcrumb->add( trans('userauth::permission.header_edit'));
+
+        return view('userauth::permission.edit')->with(compact('permissiongroup', 'permissions', 'breadcrumb'));
     }
 
     /**

@@ -8,7 +8,10 @@
 @section('content')
 <card-main>
     <hform action="{{ route('role.update', $role->id) }}">
-        <card-header>@lang('userauth::role.header_edit')</card-header>
+        <card-main-header>
+            <h1>@lang('userauth::role.header_edit')</h1>
+            @include('include.breadcrumb')
+        </card-main-header>
         <card-body>
             @include('include.message')
 

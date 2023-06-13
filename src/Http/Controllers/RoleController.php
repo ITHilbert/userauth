@@ -7,6 +7,7 @@ use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Lang;
+use ITHilbert\LaravelKit\Helpers\Breadcrumb;
 use Yajra\DataTables\Facades\DataTables;
 
 use ITHilbert\LaravelKit\Helpers\HButton;
@@ -54,7 +55,11 @@ class RoleController extends Controller
                     ->make(true);
         }
 
-        return view('userauth::role.index');
+
+        $breadcrumb = new Breadcrumb();
+        $breadcrumb->add( trans('userauth::role.header_list'));
+
+        return view('userauth::role.index')->with(compact('breadcrumb'));
     }
 
     /**
@@ -65,7 +70,11 @@ class RoleController extends Controller
 
         $permissionsgroups = PermissionGroup::where('id', '!=', 3 )->get();
 
-        return view('userauth::role.create')->with(compact('permissionsgroups'));
+        $breadcrumb = new Breadcrumb();
+        $breadcrumb->add( trans('userauth::role.header_list'), route('role'));
+        $breadcrumb->add( trans('userauth::role.header_create'));
+
+        return view('userauth::role.create')->with(compact('permissionsgroups', 'breadcrumb'));
     }
 
     /**
@@ -114,7 +123,11 @@ class RoleController extends Controller
         $role = Role::findOrFail($id);
         $permissionsgroups = PermissionGroup::where('id', '!=', 3 )->get();
 
-        return view('userauth::role.edit')->with(compact('role', 'permissionsgroups'));
+        $breadcrumb = new Breadcrumb();
+        $breadcrumb->add( trans('userauth::role.header_list'), route('role'));
+        $breadcrumb->add( trans('userauth::role.header_edit'));
+
+        return view('userauth::role.edit')->with(compact('role', 'permissionsgroups', 'breadcrumb'));
     }
 
     /**

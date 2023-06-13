@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Mail;
 use ITHilbert\LaravelKit\Helpers\MyDateTime;
 use ITHilbert\UserAuth\App\Mail\ForgottenPassword;
 use Illuminate\Support\Str;
+use ITHilbert\LaravelKit\Helpers\Breadcrumb;
 
 class PasswordController extends Controller
 {
@@ -25,7 +26,10 @@ class PasswordController extends Controller
      */
     public function edit()
     {
-        return view('userauth::password.edit');
+        $breadcrumb = new Breadcrumb();
+        $breadcrumb->add( trans('userauth::password.header_change') );
+
+        return view('userauth::password.edit')->with(compact('breadcrumb'));
     }
 
 

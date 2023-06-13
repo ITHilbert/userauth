@@ -5,7 +5,10 @@
 @section('content')
 <card-main>
     <hform action="{{ route('role.store') }}">
-        <card-header>@lang('userauth::role.header_create')</card-header>
+        <card-main-header>
+            <h1>@lang('userauth::role.header_create')</h1>
+            @include('include.breadcrumb')
+        </card-main-header>
         <card-body>
             @include('include.message')
 
