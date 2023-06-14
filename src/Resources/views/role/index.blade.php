@@ -44,6 +44,7 @@
     var table = $('.data-table').DataTable({
         processing: true,
         serverSide: true,
+        responsive: true,
         language: { url: "{{ asset("vendor/laravelkit/DataTable_DE.json ") }}" },
         ajax: "{{ route('role') }}",
         columns: [
