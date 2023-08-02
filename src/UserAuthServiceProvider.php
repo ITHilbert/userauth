@@ -138,6 +138,10 @@ class UserAuthServiceProvider extends ServiceProvider
             $bladeCompiler->directive('hasRole', function ($role, $guard= '') {
                 return "<?php if(auth({$guard})->check() && auth({$guard})->user()->hasRole({$role})): ?>";
             });
+            /* hasRoleNot */
+            $bladeCompiler->directive('hasRoleNot', function ($role, $guard= '') {
+                return "<?php if(auth({$guard})->check() && !auth({$guard})->user()->hasRole({$role})): ?>";
+            });
             /* elsehasRole */
             $bladeCompiler->directive('elsehasRole', function ($role, $guard= '') {
                 return "<?php elseif(auth({$guard})->check() && auth({$guard})->user()->hasRole({$role})): ?>";
@@ -165,6 +169,11 @@ class UserAuthServiceProvider extends ServiceProvider
             $bladeCompiler->directive('hasPermission', function ($arguments, $guard= '') {
                 list($permission, $guard) = explode(',', $arguments.',');
                 return "<?php if(auth({$guard})->check() && auth({$guard})->user()->hasPermission({$permission})): ?>";
+            });
+            /* hasPermissionNot */
+            $bladeCompiler->directive('hasPermissionNot', function ($arguments, $guard= '') {
+                list($permission, $guard) = explode(',', $arguments.',');
+                return "<?php if(auth({$guard})->check() && !auth({$guard})->user()->hasPermission({$permission})): ?>";
             });
             /* elsehasPermission */
             $bladeCompiler->directive('elsehasPermission', function ($arguments, $guard= '') {

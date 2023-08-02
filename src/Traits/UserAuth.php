@@ -90,6 +90,13 @@ trait UserAuth
      */
     public function hasRole($role): bool
     {
+        //Ausnahmen für Developer und Admin
+        if($role == 'dev'){
+            if($this->roleName() == 'dev') return true;
+        }else{
+            if($this->roleName() == 'dev' || $this->roleName() == 'admin') return true;
+        }
+
         if($role == $this->roleName()){
             return true;
         }
