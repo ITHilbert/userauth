@@ -5,7 +5,7 @@
 
 @section('content')
 <card-main title="@lang('userauth::user.header_edit')">
-    <hform action="{{ route('user.update', $user->id) }}" enctype="multipart/form-data" >
+    <hform action="{{ route('usericon.update') }}" enctype="multipart/form-data" >
     <card-main-header>
         <h1>@lang('userauth::user.header_edit')</h1>
         @include('include.breadcrumb')
@@ -27,7 +27,7 @@
         {{-- Buttons --}}
         <div class="form-group row mb-2">
             <div class="col">
-                <button-back route="{{ route('user') }}">@lang('userauth::button.back')</button-back>
+                <button-back onclick="window.history.back();">@lang('userauth::button.back')</button-back>
             </div>
             <div class="col">
                 <button-save class="float-end">@lang('userauth::button.save')</button-save>
