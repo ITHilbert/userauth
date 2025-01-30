@@ -282,4 +282,51 @@ class UserController extends Controller
             'alert-type' => 'success',
         ]);
     }
+
+
+    /**
+     * Show the form for editing the specified resource.
+     * @return Response
+     */
+    public function usericon_edit()
+    {
+        $breadcrumb = new Breadcrumb();
+        $breadcrumb->add( trans('userauth::user.header_list'), route('user'));
+        $breadcrumb->add( trans('userauth::user.header_edit'));
+
+        return view('userauth::user.icon')->with(compact('breadcrumb'));
+    }
+
+    /**
+     * Update the specified resource in storage.
+     * @param Request $request
+     * @return Response
+     */
+    public function usericon_update(Request $request)
+    {
+        $userID = Auth::user()->id;
+
+        //Benutzer laden
+        $user = User::find($userID);
+
+        //Image
+        if ($request->hasFile('image')) {
+            $pfadAlt = str_replace("storage/", "", $user->image);
+
+            $file = $request->file('image');
+            $pathImage = $file->store('public/users'); // Specify the storage path
+            //Altes Bild Löschen
+            if($pfadAlt !== ''){
+                $pfadAlt = storage_path('app/public/' . $pfadAlt);
+                if (file_exists($pfadAlt)) {
+                    unlink($pfadAlt);
+                }
+            }
+            //Neuer Bildpfad speichern
+            $user->image = str_replace("public/", "storage/", $pathImage);
+        }
+
+        $user->update();
+        return redirect()->back();
+    }
 }

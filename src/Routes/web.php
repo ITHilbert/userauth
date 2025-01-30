@@ -78,6 +78,15 @@ Route::middleware(['web'])
 	    Route::any('logout', [LoginController::class, 'logout'])->name('logout');
 	});
 
+    //User Icon
+    Route::middleware(['auth'])
+        ->group(function () {
+
+	    //User Icon
+	    Route::get('usericon/edit',    [UserController::class, 'usericon_edit'])->name('usericon.edit');
+	    Route::post('usericon/update', [UserController::class, 'usericon_update'])->name('usericon.update');
+	});
+
 	//Login
 	Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
 	Route::post('login', [LoginController::class, 'login']);
