@@ -10,16 +10,31 @@ use ITHilbert\LaravelKit\Traits\VueComboBox;
 trait UserAuth
 {
     use SoftDeletes;
-    use VueComboBox;
+    use VueComboBox {
+        VueComboBox::__construct as private initVueComboBox;
+    }
 
     private $permissions = array();
     private $role_name = '';
 
-    public function getCbCaptionAttribute(){
+    public function getCbCaptionAttribute()
+    {
         return $this->name;
     }
 
-    public function __construct() {
+    public function __construct(array $attributes = [])
+    {
+        // Call Parent (Model) constructor to handle attributes
+        // This fixes User::create()
+        // Check if parent has __construct method before calling (usually Model does)
+        if (method_exists(parent::class, '__construct')) {
+            parent::__construct($attributes);
+        }
+
+        // Call VueComboBox constructor logic
+        // This fixes cbKey/cbCaption attributes
+        $this->initVueComboBox();
+
         $this->fillable[] = 'role_id';
         $this->fillable[] = 'anrede_id';
         $this->fillable[] = 'title';
@@ -44,36 +59,41 @@ trait UserAuth
         $this->fillable[] = 'image';
     }
 
-    public function getKey(){
+    public function getKey()
+    {
         return $this->id;
     }
 
-    public function getName(){
-        if(config('userauth.firstname')== true && config('userauth.lastname')== true){
-            return $this->firstname .' ' . $this->lastname;
+    public function getName()
+    {
+        if (config('userauth.firstname') == true && config('userauth.lastname') == true) {
+            return $this->firstname . ' ' . $this->lastname;
         }
         return $this->name;
     }
 
 
-    public function getImagePath(){
-        if($this->image !== ''){
+    public function getImagePath()
+    {
+        if ($this->image !== '') {
             return asset($this->image);
         }
         return asset('vendor/userauth/img/default-user.jpg');
     }
 
-    public function role(){
+    public function role()
+    {
         return $this->hasOne('ITHilbert\UserAuth\Entities\Role', 'id', 'role_id');
     }
 
-    public function roleName(){
-        if( $this->role_name == ''){
+    public function roleName()
+    {
+        if ($this->role_name == '') {
             //Prüfen ob werte bereits in der Session gespeichert sind
-            if( Session::has('role_name') ){
+            if (Session::has('role_name')) {
                 //Werte aus der Session holen
                 $this->role_name = Session::get('role_name');
-            }else{
+            } else {
                 $this->role_name = $this->role->role;
                 Session::put('role_name', $this->role_name);
             }
@@ -91,13 +111,15 @@ trait UserAuth
     public function hasRole($role): bool
     {
         //Ausnahmen für Developer und Admin
-        if($role == 'dev'){
-            if($this->roleName() == 'dev') return true;
-        }else{
-            if($this->roleName() == 'dev' || $this->roleName() == 'admin') return true;
+        if ($role == 'dev') {
+            if ($this->roleName() == 'dev')
+                return true;
+        } else {
+            if ($this->roleName() == 'dev' || $this->roleName() == 'admin')
+                return true;
         }
 
-        if($role == $this->roleName()){
+        if ($role == $this->roleName()) {
             return true;
         }
 
@@ -113,8 +135,8 @@ trait UserAuth
      */
     public function hasRoleOr($roles): bool
     {
-        foreach( $roles as $role) {
-            if($role == $this->roleName()){
+        foreach ($roles as $role) {
+            if ($role == $this->roleName()) {
                 return true;
             }
         }
@@ -123,7 +145,8 @@ trait UserAuth
         return false;
     }
 
-    public function roleDisplayname(){
+    public function roleDisplayname()
+    {
         return $this->role->role_display;
     }
 
@@ -134,9 +157,10 @@ trait UserAuth
      * @param string $permission
      * @return boolean
      */
-    public function hasPermission(string $permission){
+    public function hasPermission(string $permission)
+    {
         //Admin darf immer
-        if($this->role_id <= 2){
+        if ($this->role_id <= 2) {
             return true;
         }
 
@@ -150,16 +174,17 @@ trait UserAuth
      * @param string $permission
      * @return boolean
      */
-    public function hasPermissionOr($permissions){
+    public function hasPermissionOr($permissions)
+    {
         //Admin darf immer
-        if($this->role_id <= 2){
+        if ($this->role_id <= 2) {
             return true;
         }
 
         $this->loadPermissions();
 
-        foreach( $permissions as $perm) {
-            if( in_array(trim($perm), $this->permissions)){
+        foreach ($permissions as $perm) {
+            if (in_array(trim($perm), $this->permissions)) {
                 return true;
             }
         }
@@ -174,16 +199,17 @@ trait UserAuth
      * @param string $permission
      * @return boolean
      */
-    public function hasPermissionAnd($permissions){
+    public function hasPermissionAnd($permissions)
+    {
         //Admin darf immer
-        if($this->role_id <=2){
+        if ($this->role_id <= 2) {
             return true;
         }
 
         $this->loadPermissions();
 
-        foreach( $permissions as $perm) {
-            if(!in_array(trim($perm), $this->permissions)){
+        foreach ($permissions as $perm) {
+            if (!in_array(trim($perm), $this->permissions)) {
                 return false;
             }
         }
@@ -195,55 +221,57 @@ trait UserAuth
      * Lädt die Persissions in die $permissions Variable
      *
      * @param boolean $force    true wenn auf jeden Fall die permissions neu geladen werden sollen
-     * @return void
-    */
-    private function loadPermissions($force = false){
+     * @return bool
+     */
+    private function loadPermissions($force = false)
+    {
         //Admin darf immer, rechte müssen nicht geladen werden
-        if($this->role_id <=2){
+        if ($this->role_id <= 2) {
             return true;
         }
 
         //Daten auf jeden fall neu Laden
-        if($force == true){
+        if ($force == true) {
             //Daten Laden
             $result = DB::table('permissions')
-                            ->join('role_permission', 'id', '=', 'permission_id')
-                            ->where('role_id' , '=' , $this->role_id)
-                            ->get();
+                ->join('role_permission', 'id', '=', 'permission_id')
+                ->where('role_id', '=', $this->role_id)
+                ->get();
 
             //Ergebnisse in der Variablen speichern
-            foreach( $result as $row){
+            foreach ($result as $row) {
                 $this->permissions[] = $row->permission;
             }
 
             //Ergebnisse in der Session speichern
-            Session::put('permissions' , $this->permissions);
+            Session::put('permissions', $this->permissions);
 
             return true;
         }
 
         //Prüfen ob die Variable noch leer ist
-        if(count($this->permissions) == 0){
+        if (count($this->permissions) == 0) {
             //Prüfen ob werte bereits in der Session gespeichert sind
-            if( Session::has('permissions') ){
+            if (Session::has('permissions')) {
                 //Werte aus der Session holen
                 $this->permissions = Session::get('permissions');
-            }else{
+            } else {
                 //Daten Laden
                 $result = DB::table('permissions')
-                            ->join('role_permission', 'id', '=', 'permission_id')
-                            ->where('role_id' , '=' , $this->role_id)
-                            ->get();
+                    ->join('role_permission', 'id', '=', 'permission_id')
+                    ->where('role_id', '=', $this->role_id)
+                    ->get();
 
                 //Ergebnisse in der Variablen speichern
-                foreach( $result as $row){
+                foreach ($result as $row) {
                     $this->permissions[] = $row->permission;
                 }
 
                 //Ergebnisse in der Session speichern
-                Session::put('permissions' , $this->permissions);
+                Session::put('permissions', $this->permissions);
             }
         }
+        return true;
     }
 
     //Helper
@@ -262,7 +290,7 @@ trait UserAuth
             return explode('|', $pipeString);
         }
 
-        if (! in_array($quoteCharacter, ["'", '"'])) {
+        if (!in_array($quoteCharacter, ["'", '"'])) {
             return explode('|', $pipeString);
         }
 
@@ -270,6 +298,19 @@ trait UserAuth
     }
 
 
+    public function generateTwoFactorCode()
+    {
+        $this->two_factor_code = rand(100000, 999999);
+        $this->two_factor_expires_at = now()->addMinutes(10);
+        $this->save();
+    }
+
+    public function resetTwoFactorCode()
+    {
+        $this->two_factor_code = null;
+        $this->two_factor_expires_at = null;
+        $this->save();
+    }
 }
 
 
