@@ -5,6 +5,7 @@ namespace ITHilbert\UserAuth\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Redirect;
 
 class isAdmin
 {
@@ -17,12 +18,13 @@ class isAdmin
      */
     public function handle(Request $request, Closure $next)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        if($user->role_id == 1 || $user->role_id == 2 ){
+        if ($user->role_id == 1 || $user->role_id == 2) {
             return $next($request);
         }
 
-        return redirect()->route('no-permission', [$request, $user->id]);
+        return Redirect::route('no-permission');
     }
 }

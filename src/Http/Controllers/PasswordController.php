@@ -17,6 +17,10 @@ use ITHilbert\LaravelKit\Helpers\Breadcrumb;
 
 class PasswordController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('throttle:5,1')->only('sendtocken');
+    }
 
     /**
      * Edit the form for editing the specified resource.
@@ -27,7 +31,7 @@ class PasswordController extends Controller
     public function edit()
     {
         $breadcrumb = new Breadcrumb();
-        $breadcrumb->add( trans('userauth::password.header_change') );
+        $breadcrumb->add(trans('userauth::password.header_change'));
 
         return view('userauth::password.edit')->with(compact('breadcrumb'));
     }
@@ -43,16 +47,16 @@ class PasswordController extends Controller
     public function update(Request $request)
     {
         $request->validate([
-           'password' => 'required|min:8|confirmed',
-           'password_confirmation' => 'required|same:password'
-       ]);
+            'password' => 'required|min:8|confirmed',
+            'password_confirmation' => 'required|same:password'
+        ]);
 
-       $user = Auth()->user();
-       $user->password = Hash::make($request->password);
-       $user->update();
+        $user = Auth()->user();
+        $user->password = Hash::make($request->password);
+        $user->update();
 
-       return redirect()->route('home')
-                        ->with('message','Passwort wurde geändert');
+        return redirect()->route('home')
+            ->with('message', 'Passwort wurde geändert');
     }
 
 
@@ -62,7 +66,8 @@ class PasswordController extends Controller
      *
      * @return void
      */
-    public function forgotten(){
+    public function forgotten()
+    {
         return view('userauth::password.forgotten');
     }
 
@@ -72,7 +77,8 @@ class PasswordController extends Controller
      * @param Request $request
      * @return void
      */
-    public function sendtocken(Request $request){
+    public function sendtocken(Request $request)
+    {
 
         $request->validate([
             'email' => 'required',
@@ -90,12 +96,12 @@ class PasswordController extends Controller
 
         $user->update();
 
-        if(isset($user)){
+        if (isset($user)) {
             Mail::to($email)->send(new ForgottenPassword($user));
 
             return redirect()->route('password.tokensend')
-                        ->with('message','Bitte prüfen Sie Ihren Posteingang (ggf. auch den SPAM Ordner).');
-        }else{
+                ->with('message', 'Bitte prüfen Sie Ihren Posteingang (ggf. auch den SPAM Ordner).');
+        } else {
             redirect()->back()->withErrors('Kein Treffer');
         }
     }
@@ -105,7 +111,8 @@ class PasswordController extends Controller
      *
      * @return void
      */
-    public function tokensend(){
+    public function tokensend()
+    {
         return view('userauth::password.tokensend');
     }
 
@@ -117,7 +124,8 @@ class PasswordController extends Controller
      * @param [type] $email die E-Mail Adresse des Users
      * @return void
      */
-    public function editwithtoken($token, $email){
+    public function editwithtoken($token, $email)
+    {
         return view('userauth::password.editwithtoken')->with(compact('token', 'email'));
     }
 
@@ -130,34 +138,34 @@ class PasswordController extends Controller
     public function updatewithtoken(Request $request)
     {
         $request->validate([
-           'password' => 'required|min:8|confirmed',
-           'password_confirmation' => 'required|same:password',
-           'pwtoken' => 'required',
-           'email' => 'email',
-       ]);
+            'password' => 'required|min:8|confirmed',
+            'password_confirmation' => 'required|same:password',
+            'pwtoken' => 'required',
+            'email' => 'email',
+        ]);
 
-       $user = User::where('email', $request->email)->where('edit_pw_token', $request->pwtoken)->where('deleted_at', NULL)->first();
+        $user = User::where('email', $request->email)->where('edit_pw_token', $request->pwtoken)->where('deleted_at', NULL)->first();
 
-       $date1 = new MyDateTime('now');
-       $date2 = new MyDateTime($user->edit_pw_token_end);
+        $date1 = new MyDateTime('now');
+        $date2 = new MyDateTime($user->edit_pw_token_end);
 
-       //echo $date1->getTimestamp() . ' - ' . $date2->getTimestamp();
+        //echo $date1->getTimestamp() . ' - ' . $date2->getTimestamp();
 
-       if($date1->getTimestamp() > $date2->getTimestamp()){
+        if ($date1->getTimestamp() > $date2->getTimestamp()) {
             return view('userauth::password.forgotten')->withErrors('Token ist abgelaufen.');
-       }
+        }
 
-       if( isset($user)){
+        if (isset($user)) {
             $user->password = Hash::make($request->password);
             $user->edit_pw_token = NULL;
             $user->edit_pw_token_end = null;
             $user->update();
 
             return redirect()->route('home')
-                        ->with('message','Passwort wurde geändert');
-       }else{
+                ->with('message', 'Passwort wurde geändert');
+        } else {
             view('userauth::password.forgotten')->withErrors('Änderung nicht möglich.');
-       }
+        }
     }
 
 }

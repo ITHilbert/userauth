@@ -3,12 +3,16 @@
 return [
     'routes' => [
         'users_prefix' => 'users',
-        'users_middleware' => ['auth'],
+        'users_middleware' => ['auth', \ITHilbert\UserAuth\Http\Middleware\TwoFactorMiddleware::class],
         'roles_prefix' => 'roles',
-        'roles_middleware' => ['auth', 'hasPermission:role_read'],
+        'roles_middleware' => ['auth', 'hasPermission:role_read', \ITHilbert\UserAuth\Http\Middleware\TwoFactorMiddleware::class],
         'permissions_prefix' => 'permissions',
-        'permissions_middleware' => ['auth', 'hasRole:dev'],
+        'permissions_middleware' => ['auth', 'hasRole:dev', \ITHilbert\UserAuth\Http\Middleware\TwoFactorMiddleware::class],
     ],
+    // Aktiviert das Audit Log
+    'audit_log_enabled' => env('USERAUTH_AUDIT_LOG_ENABLED', false),
+    // Aktiviert 2-Faktor-Authentifizierung
+    'two_factor_enabled' => env('USERAUTH_2FA_ENABLED', false),
     //Feld 'name' befüllen
     'name' => 0,  // 0 = Manuell 1 = Vorname Nachname 2 = Nachname, Vorname 3 = Nachname 4 = Vorname
     //Sollen die Views von ressources or vendor verwendet werden
@@ -18,7 +22,7 @@ return [
         'anrede' => false,
         'title' => false,
         'firstname' => false,
-        'lastname'  => false,
+        'lastname' => false,
         'smallname' => false,
         'name' => true,
         'role' => true,
@@ -42,19 +46,19 @@ return [
     ],
     'signature_rules' => [
         1 => [
-                'id' => 1,
-                'signature_rule' => 'i.A.',
-                'meaning' => 'im Auftrag (i.A.)',
+            'id' => 1,
+            'signature_rule' => 'i.A.',
+            'meaning' => 'im Auftrag (i.A.)',
         ],
         2 => [
-                'id' => 2,
-                'signature_rule' => 'i.V.',
-                'meaning' => 'in Vollmacht (i.V.)',
+            'id' => 2,
+            'signature_rule' => 'i.V.',
+            'meaning' => 'in Vollmacht (i.V.)',
         ],
         3 => [
-                'id' => 3,
-                'signature_rule' => 'ppa.',
-                'meaning' => 'Mit Prokura (ppa.)',
+            'id' => 3,
+            'signature_rule' => 'ppa.',
+            'meaning' => 'Mit Prokura (ppa.)',
         ],
         4 => [
             'id' => 4,

@@ -26,19 +26,27 @@ class UserAuthServiceProvider extends ServiceProvider
         $this->registerMiddleware();
 
         //Commands Registrieren
-        $this->commands( \ITHilbert\UserAuth\App\Console\Commands\UserAuthCopyFiles::class );
+        $this->commands(\ITHilbert\UserAuth\App\Console\Commands\UserAuthCopyFiles::class);
+
+        // Register Event Listeners
+        \Illuminate\Support\Facades\Event::listen(
+            [\Illuminate\Auth\Events\Login::class, \Illuminate\Auth\Events\Failed::class, \Illuminate\Auth\Events\Logout::class],
+            \ITHilbert\UserAuth\Listeners\LogAuthenticationAttempt::class
+        );
     }
 
-    public function publishMenuFilters(){
+    public function publishMenuFilters()
+    {
         $this->publishes([
-            __DIR__ .'/App/Menu/Filters/' => app_path('Menu/Filters'),
+            __DIR__ . '/App/Menu/Filters/' => app_path('Menu/Filters'),
         ]);
     }
 
 
-    public function registerMiddleware(){
-        $this->app['router']->aliasMiddleware('hasPermissionAnd' , \ITHilbert\UserAuth\Http\Middleware\hasPermissionAnd::class);
-        $this->app['router']->aliasMiddleware('hasPermissionOr' , \ITHilbert\UserAuth\Http\Middleware\hasPermissionOr::class);
+    public function registerMiddleware()
+    {
+        $this->app['router']->aliasMiddleware('hasPermissionAnd', \ITHilbert\UserAuth\Http\Middleware\hasPermissionAnd::class);
+        $this->app['router']->aliasMiddleware('hasPermissionOr', \ITHilbert\UserAuth\Http\Middleware\hasPermissionOr::class);
         $this->app['router']->aliasMiddleware('hasPermission', \ITHilbert\UserAuth\Http\Middleware\hasPermission::class);
         $this->app['router']->aliasMiddleware('hasRole', \ITHilbert\UserAuth\Http\Middleware\hasRole::class);
         $this->app['router']->aliasMiddleware('isAdmin', \ITHilbert\UserAuth\Http\Middleware\isAdmin::class);
@@ -49,7 +57,7 @@ class UserAuthServiceProvider extends ServiceProvider
     public function publishAssets()
     {
         $this->publishes([
-            __DIR__ .'/Resources/assets' => public_path('vendor/userauth'),
+            __DIR__ . '/Resources/assets' => public_path('vendor/userauth'),
         ]);
     }
 
@@ -71,8 +79,8 @@ class UserAuthServiceProvider extends ServiceProvider
      */
     public function register()
     {
-       /*  $this->app->register(RouteServiceProvider::class); */
-       $this->registerBladeExtensions();
+        /*  $this->app->register(RouteServiceProvider::class); */
+        $this->registerBladeExtensions();
     }
 
     /**
@@ -83,7 +91,7 @@ class UserAuthServiceProvider extends ServiceProvider
     protected function registerConfig()
     {
         $this->publishes([
-            __DIR__ .'/Config/config.php' => config_path('userauth.php'),
+            __DIR__ . '/Config/config.php' => config_path('userauth.php'),
         ]);
     }
 
@@ -95,14 +103,14 @@ class UserAuthServiceProvider extends ServiceProvider
     public function registerViews()
     {
         $this->publishes([
-            __DIR__ .'/Resources/views' => resource_path('views/vendor/userauth'),
-            __DIR__ .'/Resources/views/layouts/userauth.blade.php' => resource_path('views/layouts/userauth.blade.php'),
+            __DIR__ . '/Resources/views' => resource_path('views/vendor/userauth'),
+            __DIR__ . '/Resources/views/layouts/userauth.blade.php' => resource_path('views/layouts/userauth.blade.php'),
         ]);
 
-        if(config('userauth.view') == 'ressources'){
+        if (config('userauth.view') == 'ressources') {
             $this->loadViewsFrom(resource_path('Resources/views/vendor/userauth'), 'userauth');
-        }else{
-            $this->loadViewsFrom(__DIR__ .'/Resources/views', 'userauth');
+        } else {
+            $this->loadViewsFrom(__DIR__ . '/Resources/views', 'userauth');
         }
     }
 
@@ -114,13 +122,13 @@ class UserAuthServiceProvider extends ServiceProvider
     public function registerTranslations()
     {
         $this->publishes([
-            __DIR__.'/Resources/lang' => resource_path('lang/vendor/userauth'),
+            __DIR__ . '/Resources/lang' => resource_path('lang/vendor/userauth'),
         ]);
 
-        if(config('userauth.view') == 'ressources'){
-            $this->loadTranslationsFrom( resource_path('/Resources/lang/vendor/userauth'), 'userauth');
-        }else{
-            $this->loadTranslationsFrom( __DIR__ .'/Resources/lang', 'userauth');
+        if (config('userauth.view') == 'ressources') {
+            $this->loadTranslationsFrom(resource_path('/Resources/lang/vendor/userauth'), 'userauth');
+        } else {
+            $this->loadTranslationsFrom(__DIR__ . '/Resources/lang', 'userauth');
         }
     }
 
@@ -135,15 +143,15 @@ class UserAuthServiceProvider extends ServiceProvider
         $this->app->afterResolving('blade.compiler', function (BladeCompiler $bladeCompiler) {
 
             /* hasRole */
-            $bladeCompiler->directive('hasRole', function ($role, $guard= '') {
+            $bladeCompiler->directive('hasRole', function ($role, $guard = '') {
                 return "<?php if(auth({$guard})->check() && auth({$guard})->user()->hasRole({$role})): ?>";
             });
             /* hasRoleNot */
-            $bladeCompiler->directive('hasRoleNot', function ($role, $guard= '') {
+            $bladeCompiler->directive('hasRoleNot', function ($role, $guard = '') {
                 return "<?php if(auth({$guard})->check() && !auth({$guard})->user()->hasRole({$role})): ?>";
             });
             /* elsehasRole */
-            $bladeCompiler->directive('elsehasRole', function ($role, $guard= '') {
+            $bladeCompiler->directive('elsehasRole', function ($role, $guard = '') {
                 return "<?php elseif(auth({$guard})->check() && auth({$guard})->user()->hasRole({$role})): ?>";
             });
             /* endhasRole */
@@ -152,11 +160,11 @@ class UserAuthServiceProvider extends ServiceProvider
             });
 
             /* hasRoleOr */
-            $bladeCompiler->directive('hasRoleOr', function ($roles, $guard= '') {
+            $bladeCompiler->directive('hasRoleOr', function ($roles, $guard = '') {
                 return "<?php if(auth({$guard})->check() && auth({$guard})->user()->hasRoleOr({$roles})): ?>";
             });
             /* elsehasRole */
-            $bladeCompiler->directive('elsehasRoleOr', function ($roles, $guard= '') {
+            $bladeCompiler->directive('elsehasRoleOr', function ($roles, $guard = '') {
                 return "<?php elseif(auth({$guard})->check() && auth({$guard})->user()->hasRoleOr({$roles})): ?>";
             });
             /* endhasRoleOr */
@@ -166,18 +174,18 @@ class UserAuthServiceProvider extends ServiceProvider
 
             /* ##################################################### */
             /* hasPermission */
-            $bladeCompiler->directive('hasPermission', function ($arguments, $guard= '') {
-                list($permission, $guard) = explode(',', $arguments.',');
+            $bladeCompiler->directive('hasPermission', function ($arguments, $guard = '') {
+                list($permission, $guard) = explode(',', $arguments . ',');
                 return "<?php if(auth({$guard})->check() && auth({$guard})->user()->hasPermission({$permission})): ?>";
             });
             /* hasPermissionNot */
-            $bladeCompiler->directive('hasPermissionNot', function ($arguments, $guard= '') {
-                list($permission, $guard) = explode(',', $arguments.',');
+            $bladeCompiler->directive('hasPermissionNot', function ($arguments, $guard = '') {
+                list($permission, $guard) = explode(',', $arguments . ',');
                 return "<?php if(auth({$guard})->check() && !auth({$guard})->user()->hasPermission({$permission})): ?>";
             });
             /* elsehasPermission */
-            $bladeCompiler->directive('elsehasPermission', function ($arguments, $guard= '') {
-                list($permission, $guard) = explode(',', $arguments.',');
+            $bladeCompiler->directive('elsehasPermission', function ($arguments, $guard = '') {
+                list($permission, $guard) = explode(',', $arguments . ',');
                 return "<?php elseif(auth({$guard})->check() && auth({$guard})->user()->hasPermission({$permission})): ?>";
             });
 
@@ -193,13 +201,13 @@ class UserAuthServiceProvider extends ServiceProvider
 
             /* hasPermissionAnd */
             $bladeCompiler->directive('hasPermissionAnd', function ($permissions, $guard = '') {
-                 return "<?php if(auth({$guard})->check() && auth({$guard})->user()->hasPermissionAnd({$permissions})): ?>";
+                return "<?php if(auth({$guard})->check() && auth({$guard})->user()->hasPermissionAnd({$permissions})): ?>";
             });
 
             /* elsehasPermissionAnd */
             $bladeCompiler->directive('elsehasPermissionAnd', function ($permissions, $guard = '') {
                 return "<?php elseif(auth({$guard})->check() && auth({$guard})->user()->hasPermissionAnd({$permissions})): ?>";
-           });
+            });
 
             /* endhasPermission */
             $bladeCompiler->directive('endhasPermission', function () {
