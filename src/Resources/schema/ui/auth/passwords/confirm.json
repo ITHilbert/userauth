@@ -1,0 +1,19 @@
+{
+  "formSchema": {
+    "method": "POST",
+    "action": "route('password.confirm')",
+    "enctype": ""
+  },
+  "dataSchema": {
+    "_token": { "type": "string", "required": true },
+    "password": { "type": "string", "required": true }
+  },
+  "uiSchema": {
+    "layout": "vertical",
+    "elements": [
+      { "type": "hidden", "field": "_token", "value": "csrf" },
+      { "type": "input", "field": "password", "label": "Password", "autocomplete": "current-password" },
+      { "type": "button", "action": "submit", "label": "Confirm Password" }
+    ]
+  }
+}

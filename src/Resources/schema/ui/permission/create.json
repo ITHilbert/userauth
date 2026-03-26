@@ -1,0 +1,29 @@
+{
+  "formSchema": {
+    "method": "POST",
+    "action": "route('permission.store')",
+    "enctype": ""
+  },
+  "dataSchema": {
+    "_token": { "type": "string", "required": true },
+    "group_display": { "type": "string", "required": true },
+    "group_name": { "type": "string", "required": true },
+    "ckPermissionGroup": { "type": "boolean", "required": false },
+    "permission_display_*": { "type": "string", "required": false },
+    "permission_*": { "type": "string", "required": false }
+  },
+  "uiSchema": {
+    "layout": "vertical",
+    "elements": [
+      { "type": "hidden", "field": "_token", "value": "csrf" },
+      { "type": "input", "field": "group_display", "label": "Group Display" },
+      { "type": "input", "field": "group_name", "label": "Group Name" },
+      { "type": "checkbox", "field": "ckPermissionGroup", "label": "Permission Group" },
+      { "type": "table", "field": "permissions", "elements": [
+        { "type": "input", "field": "permission_display_*" },
+        { "type": "input", "field": "permission_*" }
+      ]},
+      { "type": "button", "action": "submit", "label": "Save" }
+    ]
+  }
+}

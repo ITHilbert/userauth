@@ -1,0 +1,30 @@
+{
+  "formSchema": {
+    "method": "POST",
+    "action": "route('role.store')",
+    "enctype": ""
+  },
+  "dataSchema": {
+    "_token": { "type": "string", "required": true },
+    "role_display": { "type": "string", "required": true },
+    "role": { "type": "string", "required": true },
+    "permission": { "type": "array", "required": false }
+  },
+  "uiSchema": {
+    "layout": "vertical",
+    "elements": [
+      { "type": "hidden", "field": "_token", "value": "csrf" },
+      { "type": "input", "field": "role_display", "label": "Role Display" },
+      { "type": "input", "field": "role", "label": "Role Intern" },
+      { "type": "tabs", "elements": [
+        { "name": "home", "label": "CRUD Permissions", "elements": [
+            { "type": "table", "field": "permission" }
+        ]},
+        { "name": "profile", "label": "Group Permissions", "elements": [
+            { "type": "table", "field": "permission" }
+        ]}
+      ]},
+      { "type": "button", "action": "submit", "label": "Save" }
+    ]
+  }
+}

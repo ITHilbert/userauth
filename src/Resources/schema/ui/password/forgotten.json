@@ -1,0 +1,33 @@
+{
+  "formSchema": {
+    "method": "POST",
+    "action": "route('password.sendtocken')",
+    "enctype": ""
+  },
+  "dataSchema": {
+    "_token": { "type": "string", "required": true },
+    "email": { "type": "email", "required": true }
+  },
+  "uiSchema": {
+    "layout": "vertical",
+    "elements": [
+      {
+        "type": "hidden",
+        "field": "_token",
+        "value": "csrf"
+      },
+      {
+        "type": "input",
+        "field": "email",
+        "placeholder": "Email",
+        "autocomplete": "email",
+        "autofocus": true
+      },
+      {
+        "type": "button",
+        "action": "submit",
+        "label": "Send"
+      }
+    ]
+  }
+}

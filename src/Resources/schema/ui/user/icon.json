@@ -1,0 +1,17 @@
+{
+  "formSchema": {
+    "method": "POST",
+    "action": "route('usericon.update')",
+    "enctype": "multipart/form-data"
+  },
+  "dataSchema": {
+    "image": { "type": "file", "required": false }
+  },
+  "uiSchema": {
+    "layout": "vertical",
+    "elements": [
+      { "type": "input-file-img", "field": "image", "label": "Image" },
+      { "type": "button", "action": "submit", "label": "Save" }
+    ]
+  }
+}

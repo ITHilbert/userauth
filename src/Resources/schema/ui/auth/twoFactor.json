@@ -1,0 +1,19 @@
+{
+  "formSchema": {
+    "method": "POST",
+    "action": "route('verify.store')",
+    "enctype": ""
+  },
+  "dataSchema": {
+    "_token": { "type": "string", "required": true },
+    "two_factor_code": { "type": "string", "required": true }
+  },
+  "uiSchema": {
+    "layout": "vertical",
+    "elements": [
+      { "type": "hidden", "field": "_token", "value": "csrf" },
+      { "type": "input", "field": "two_factor_code", "label": "Sicherheitscode", "autofocus": true },
+      { "type": "button", "action": "submit", "label": "Bestätigen" }
+    ]
+  }
+}

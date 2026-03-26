@@ -1,0 +1,25 @@
+{
+  "formSchema": {
+    "method": "POST",
+    "action": "route('password.update')",
+    "enctype": ""
+  },
+  "dataSchema": {
+    "_token": { "type": "string", "required": true },
+    "token": { "type": "string", "required": true },
+    "email": { "type": "email", "required": true },
+    "password": { "type": "string", "required": true },
+    "password_confirmation": { "type": "string", "required": true }
+  },
+  "uiSchema": {
+    "layout": "vertical",
+    "elements": [
+      { "type": "hidden", "field": "_token", "value": "csrf" },
+      { "type": "hidden", "field": "token", "value": "token" },
+      { "type": "input", "field": "email", "label": "E-Mail Address", "autocomplete": "email", "autofocus": true },
+      { "type": "input", "field": "password", "label": "Password", "autocomplete": "new-password" },
+      { "type": "input", "field": "password_confirmation", "label": "Confirm Password", "autocomplete": "new-password" },
+      { "type": "button", "action": "submit", "label": "Reset Password" }
+    ]
+  }
+}

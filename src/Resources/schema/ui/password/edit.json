@@ -1,0 +1,19 @@
+{
+  "formSchema": {
+    "method": "POST",
+    "action": "route('password.update')",
+    "enctype": ""
+  },
+  "dataSchema": {
+    "password": { "type": "string", "required": true },
+    "password_confirmation": { "type": "string", "required": true }
+  },
+  "uiSchema": {
+    "layout": "vertical",
+    "elements": [
+      { "type": "input-password", "field": "password", "label": "Password", "autocomplete": "new-password" },
+      { "type": "input-password", "field": "password_confirmation", "label": "Confirm Password", "autocomplete": "new-password" },
+      { "type": "button", "action": "submit", "label": "Edit Password" }
+    ]
+  }
+}

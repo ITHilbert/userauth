@@ -1,0 +1,45 @@
+{
+  "formSchema": {
+    "method": "POST",
+    "action": "route('login')",
+    "enctype": ""
+  },
+  "dataSchema": {
+    "_token": { "type": "string", "required": true },
+    "email": { "type": "email", "required": true },
+    "password": { "type": "string", "required": true },
+    "remember": { "type": "boolean", "required": false }
+  },
+  "uiSchema": {
+    "layout": "vertical",
+    "elements": [
+      {
+        "type": "hidden",
+        "field": "_token",
+        "value": "csrf"
+      },
+      {
+        "type": "input",
+        "field": "email",
+        "label": "E-Mail Address",
+        "autocomplete": "email"
+      },
+      {
+        "type": "input",
+        "field": "password",
+        "label": "Password",
+        "autocomplete": "current-password"
+      },
+      {
+        "type": "checkbox",
+        "field": "remember",
+        "label": "Remember Me"
+      },
+      {
+        "type": "button",
+        "action": "submit",
+        "label": "Login"
+      }
+    ]
+  }
+}

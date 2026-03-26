@@ -1,0 +1,19 @@
+{
+  "formSchema": {
+    "method": "POST",
+    "action": "route('password.email')",
+    "enctype": ""
+  },
+  "dataSchema": {
+    "_token": { "type": "string", "required": true },
+    "email": { "type": "email", "required": true }
+  },
+  "uiSchema": {
+    "layout": "vertical",
+    "elements": [
+      { "type": "hidden", "field": "_token", "value": "csrf" },
+      { "type": "input", "field": "email", "label": "E-Mail Address", "autocomplete": "email", "autofocus": true },
+      { "type": "button", "action": "submit", "label": "Send Password Reset Link" }
+    ]
+  }
+}

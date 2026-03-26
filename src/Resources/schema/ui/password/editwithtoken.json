@@ -1,0 +1,25 @@
+{
+  "formSchema": {
+    "method": "POST",
+    "action": "route('password.updatewithtoken')",
+    "enctype": ""
+  },
+  "dataSchema": {
+    "_token": { "type": "string", "required": true },
+    "pwtoken": { "type": "string", "required": true },
+    "email": { "type": "email", "required": true },
+    "password": { "type": "string", "required": true },
+    "password_confirmation": { "type": "string", "required": true }
+  },
+  "uiSchema": {
+    "layout": "vertical",
+    "elements": [
+      { "type": "hidden", "field": "_token", "value": "csrf" },
+      { "type": "hidden", "field": "pwtoken", "value": "token" },
+      { "type": "hidden", "field": "email", "value": "email" },
+      { "type": "input-password", "field": "password", "label": "New Password", "autocomplete": "new-password" },
+      { "type": "input-password", "field": "password_confirmation", "label": "Confirm Password", "autocomplete": "new-password" },
+      { "type": "button", "action": "submit", "label": "Edit Password" }
+    ]
+  }
+}

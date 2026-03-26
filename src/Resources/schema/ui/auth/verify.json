@@ -1,0 +1,17 @@
+{
+  "formSchema": {
+    "method": "POST",
+    "action": "route('verification.resend')",
+    "enctype": ""
+  },
+  "dataSchema": {
+    "_token": { "type": "string", "required": true }
+  },
+  "uiSchema": {
+    "layout": "vertical",
+    "elements": [
+      { "type": "hidden", "field": "_token", "value": "csrf" },
+      { "type": "button", "action": "submit", "label": "click here to request another" }
+    ]
+  }
+}
