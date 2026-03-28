@@ -26,9 +26,23 @@ class LoginController extends Controller
     /**
      * Where to redirect users after login.
      *
-     * @var string
+     * @return string
      */
-    protected $redirectTo = '/';
+    public function redirectPath()
+    {
+        return config('userauth.redirect_after_login', '/home');
+    }
+
+    /**
+     * The user has logged out of the application.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return mixed
+     */
+    protected function loggedOut(Request $request)
+    {
+        return redirect(config('userauth.redirect_after_logout', '/home'));
+    }
 
     /**
      * Create a new controller instance.

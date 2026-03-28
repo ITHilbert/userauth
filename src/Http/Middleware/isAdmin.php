@@ -18,11 +18,19 @@ class isAdmin
      */
     public function handle(Request $request, Closure $next)
     {
-        /** @var \App\Models\User $user */
+        /** @var \App\Models\User|null $user */
         $user = Auth::user();
+
+        if (!$user) {
+            return redirect()->guest(route('login'));
+        }
 
         if ($user->role_id == 1 || $user->role_id == 2) {
             return $next($request);
+        }
+
+        if (config('userauth.redirect_on_no_permission', 'login') === 'login') {
+            return redirect()->guest(route('login'));
         }
 
         return Redirect::route('no-permission');

@@ -20,8 +20,12 @@ class hasPermission
      */
     public function handle(Request $request, Closure $next, $permission)
     {
-        /** @var \App\Models\User $user */
-        $user = User::find(Auth::id());
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+
+        if (!$user) {
+            return redirect()->guest(route('login'));
+        }
         //Admin und Developer  haben immer das Recht
         if ($user->role_id <= 2) {
             return $next($request);
@@ -29,6 +33,10 @@ class hasPermission
         //recht prüfen
         if ($user->hasPermission($permission)) {
             return $next($request);
+        }
+
+        if (config('userauth.redirect_on_no_permission', 'login') === 'login') {
+            return redirect()->guest(route('login'));
         }
 
         return Redirect::route('no-permission');

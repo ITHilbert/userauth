@@ -105,5 +105,12 @@ Route::middleware(['web'])
 			Route::post('verify', [\ITHilbert\UserAuth\Http\Controllers\TwoFactorController::class, 'store'])->name('verify.store');
 			Route::get('verify/resend', [\ITHilbert\UserAuth\Http\Controllers\TwoFactorController::class, 'resend'])->name('verify.resend');
 		});
+
+		// Impersonate
+		Route::middleware(['web', 'auth'])->group(function () {
+			Route::get('impersonate/{id}', [\ITHilbert\UserAuth\Http\Controllers\ImpersonateController::class, 'impersonate'])->name('userauth.impersonate');
+			Route::get('impersonate-leave', [\ITHilbert\UserAuth\Http\Controllers\ImpersonateController::class, 'leave'])->name('userauth.impersonate.leave');
+		});
+
 		Route::get('password/editwithtoken/{token}/{email}', [PasswordController::class, 'editwithtoken'])->name('password.editwithtoken');
 	});

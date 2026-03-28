@@ -108,52 +108,18 @@ class Role extends Model
     }
 
     /**
-     * Lädt die Persissions in die $permissions Variable
+     * Lädt die Permissions in die $permissions Variable
      *
-     * @param boolean $force    true wenn auf jeden Fall die permissions neu geladen werden sollen
+     * @param boolean $force true wenn auf jeden Fall neu geladen werden soll
      * @return void
-    */
-    private function loadPermissions($force = false){
-        //Daten auf jeden fall neu Laden
-        if($force == true){
-            //Daten Laden
-            $result = DB::table('permissions')
-                            ->join('role_permission', 'id', '=', 'permission_id')
-                            ->where('role_id' , '=' , $this->role_id)
-                            ->get();
-
-            //Ergebnisse in der Variablen speichern
-            foreach( $result as $row){
-                $this->permissions[] = $row->permission;
-            }
-
-            //Ergebnisse in der Session speichern
-            Session::put('permissions' , $this->permissions);
-
-            return true;
-        }
-
-        //Prüfen ob die Variable noch leer ist
-        if(count($this->permissions) == 0){
-            //Prüfen ob werte bereits in der Session gespeichert sind
-
-            if( Session::has('permissions') ){
-                //Werte aus der Session holen
-                $this->permissions = Session::get('permissions');
-            }else{
-                //Daten Laden
-                $result = DB::table('permissions')
-                            ->join('role_permission', 'id', '=', 'permission_id')
-                            ->where('role_id' , '=' , $this->id)
-                            ->get();
-
-                //Ergebnisse in der Variablen speichern
-                foreach( $result as $row){
-                    $this->permissions[] = $row->permission;
-                }
-
-                //Ergebnisse in der Session speichern
-                Session::put('permissions' , $this->permissions);
+     */
+    private function loadPermissions($force = false)
+    {
+        if ($force || count($this->permissions) == 0) {
+            $this->loadMissing('permissions');
+            $relation = $this->getRelation('permissions');
+            if ($relation) {
+                $this->permissions = $relation->pluck('permission')->toArray();
             }
         }
     }

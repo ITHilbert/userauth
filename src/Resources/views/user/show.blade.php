@@ -182,9 +182,8 @@
 </card-main>
 @stop
 
-@section('adminlte_css')
-@stop
+@section('css')
 
-@section('adminlte_js')
+@section('js')
     <script src="{{ asset('js/customer.js') }}" ></script>
 @stop

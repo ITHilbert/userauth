@@ -4,6 +4,7 @@ namespace ITHilbert\UserAuth;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\View\Compilers\BladeCompiler;
 
 class UserAuthServiceProvider extends ServiceProvider
@@ -22,35 +23,59 @@ class UserAuthServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__ . '/Database/Migrations');
         $this->registerRoutes();
         $this->publishAssets();
-        $this->publishMenuFilters();
         $this->registerMiddleware();
 
         //Commands Registrieren
-        $this->commands(\ITHilbert\UserAuth\App\Console\Commands\UserAuthCopyFiles::class);
+        $this->commands([
+            \ITHilbert\UserAuth\App\Console\Commands\UserAuthCopyFiles::class,
+            \ITHilbert\UserAuth\App\Console\Commands\AssignRoleCommand::class,
+            \ITHilbert\UserAuth\App\Console\Commands\CreatePermissionCommand::class,
+        ]);
 
         // Register Event Listeners
         \Illuminate\Support\Facades\Event::listen(
             [\Illuminate\Auth\Events\Login::class, \Illuminate\Auth\Events\Failed::class, \Illuminate\Auth\Events\Logout::class],
             \ITHilbert\UserAuth\Listeners\LogAuthenticationAttempt::class
         );
+
+        $this->registerGates();
     }
 
-    public function publishMenuFilters()
+    protected function registerGates()
     {
-        $this->publishes([
-            __DIR__ . '/App/Menu/Filters/' => app_path('Menu/Filters'),
-        ]);
+        Gate::before(function ($user, $ability) {
+            // Admin/Dev haben alle Rechte (role_id 1 = Dev, 2 = Admin)
+            if ($user->role_id <= 2) {
+                return true;
+            }
+
+            // Prüfe, ob das Package diese Permission kennt und freigibt
+            if (method_exists($user, 'hasPermission') && $user->hasPermission($ability)) {
+                return true;
+            }
+
+            // Wenn null zurückgegeben wird, laufen andere Gates normal weiter
+            return null;
+        });
     }
+
 
 
     public function registerMiddleware()
     {
-        $this->app['router']->aliasMiddleware('hasPermissionAnd', \ITHilbert\UserAuth\Http\Middleware\hasPermissionAnd::class);
-        $this->app['router']->aliasMiddleware('hasPermissionOr', \ITHilbert\UserAuth\Http\Middleware\hasPermissionOr::class);
-        $this->app['router']->aliasMiddleware('hasPermission', \ITHilbert\UserAuth\Http\Middleware\hasPermission::class);
-        $this->app['router']->aliasMiddleware('hasRole', \ITHilbert\UserAuth\Http\Middleware\hasRole::class);
-        $this->app['router']->aliasMiddleware('isAdmin', \ITHilbert\UserAuth\Http\Middleware\isAdmin::class);
-        $this->app['router']->aliasMiddleware('isDev', \ITHilbert\UserAuth\Http\Middleware\isDev::class);
+        $router = $this->app['router'];
+
+        $router->aliasMiddleware('hasPermissionAnd', \ITHilbert\UserAuth\Http\Middleware\hasPermissionAnd::class);
+        $router->aliasMiddleware('hasPermissionOr', \ITHilbert\UserAuth\Http\Middleware\hasPermissionOr::class);
+        $router->aliasMiddleware('hasPermission', \ITHilbert\UserAuth\Http\Middleware\hasPermission::class);
+        $router->aliasMiddleware('hasRole', \ITHilbert\UserAuth\Http\Middleware\hasRole::class);
+        $router->aliasMiddleware('isAdmin', \ITHilbert\UserAuth\Http\Middleware\isAdmin::class);
+        $router->aliasMiddleware('isDev', \ITHilbert\UserAuth\Http\Middleware\isDev::class);
+
+        // Füge die EnforcePasswordPolicy Middleware zur globalen "web" Gruppe hinzu 
+        // (besser: Die Applikation entscheidet selbst, ob sie es nutzen will, oder wir pushen es in den web Group)
+        $router->pushMiddlewareToGroup('web', \ITHilbert\UserAuth\Http\Middleware\EnforcePasswordPolicy::class);
+        $router->pushMiddlewareToGroup('web', \ITHilbert\UserAuth\Http\Middleware\TwoFactorMiddleware::class);
     }
 
 

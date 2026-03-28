@@ -10,10 +10,12 @@ use App\Models\User;
 use DateTime;
 use DateTimeZone;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
 use ITHilbert\LaravelKit\Helpers\MyDateTime;
 use ITHilbert\UserAuth\App\Mail\ForgottenPassword;
 use Illuminate\Support\Str;
 use ITHilbert\LaravelKit\Helpers\Breadcrumb;
+use ITHilbert\UserAuth\Rules\PasswordHistoryRule;
 
 class PasswordController extends Controller
 {
@@ -46,13 +48,17 @@ class PasswordController extends Controller
      */
     public function update(Request $request)
     {
+        $user = Auth()->user();
+
         $request->validate([
-            'password' => 'required|min:8|confirmed',
+            'password' => ['required', 'min:8', 'confirmed', new PasswordHistoryRule($user)],
             'password_confirmation' => 'required|same:password'
         ]);
 
-        $user = Auth()->user();
+        $this->savePasswordHistory($user);
+
         $user->password = Hash::make($request->password);
+        $user->password_changed_at = now();
         $user->update();
 
         return redirect()->route('home')
@@ -137,14 +143,14 @@ class PasswordController extends Controller
      */
     public function updatewithtoken(Request $request)
     {
+        $user = User::where('email', $request->email)->where('edit_pw_token', $request->pwtoken)->where('deleted_at', NULL)->first();
+
         $request->validate([
-            'password' => 'required|min:8|confirmed',
+            'password' => ['required', 'min:8', 'confirmed', new PasswordHistoryRule($user)],
             'password_confirmation' => 'required|same:password',
             'pwtoken' => 'required',
             'email' => 'email',
         ]);
-
-        $user = User::where('email', $request->email)->where('edit_pw_token', $request->pwtoken)->where('deleted_at', NULL)->first();
 
         $date1 = new MyDateTime('now');
         $date2 = new MyDateTime($user->edit_pw_token_end);
@@ -152,11 +158,14 @@ class PasswordController extends Controller
         //echo $date1->getTimestamp() . ' - ' . $date2->getTimestamp();
 
         if ($date1->getTimestamp() > $date2->getTimestamp()) {
-            return view('userauth::password.forgotten')->withErrors('Token ist abgelaufen.');
+            return redirect()->route('password.forgotten')->withErrors('Token ist abgelaufen.');
         }
 
         if (isset($user)) {
+            $this->savePasswordHistory($user);
+
             $user->password = Hash::make($request->password);
+            $user->password_changed_at = now();
             $user->edit_pw_token = NULL;
             $user->edit_pw_token_end = null;
             $user->update();
@@ -164,8 +173,19 @@ class PasswordController extends Controller
             return redirect()->route('home')
                 ->with('message', 'Passwort wurde geändert');
         } else {
-            view('userauth::password.forgotten')->withErrors('Änderung nicht möglich.');
+            return redirect()->route('password.forgotten')->withErrors('Änderung nicht möglich.');
         }
     }
 
+    private function savePasswordHistory($user)
+    {
+        if (config('userauth.password_policy.enabled', false)) {
+            DB::table('user_password_histories')->insert([
+                'user_id' => $user->id,
+                'password' => $user->password, // Altes Passwort
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+    }
 }

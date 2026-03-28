@@ -22,41 +22,35 @@ trait UserAuth
         return $this->name;
     }
 
-    public function __construct(array $attributes = [])
+    public function initializeUserAuth()
     {
-        // Call Parent (Model) constructor to handle attributes
-        // This fixes User::create()
-        // Check if parent has __construct method before calling (usually Model does)
-        if (method_exists(parent::class, '__construct')) {
-            parent::__construct($attributes);
-        }
+        // Initialsierung nur, wenn das Paket aktiv benötigt wird. VueComboBox ruft sich selbst initial auf (initializeVueComboBox o.ä. in aktuelleren Versionen),
+        // daher belassen wir nur die Attribute, die wir fillable machen wollen.
 
-        // Call VueComboBox constructor logic
-        // This fixes cbKey/cbCaption attributes
-        $this->initVueComboBox();
-
-        $this->fillable[] = 'role_id';
-        $this->fillable[] = 'anrede_id';
-        $this->fillable[] = 'title';
-        $this->fillable[] = 'firstname';
-        $this->fillable[] = 'lastname';
-        $this->fillable[] = 'smallname';
-        $this->fillable[] = 'street';
-        $this->fillable[] = 'postcode';
-        $this->fillable[] = 'city';
-        $this->fillable[] = 'country';
-        $this->fillable[] = 'signature_rule_id';
-        $this->fillable[] = 'ustid';
-        $this->fillable[] = 'phone';
-        $this->fillable[] = 'phone2';
-        $this->fillable[] = 'mobile';
-        $this->fillable[] = 'fax';
-        $this->fillable[] = 'private_email';
-        $this->fillable[] = 'skype';
-        $this->fillable[] = 'hourly_rate';
-        $this->fillable[] = 'birthday';
-        $this->fillable[] = 'comment';
-        $this->fillable[] = 'image';
+        $this->fillable = array_merge($this->fillable, [
+            'role_id',
+            'anrede_id',
+            'title',
+            'firstname',
+            'lastname',
+            'smallname',
+            'street',
+            'postcode',
+            'city',
+            'country',
+            'signature_rule_id',
+            'ustid',
+            'phone',
+            'phone2',
+            'mobile',
+            'fax',
+            'private_email',
+            'skype',
+            'hourly_rate',
+            'birthday',
+            'comment',
+            'image'
+        ]);
     }
 
     public function getKey()
@@ -70,6 +64,51 @@ trait UserAuth
             return $this->firstname . ' ' . $this->lastname;
         }
         return $this->name;
+    }
+
+    /**
+     * Teams Relation
+     */
+    public function teams()
+    {
+        return $this->belongsToMany(\ITHilbert\UserAuth\Entities\Team::class, 'team_user')
+            ->withPivot('role_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * Momentan aktives Team
+     */
+    public function currentTeam()
+    {
+        return $this->belongsTo(\ITHilbert\UserAuth\Entities\Team::class, 'current_team_id');
+    }
+
+    /**
+     * Ermittelt die korrekte Rolle (Mandantenfähig)
+     */
+    public function getActiveRoleId()
+    {
+        if (config('userauth.teams.enabled', false) && $this->current_team_id) {
+            // Hole das Pivot role_id für das aktive Team
+            $teamUser = DB::table('team_user')
+                ->where('user_id', $this->id)
+                ->where('team_id', $this->current_team_id)
+                ->first();
+            
+            if ($teamUser && $teamUser->role_id) {
+                return $teamUser->role_id;
+            }
+        }
+        return $this->role_id;
+    }
+
+    /**
+     * Aktives Rollen-Objekt holen
+     */
+    public function currentRole()
+    {
+        return \ITHilbert\UserAuth\Entities\Role::find($this->getActiveRoleId());
     }
 
 
@@ -89,13 +128,9 @@ trait UserAuth
     public function roleName()
     {
         if ($this->role_name == '') {
-            //Prüfen ob werte bereits in der Session gespeichert sind
-            if (Session::has('role_name')) {
-                //Werte aus der Session holen
-                $this->role_name = Session::get('role_name');
-            } else {
-                $this->role_name = $this->role->role;
-                Session::put('role_name', $this->role_name);
+            $activeRole = $this->currentRole();
+            if ($activeRole) {
+                $this->role_name = $activeRole->role;
             }
         }
 
@@ -147,7 +182,8 @@ trait UserAuth
 
     public function roleDisplayname()
     {
-        return $this->role->role_display;
+        $activeRole = $this->currentRole();
+        return $activeRole ? $activeRole->role_display : '';
     }
 
 
@@ -160,7 +196,7 @@ trait UserAuth
     public function hasPermission(string $permission)
     {
         //Admin darf immer
-        if ($this->role_id <= 2) {
+        if ($this->getActiveRoleId() <= 2) {
             return true;
         }
 
@@ -177,7 +213,7 @@ trait UserAuth
     public function hasPermissionOr($permissions)
     {
         //Admin darf immer
-        if ($this->role_id <= 2) {
+        if ($this->getActiveRoleId() <= 2) {
             return true;
         }
 
@@ -202,7 +238,7 @@ trait UserAuth
     public function hasPermissionAnd($permissions)
     {
         //Admin darf immer
-        if ($this->role_id <= 2) {
+        if ($this->getActiveRoleId() <= 2) {
             return true;
         }
 
@@ -218,59 +254,31 @@ trait UserAuth
     }
 
     /**
-     * Lädt die Persissions in die $permissions Variable
+     * Lädt die Permissions in die $permissions Variable mittels Eloquent.
+     * Ohne Session oder rohe DB-Queries.
      *
-     * @param boolean $force    true wenn auf jeden Fall die permissions neu geladen werden sollen
+     * @param boolean $force true wenn auf jeden Fall neu geladen werden soll
      * @return bool
      */
     private function loadPermissions($force = false)
     {
+        $activeRoleId = $this->getActiveRoleId();
+        
         //Admin darf immer, rechte müssen nicht geladen werden
-        if ($this->role_id <= 2) {
+        if ($activeRoleId <= 2) {
             return true;
         }
 
-        //Daten auf jeden fall neu Laden
-        if ($force == true) {
-            //Daten Laden
-            $result = DB::table('permissions')
-                ->join('role_permission', 'id', '=', 'permission_id')
-                ->where('role_id', '=', $this->role_id)
-                ->get();
-
-            //Ergebnisse in der Variablen speichern
-            foreach ($result as $row) {
-                $this->permissions[] = $row->permission;
-            }
-
-            //Ergebnisse in der Session speichern
-            Session::put('permissions', $this->permissions);
-
-            return true;
-        }
-
-        //Prüfen ob die Variable noch leer ist
-        if (count($this->permissions) == 0) {
-            //Prüfen ob werte bereits in der Session gespeichert sind
-            if (Session::has('permissions')) {
-                //Werte aus der Session holen
-                $this->permissions = Session::get('permissions');
-            } else {
-                //Daten Laden
-                $result = DB::table('permissions')
-                    ->join('role_permission', 'id', '=', 'permission_id')
-                    ->where('role_id', '=', $this->role_id)
-                    ->get();
-
-                //Ergebnisse in der Variablen speichern
-                foreach ($result as $row) {
-                    $this->permissions[] = $row->permission;
-                }
-
-                //Ergebnisse in der Session speichern
-                Session::put('permissions', $this->permissions);
+        if ($force || count($this->permissions) == 0) {
+            // Mit der aktiven Rolle Permissions laden
+            $activeRole = $this->currentRole();
+            if ($activeRole && $activeRole->permissions) {
+                // Hier müssen wir aufpassen: relation laden auf currentRole statt via $this->role!
+                $activeRole->loadMissing('permissions');
+                $this->permissions = $activeRole->permissions->pluck('permission')->toArray();
             }
         }
+
         return true;
     }
 
@@ -310,6 +318,61 @@ trait UserAuth
         $this->two_factor_code = null;
         $this->two_factor_expires_at = null;
         $this->save();
+    }
+
+    /**
+     * Prüft, ob der aktuelle User von einem Admin (Support) im "Impersonate"-Modus betrieben wird.
+     *
+     * @return bool
+     */
+    public function isImpersonated()
+    {
+        return session()->has('impersonated_by');
+    }
+
+    /**
+     * Gibt den Admin (Impersonator) zurück, der gerade in diesem Account eingeloggt ist.
+     *
+     * @return \Illuminate\Database\Eloquent\Model|null
+     */
+    public function getImpersonator()
+    {
+        if ($this->isImpersonated()) {
+            $modelClass = config('auth.providers.users.model', '\\App\\Models\\User');
+            return $modelClass::find(session()->get('impersonated_by'));
+        }
+        return null;
+    }
+
+    /**
+     * Prüft, ob der aktuelle User das Recht hat, als anderer User angemeldet zu werden.
+     *
+     * @return bool
+     */
+    public function canImpersonate()
+    {
+        // Beispiel: Nur Role 1 (Dev) und 2 (Admin) oder eine dedizierte Permission "impersonate_users"
+        if ($this->role_id <= 2) {
+            return true;
+        }
+
+        if (method_exists($this, 'hasPermission') && $this->hasPermission('impersonate_users')) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Prüft, ob DIESER User von jemand anderem übernommen werden darf.
+     * Admins/Devs dürfen idR nicht von anderen übernommen werden.
+     *
+     * @return bool
+     */
+    public function canBeImpersonated()
+    {
+        // Ein Admin darf sich nicht selbst übernehmen und ein Dev/Admin darf in der Regel nicht von anderen übernommen werden.
+        return $this->id !== auth()->id() && $this->role_id > 2;
     }
 }
 
