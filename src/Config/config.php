@@ -1,19 +1,21 @@
 <?php
 
+use ITHilbert\UserAuth\Http\Middleware\TwoFactorMiddleware;
+
 return [
     'routes' => [
         'users_prefix' => 'users',
-        'users_middleware' => ['auth', \ITHilbert\UserAuth\Http\Middleware\TwoFactorMiddleware::class],
+        'users_middleware' => ['auth', TwoFactorMiddleware::class],
         'roles_prefix' => 'roles',
-        'roles_middleware' => ['auth', 'hasPermission:role_read', \ITHilbert\UserAuth\Http\Middleware\TwoFactorMiddleware::class],
+        'roles_middleware' => ['auth', 'hasPermission:role_read', TwoFactorMiddleware::class],
         'permissions_prefix' => 'permissions',
-        'permissions_middleware' => ['auth', 'hasRole:dev', \ITHilbert\UserAuth\Http\Middleware\TwoFactorMiddleware::class],
+        'permissions_middleware' => ['auth', 'hasRole:dev', TwoFactorMiddleware::class],
     ],
 
     // Pfad für Redirect nach erfolgreichem Login
-    'redirect_after_login' => '/home',
+    'redirect_after_login' => '/',
     // Pfad für Redirect nach dem Logout
-    'redirect_after_logout' => '/home',
+    'redirect_after_logout' => '/',
     // Route wenn Rechte fehlen: Weiterleitung zur Login-Seite ('login') oder zur Fehlerseite ('no-permission')
     'redirect_on_no_permission' => 'login',
 
@@ -23,7 +25,7 @@ return [
     'two_factor_enabled' => env('USERAUTH_2FA_ENABLED', false),
     // Darf ein Admin ("dev" oder "admin") sich temporär als ein anderer Nutzer anmelden?
     'impersonate_enabled' => true,
-    
+
     // Erweiterte Passwort-Sicherheitsrichtlinien
     'password_policy' => [
         'enabled' => env('USERAUTH_PASSWORD_POLICY_ENABLED', false), // Gibt an, ob Ablauf und Historie forciert werden
@@ -36,11 +38,11 @@ return [
         'enabled' => env('USERAUTH_TEAMS_ENABLED', false),
     ],
 
-    //Feld 'name' befüllen
+    // Feld 'name' befüllen
     'name' => 0,  // 0 = Manuell 1 = Vorname Nachname 2 = Nachname, Vorname 3 = Nachname 4 = Vorname
-    //Sollen die Views von ressources or vendor verwendet werden
+    // Sollen die Views von ressources or vendor verwendet werden
     'views' => 'vendor',
-    //View welche Felder anzeigen
+    // View welche Felder anzeigen
     'user' => [
         'anrede' => false,
         'title' => false,
@@ -91,16 +93,16 @@ return [
     ],
     'anrede' => [
         [
-            'id' => "1",
-            'anrede' => 'keine'
+            'id' => '1',
+            'anrede' => 'keine',
         ],
         [
-            'id' => "2",
-            'anrede' => 'Frau'
+            'id' => '2',
+            'anrede' => 'Frau',
         ],
         [
-            'id' => "3",
-            'anrede' => 'Herr'
+            'id' => '3',
+            'anrede' => 'Herr',
         ],
     ],
 
