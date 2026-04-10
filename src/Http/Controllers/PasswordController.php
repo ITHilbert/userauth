@@ -16,12 +16,16 @@ use ITHilbert\UserAuth\App\Mail\ForgottenPassword;
 use Illuminate\Support\Str;
 use ITHilbert\LaravelKit\Helpers\Breadcrumb;
 use ITHilbert\UserAuth\Rules\PasswordHistoryRule;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 
-class PasswordController extends Controller
+class PasswordController extends Controller implements HasMiddleware
 {
-    public function __construct()
+    public static function middleware(): array
     {
-        $this->middleware('throttle:5,1')->only('sendtocken');
+        return [
+            new Middleware('throttle:5,1', only: ['sendtocken']),
+        ];
     }
 
     /**
@@ -61,7 +65,9 @@ class PasswordController extends Controller
         $user->password_changed_at = now();
         $user->update();
 
-        return redirect()->route('home')
+        $redirectPath = config('userauth.redirect_after_login', '/');
+
+        return redirect($redirectPath)
             ->with('message', 'Passwort wurde geändert');
     }
 
@@ -170,7 +176,9 @@ class PasswordController extends Controller
             $user->edit_pw_token_end = null;
             $user->update();
 
-            return redirect()->route('home')
+            $redirectPath = config('userauth.redirect_after_login', '/');
+
+            return redirect($redirectPath)
                 ->with('message', 'Passwort wurde geändert');
         } else {
             return redirect()->route('password.forgotten')->withErrors('Änderung nicht möglich.');

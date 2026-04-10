@@ -118,6 +118,10 @@ class UserAuthServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__ . '/Config/config.php' => config_path('userauth.php'),
         ]);
+
+        $this->mergeConfigFrom(
+            __DIR__ . '/Config/config.php', 'userauth'
+        );
     }
 
     /**
