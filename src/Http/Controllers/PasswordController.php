@@ -4,11 +4,8 @@ declare(strict_types=1);
 
 namespace ITHilbert\UserAuth\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Product;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +17,7 @@ use ITHilbert\LaravelKit\Helpers\MyDateTime;
 use ITHilbert\UserAuth\App\Mail\ForgottenPassword;
 use ITHilbert\UserAuth\Rules\PasswordHistoryRule;
 
-final class PasswordController extends Controller implements HasMiddleware
+final class PasswordController implements HasMiddleware
 {
     public static function middleware(): array
     {
@@ -30,10 +27,7 @@ final class PasswordController extends Controller implements HasMiddleware
     }
 
     /**
-     * Edit the form for editing the specified resource.
-     *
-     * @param  Product  $product
-     * @return Response
+     * Formular zum Passwort ändern öffnen.
      */
     public function edit()
     {
@@ -44,11 +38,7 @@ final class PasswordController extends Controller implements HasMiddleware
     }
 
     /**
-     * Passwort Änderung speichern
-     *
-     * @param  Request  $requestliste
-     * @param  Product  $product
-     * @return Response
+     * Passwort-Änderung speichern.
      */
     public function update(Request $request)
     {
