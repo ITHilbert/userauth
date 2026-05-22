@@ -1,8 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth\Traits\Auth;
 
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 trait ConfirmsPasswords
 {
@@ -11,7 +16,7 @@ trait ConfirmsPasswords
     /**
      * Display the password confirmation view.
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function showConfirmForm()
     {
@@ -21,8 +26,7 @@ trait ConfirmsPasswords
     /**
      * Confirm the given user's password.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
+     * @return RedirectResponse|JsonResponse
      */
     public function confirm(Request $request)
     {
@@ -36,7 +40,6 @@ trait ConfirmsPasswords
     /**
      * Reset the password confirmation timeout.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return void
      */
     protected function resetPasswordConfirmationTimeout(Request $request)

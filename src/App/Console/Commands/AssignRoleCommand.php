@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth\App\Console\Commands;
 
 use Illuminate\Console\Command;
 use ITHilbert\UserAuth\Entities\Role;
 
-class AssignRoleCommand extends Command
+final class AssignRoleCommand extends Command
 {
     /**
      * The name and signature of the console command.
@@ -33,26 +35,29 @@ class AssignRoleCommand extends Command
 
         // Dynamically resolving the User Model based on standard Laravel structure
         $userModelClass = config('auth.providers.users.model', '\\App\\Models\\User');
-        
-        if (!class_exists($userModelClass)) {
+
+        if (! class_exists($userModelClass)) {
             $this->error("User model [{$userModelClass}] not found.");
+
             return 1;
         }
 
         $user = $userModelClass::where('email', $email)->first();
 
-        if (!$user) {
+        if (! $user) {
             $this->error("User with email [{$email}] not found.");
+
             return 1;
         }
 
         $role = Role::where('id', $roleIdentifier)
-                    ->orWhere('role', $roleIdentifier)
-                    ->orWhere('role_display', $roleIdentifier)
-                    ->first();
+            ->orWhere('role', $roleIdentifier)
+            ->orWhere('role_display', $roleIdentifier)
+            ->first();
 
-        if (!$role) {
+        if (! $role) {
             $this->error("Role [{$roleIdentifier}] not found in database.");
+
             return 1;
         }
 

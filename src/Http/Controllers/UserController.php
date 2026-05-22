@@ -1,43 +1,46 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Lang;
-use Yajra\DataTables\Facades\DataTables;
-
-use App\Models\User;
 use ITHilbert\LaravelKit\Helpers\Breadcrumb;
 use ITHilbert\LaravelKit\Helpers\HButton;
 use ITHilbert\UserAuth\Entities\Role;
+use Yajra\DataTables\Facades\DataTables;
 
-class UserController extends Controller
+final class UserController extends Controller
 {
     /**
      * Display a listing of the resource.
+     *
      * @return Response
      */
     public function index(Request $request)
     {
-        $data = User::latest()->where('deleted_at', NULL)->with('role')->get();
+        $data = User::latest()->where('deleted_at', null)->with('role')->get();
 
         if ($request->ajax()) {
             $user = Auth::user();
-            return Datatables::of($data)
+
+            return DataTables::of($data)
                 ->addColumn('RoleName', function ($row) {
                     return $row->roleDisplayname();
                 })
                 ->addColumn('action', function ($row) use ($user) {
                     $ausgabe = '<div style="white-space: nowrap;">';
-                    //$ausgabe .= HButton::show(route('permission.show', $row->id), '');
-                    if($user->hasPermission('user_edit')){
+                    // $ausgabe .= HButton::show(route('permission.show', $row->id), '');
+                    if ($user->hasPermission('user_edit')) {
                         $ausgabe .= HButton::edit(route('user.edit', $row->id), '');
                     }
-                    if($user->hasPermission('user_delete')){
+                    if ($user->hasPermission('user_delete')) {
                         $ausgabe .= HButton::delete($row->id, '');
                     }
                     $ausgabe .= '</div>';
@@ -48,42 +51,44 @@ class UserController extends Controller
                 ->make(true);
         }
 
-        $breadcrumb = new Breadcrumb();
-        $breadcrumb->add( trans('userauth::user.header_list'));
+        $breadcrumb = new Breadcrumb;
+        $breadcrumb->add(trans('userauth::user.header_list'));
 
         return view('userauth::user.index')->with(compact('breadcrumb'));
     }
 
     /**
      * Show the form for creating a new resource.
+     *
      * @return Response
      */
     public function create()
     {
         $roles = Role::getComboBoxData();
 
-        $breadcrumb = new Breadcrumb();
-        $breadcrumb->add( trans('userauth::user.header_list'), route('user'));
-        $breadcrumb->add( trans('userauth::user.header_create'));
+        $breadcrumb = new Breadcrumb;
+        $breadcrumb->add(trans('userauth::user.header_list'), route('user'));
+        $breadcrumb->add(trans('userauth::user.header_create'));
 
         return view('userauth::user.create')->with(compact('roles', 'breadcrumb'));
     }
 
     /**
      * Store a newly created resource in storage.
-     * @param Request $request
+     *
      * @return Response
      */
     public function store(Request $request)
     {
         $request->validate([
             'email' => 'required | email | unique:users',
-            'password'  => 'required',
-            'password2'  => 'required | same:password',
+            'password' => 'required',
+            'password2' => 'required | same:password',
             'role_id' => 'required',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
         ]);
 
-        $user = new User();
+        $user = new User;
         $user->name = $this->getName($request);
         $user->email = $request->email;
         $user->role_id = $request->role_id;
@@ -110,19 +115,19 @@ class UserController extends Controller
         $user->birthday = $request->birthday ?? '';
         $user->comment = $request->comment ?? '';
 
-        //Image
+        // Image
         if ($request->hasFile('image')) {
             $file = $request->file('image');
             $pathImage = $file->store('public/users'); // Specify the storage path
-            //Neuer Bildpfad speichern
-            $user->image = str_replace("public/", "storage/", $pathImage);
+            // Neuer Bildpfad speichern
+            $user->image = str_replace('public/', 'storage/', $pathImage);
         }
 
         $user->save();
 
         if ($user) {
             return redirect()->route('user')->with([
-                'message'    => Lang::get('userauth::user.MsgAddSuccess'),
+                'message' => Lang::get('userauth::user.MsgAddSuccess'),
                 'alert-type' => 'success',
             ]);
         } else {
@@ -130,31 +135,32 @@ class UserController extends Controller
         }
     }
 
-    //Gibt den Inhalt für das Name Feld zurück
-    private function getName(Request $request){
+    // Gibt den Inhalt für das Name Feld zurück
+    private function getName(Request $request)
+    {
         switch (config('userauth.name')) {
             case '1':
-                # Vorname Nachname
-                return $request->firstname . ' ' . $request->lastname;
+                // Vorname Nachname
+                return $request->firstname.' '.$request->lastname;
             case '2':
-                # Nachname, Vorname
-                return $request->lastname . ', ' . $request->firstname;
+                // Nachname, Vorname
+                return $request->lastname.', '.$request->firstname;
             case '3':
-                # Nachname
+                // Nachname
                 return $request->lastname;
             case '4':
-                # Vorname
+                // Vorname
                 return $request->firstname;
             default:
-                # 0 Manuell
+                // 0 Manuell
                 return $request->name;
         }
     }
 
-
     /**
      * Show the form for editing the specified resource.
-     * @param int $id
+     *
+     * @param  int  $id
      * @return Response
      */
     public function edit($id)
@@ -162,52 +168,54 @@ class UserController extends Controller
         $user = User::findOrFail($id);
         $roles = Role::all();
 
-        $breadcrumb = new Breadcrumb();
-        $breadcrumb->add( trans('userauth::user.header_list'), route('user'));
-        $breadcrumb->add( trans('userauth::user.header_edit'));
+        $breadcrumb = new Breadcrumb;
+        $breadcrumb->add(trans('userauth::user.header_list'), route('user'));
+        $breadcrumb->add(trans('userauth::user.header_edit'));
 
         return view('userauth::user.edit')->with(compact('roles', 'user', 'breadcrumb'));
     }
 
     /**
      * Update the specified resource in storage.
-     * @param Request $request
-     * @param int $id
+     *
+     * @param  int  $id
      * @return Response
      */
     public function update(Request $request, $id)
     {
         $editPW = false;
 
-        //Wenn ein neues Passwort gesetzt wurde
+        // Wenn ein neues Passwort gesetzt wurde
         if ($request->password) {
             $request->validate([
                 'email' => 'required | email',
-                'password'  => 'required',
-                'password2'  => 'required | same:password',
+                'password' => 'required',
+                'password2' => 'required | same:password',
                 'role_id' => 'required',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
             ]);
             $editPW = true;
-        }else{
-        //Ohne Änderung des Passwortes
+        } else {
+            // Ohne Änderung des Passwortes
             $request->validate([
                 'email' => 'required | email',
                 'role_id' => 'required',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
             ]);
         }
 
-        //Benutzer laden
-        $user = User::find($id);
+        // Benutzer laden
+        $user = User::findOrFail($id);
 
-        //Prüfen ob sich die E-Mail Adresse geändert hat
-        if($user->email != $request->email){
+        // Prüfen ob sich die E-Mail Adresse geändert hat
+        if ($user->email != $request->email) {
             $request->validate([
                 'email' => 'required | email | unique:users',
                 'role_id' => 'required',
             ]);
         }
 
-        //Neue Daten speichern
+        // Neue Daten speichern
         $user->name = $this->getName($request);
         $user->email = $request->email;
         $user->role_id = $request->role_id;
@@ -233,25 +241,24 @@ class UserController extends Controller
         $user->birthday = $request->birthday ?? '';
         $user->comment = $request->comment ?? '';
 
-        //Image
+        // Image
         if ($request->hasFile('image')) {
-            $pfadAlt = str_replace("storage/", "", $user->image);
+            $pfadAlt = str_replace('storage/', '', $user->image);
 
             $file = $request->file('image');
             $pathImage = $file->store('public/users'); // Specify the storage path
-            //Altes Bild Löschen
-            if($pfadAlt !== ''){
-                $pfadAlt = storage_path('app/public/' . $pfadAlt);
+            // Altes Bild Löschen
+            if ($pfadAlt !== '') {
+                $pfadAlt = storage_path('app/public/'.$pfadAlt);
                 if (file_exists($pfadAlt)) {
                     unlink($pfadAlt);
                 }
             }
-            //Neuer Bildpfad speichern
-            $user->image = str_replace("public/", "storage/", $pathImage);
+            // Neuer Bildpfad speichern
+            $user->image = str_replace('public/', 'storage/', $pathImage);
         }
 
-
-        //Falls das Passwort geändert werden soll
+        // Falls das Passwort geändert werden soll
         if ($editPW) {
             $user->password = Hash::make($request->password);
         }
@@ -260,7 +267,7 @@ class UserController extends Controller
 
         if ($erg) {
             return redirect()->route('user')->with([
-                'message'    => Lang::get('userauth::user.MsgEditSuccess'),
+                'message' => Lang::get('userauth::user.MsgEditSuccess'),
                 'alert-type' => 'success',
             ]);
         } else {
@@ -270,63 +277,70 @@ class UserController extends Controller
 
     /**
      * Remove the specified resource from storage.
-     * @param int $id
+     *
+     * @param  int  $id
      * @return Response
      */
     public function delete($id)
     {
-        $user = User::find($id);
+        $user = User::findOrFail($id);
         $user->delete();
+
         return redirect()->route('user')->with([
-            'message'    => Lang::get('userauth::user.MsgDeleteSuccess'),
+            'message' => Lang::get('userauth::user.MsgDeleteSuccess'),
             'alert-type' => 'success',
         ]);
     }
 
-
     /**
      * Show the form for editing the specified resource.
+     *
      * @return Response
      */
     public function usericon_edit()
     {
-        $breadcrumb = new Breadcrumb();
-        $breadcrumb->add( trans('userauth::user.header_list'), route('user'));
-        $breadcrumb->add( trans('userauth::user.header_edit'));
+        $breadcrumb = new Breadcrumb;
+        $breadcrumb->add(trans('userauth::user.header_list'), route('user'));
+        $breadcrumb->add(trans('userauth::user.header_edit'));
 
         return view('userauth::user.icon')->with(compact('breadcrumb'));
     }
 
     /**
      * Update the specified resource in storage.
-     * @param Request $request
+     *
      * @return Response
      */
     public function usericon_update(Request $request)
     {
+        $request->validate([
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
+        ]);
+
         $userID = Auth::user()->id;
 
-        //Benutzer laden
-        $user = User::find($userID);
+        // Benutzer laden
+        $user = User::findOrFail($userID);
 
-        //Image
+        // Image
         if ($request->hasFile('image')) {
-            $pfadAlt = str_replace("storage/", "", $user->image);
+            $pfadAlt = str_replace('storage/', '', $user->image);
 
             $file = $request->file('image');
             $pathImage = $file->store('public/users'); // Specify the storage path
-            //Altes Bild Löschen
-            if($pfadAlt !== ''){
-                $pfadAlt = storage_path('app/public/' . $pfadAlt);
+            // Altes Bild Löschen
+            if ($pfadAlt !== '') {
+                $pfadAlt = storage_path('app/public/'.$pfadAlt);
                 if (file_exists($pfadAlt)) {
                     unlink($pfadAlt);
                 }
             }
-            //Neuer Bildpfad speichern
-            $user->image = str_replace("public/", "storage/", $pathImage);
+            // Neuer Bildpfad speichern
+            $user->image = str_replace('public/', 'storage/', $pathImage);
         }
 
         $user->update();
+
         return redirect()->back();
     }
 }

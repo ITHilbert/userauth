@@ -1,11 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth\Traits;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use ITHilbert\LaravelKit\Traits\VueComboBox;
+use ITHilbert\UserAuth\Entities\Role;
+use ITHilbert\UserAuth\Entities\Team;
 
 trait UserAuth
 {
@@ -14,7 +19,8 @@ trait UserAuth
         VueComboBox::__construct as private initVueComboBox;
     }
 
-    private $permissions = array();
+    private $permissions = [];
+
     private $role_name = '';
 
     public function getCbCaptionAttribute()
@@ -49,7 +55,7 @@ trait UserAuth
             'hourly_rate',
             'birthday',
             'comment',
-            'image'
+            'image',
         ]);
     }
 
@@ -61,8 +67,9 @@ trait UserAuth
     public function getName()
     {
         if (config('userauth.firstname') == true && config('userauth.lastname') == true) {
-            return $this->firstname . ' ' . $this->lastname;
+            return $this->firstname.' '.$this->lastname;
         }
+
         return $this->name;
     }
 
@@ -71,7 +78,7 @@ trait UserAuth
      */
     public function teams()
     {
-        return $this->belongsToMany(\ITHilbert\UserAuth\Entities\Team::class, 'team_user')
+        return $this->belongsToMany(Team::class, 'team_user')
             ->withPivot('role_id')
             ->withTimestamps();
     }
@@ -81,7 +88,7 @@ trait UserAuth
      */
     public function currentTeam()
     {
-        return $this->belongsTo(\ITHilbert\UserAuth\Entities\Team::class, 'current_team_id');
+        return $this->belongsTo(Team::class, 'current_team_id');
     }
 
     /**
@@ -95,11 +102,12 @@ trait UserAuth
                 ->where('user_id', $this->id)
                 ->where('team_id', $this->current_team_id)
                 ->first();
-            
+
             if ($teamUser && $teamUser->role_id) {
                 return $teamUser->role_id;
             }
         }
+
         return $this->role_id;
     }
 
@@ -108,15 +116,15 @@ trait UserAuth
      */
     public function currentRole()
     {
-        return \ITHilbert\UserAuth\Entities\Role::find($this->getActiveRoleId());
+        return Role::find($this->getActiveRoleId());
     }
-
 
     public function getImagePath()
     {
         if ($this->image !== '') {
             return asset($this->image);
         }
+
         return asset('vendor/userauth/img/default-user.jpg');
     }
 
@@ -141,24 +149,25 @@ trait UserAuth
      * Prüft ob der User eine bestimmte Rolle hat
      *
      * @param string|int|array| $roles
-     * @return bool
      */
     public function hasRole($role): bool
     {
-        //Ausnahmen für Developer und Admin
+        // Ausnahmen für Developer und Admin
         if ($role == 'dev') {
-            if ($this->roleName() == 'dev')
+            if ($this->roleName() == 'dev') {
                 return true;
+            }
         } else {
-            if ($this->roleName() == 'dev' || $this->roleName() == 'admin')
+            if ($this->roleName() == 'dev' || $this->roleName() == 'admin') {
                 return true;
+            }
         }
 
         if ($role == $this->roleName()) {
             return true;
         }
 
-        //kein Treffer
+        // kein Treffer
         return false;
     }
 
@@ -166,7 +175,6 @@ trait UserAuth
      * Prüft ob der User eine bestimmte Rolle hat
      *
      * @param string|int|array| $roles
-     * @return bool
      */
     public function hasRoleOr($roles): bool
     {
@@ -176,43 +184,43 @@ trait UserAuth
             }
         }
 
-        //kein Treffer
+        // kein Treffer
         return false;
     }
 
     public function roleDisplayname()
     {
         $activeRole = $this->currentRole();
+
         return $activeRole ? $activeRole->role_display : '';
     }
-
 
     /**
      * Prüft ob die Rolle eine bestimmte Permission hat
      *
-     * @param string $permission
-     * @return boolean
+     * @return bool
      */
     public function hasPermission(string $permission)
     {
-        //Admin darf immer
+        // Admin darf immer
         if ($this->getActiveRoleId() <= 2) {
             return true;
         }
 
         $this->loadPermissions();
+
         return in_array($permission, $this->permissions);
     }
 
     /**
      * Prüft ob die Rolle eine bestimmte Permission hat
      *
-     * @param string $permission
-     * @return boolean
+     * @param  string  $permission
+     * @return bool
      */
     public function hasPermissionOr($permissions)
     {
-        //Admin darf immer
+        // Admin darf immer
         if ($this->getActiveRoleId() <= 2) {
             return true;
         }
@@ -228,16 +236,15 @@ trait UserAuth
         return false;
     }
 
-
     /**
      * Prüft ob die Rolle eine bestimmte Permission hat
      *
-     * @param string $permission
-     * @return boolean
+     * @param  string  $permission
+     * @return bool
      */
     public function hasPermissionAnd($permissions)
     {
-        //Admin darf immer
+        // Admin darf immer
         if ($this->getActiveRoleId() <= 2) {
             return true;
         }
@@ -245,7 +252,7 @@ trait UserAuth
         $this->loadPermissions();
 
         foreach ($permissions as $perm) {
-            if (!in_array(trim($perm), $this->permissions)) {
+            if (! in_array(trim($perm), $this->permissions)) {
                 return false;
             }
         }
@@ -257,14 +264,14 @@ trait UserAuth
      * Lädt die Permissions in die $permissions Variable mittels Eloquent.
      * Ohne Session oder rohe DB-Queries.
      *
-     * @param boolean $force true wenn auf jeden Fall neu geladen werden soll
+     * @param  bool  $force  true wenn auf jeden Fall neu geladen werden soll
      * @return bool
      */
     private function loadPermissions($force = false)
     {
         $activeRoleId = $this->getActiveRoleId();
-        
-        //Admin darf immer, rechte müssen nicht geladen werden
+
+        // Admin darf immer, rechte müssen nicht geladen werden
         if ($activeRoleId <= 2) {
             return true;
         }
@@ -282,7 +289,7 @@ trait UserAuth
         return true;
     }
 
-    //Helper
+    // Helper
     protected function convertPipeToArray(string $pipeString)
     {
         $pipeString = trim($pipeString);
@@ -298,13 +305,12 @@ trait UserAuth
             return explode('|', $pipeString);
         }
 
-        if (!in_array($quoteCharacter, ["'", '"'])) {
+        if (! in_array($quoteCharacter, ["'", '"'])) {
             return explode('|', $pipeString);
         }
 
         return explode('|', trim($pipeString, $quoteCharacter));
     }
-
 
     public function generateTwoFactorCode()
     {
@@ -333,14 +339,16 @@ trait UserAuth
     /**
      * Gibt den Admin (Impersonator) zurück, der gerade in diesem Account eingeloggt ist.
      *
-     * @return \Illuminate\Database\Eloquent\Model|null
+     * @return Model|null
      */
     public function getImpersonator()
     {
         if ($this->isImpersonated()) {
             $modelClass = config('auth.providers.users.model', '\\App\\Models\\User');
+
             return $modelClass::find(session()->get('impersonated_by'));
         }
+
         return null;
     }
 
@@ -375,5 +383,3 @@ trait UserAuth
         return $this->id !== auth()->id() && $this->role_id > 2;
     }
 }
-
-

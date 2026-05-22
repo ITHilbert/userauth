@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth\App\Console\Commands;
 
 use Illuminate\Console\Command;
 use ITHilbert\UserAuth\Entities\Permission;
 
-class CreatePermissionCommand extends Command
+final class CreatePermissionCommand extends Command
 {
     /**
      * The name and signature of the console command.
@@ -36,10 +38,11 @@ class CreatePermissionCommand extends Command
 
         if ($existing) {
             $this->error("Permission [{$permissionName}] already exists.");
+
             return 1;
         }
 
-        $permission = new Permission();
+        $permission = new Permission;
         $permission->permission = $permissionName;
         $permission->permission_display = $permissionDisplay;
         $permission->group_id = $groupId;

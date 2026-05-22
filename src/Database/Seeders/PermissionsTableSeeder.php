@@ -1,14 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 
 class PermissionsTableSeeder extends Seeder
 {
-
     /**
      * Auto generated seed file
      *
@@ -17,12 +16,10 @@ class PermissionsTableSeeder extends Seeder
     public function run()
     {
 
-
         \DB::table('permissions')->delete();
 
-        \DB::table('permissions')->insert(array (
-            0 =>
-            array (
+        \DB::table('permissions')->insert([
+            0 => [
                 'id' => 1,
                 'permission' => 'user_create',
                 'permission_display' => 'Benutzer erstellen',
@@ -30,10 +27,9 @@ class PermissionsTableSeeder extends Seeder
                 'crud' => 'create',
                 'created_at' => '2020-08-10 13:25:31',
                 'updated_at' => '2020-08-12 12:30:58',
-                'deleted_at' => NULL,
-            ),
-            1 =>
-            array (
+                'deleted_at' => null,
+            ],
+            1 => [
                 'id' => 2,
                 'permission' => 'user_read',
                 'permission_display' => 'Benutzer lesen',
@@ -41,10 +37,9 @@ class PermissionsTableSeeder extends Seeder
                 'crud' => 'read',
                 'created_at' => '2020-08-10 13:25:31',
                 'updated_at' => '2020-08-12 12:30:58',
-                'deleted_at' => NULL,
-            ),
-            2 =>
-            array (
+                'deleted_at' => null,
+            ],
+            2 => [
                 'id' => 3,
                 'permission' => 'user_edit',
                 'permission_display' => 'Benutzer ändern',
@@ -52,10 +47,9 @@ class PermissionsTableSeeder extends Seeder
                 'crud' => 'edit',
                 'created_at' => '2020-08-10 13:25:31',
                 'updated_at' => '2020-08-12 12:30:58',
-                'deleted_at' => NULL,
-            ),
-            3 =>
-            array (
+                'deleted_at' => null,
+            ],
+            3 => [
                 'id' => 4,
                 'permission' => 'user_delete',
                 'permission_display' => 'Benutzer delete',
@@ -63,10 +57,9 @@ class PermissionsTableSeeder extends Seeder
                 'crud' => 'delete',
                 'created_at' => '2020-08-10 13:25:31',
                 'updated_at' => '2020-08-12 12:30:58',
-                'deleted_at' => NULL,
-            ),
-            4 =>
-            array (
+                'deleted_at' => null,
+            ],
+            4 => [
                 'id' => 5,
                 'permission' => 'role_create',
                 'permission_display' => 'Rollen erstellen',
@@ -74,10 +67,9 @@ class PermissionsTableSeeder extends Seeder
                 'crud' => 'create',
                 'created_at' => '2020-08-12 12:31:35',
                 'updated_at' => '2020-08-12 12:31:35',
-                'deleted_at' => NULL,
-            ),
-            5 =>
-            array (
+                'deleted_at' => null,
+            ],
+            5 => [
                 'id' => 6,
                 'permission' => 'role_read',
                 'permission_display' => 'Rollen lesen',
@@ -85,10 +77,9 @@ class PermissionsTableSeeder extends Seeder
                 'crud' => 'read',
                 'created_at' => '2020-08-12 12:31:35',
                 'updated_at' => '2020-08-12 12:31:35',
-                'deleted_at' => NULL,
-            ),
-            6 =>
-            array (
+                'deleted_at' => null,
+            ],
+            6 => [
                 'id' => 7,
                 'permission' => 'role_edit',
                 'permission_display' => 'Rollen ändern',
@@ -96,10 +87,9 @@ class PermissionsTableSeeder extends Seeder
                 'crud' => 'edit',
                 'created_at' => '2020-08-12 12:31:35',
                 'updated_at' => '2020-08-12 12:31:35',
-                'deleted_at' => NULL,
-            ),
-            7 =>
-            array (
+                'deleted_at' => null,
+            ],
+            7 => [
                 'id' => 8,
                 'permission' => 'role_delete',
                 'permission_display' => 'Rollen delete',
@@ -107,10 +97,9 @@ class PermissionsTableSeeder extends Seeder
                 'crud' => 'delete',
                 'created_at' => '2020-08-12 12:31:35',
                 'updated_at' => '2020-08-12 12:31:35',
-                'deleted_at' => NULL,
-            ),
-        ));
-
+                'deleted_at' => null,
+            ],
+        ]);
 
     }
 }

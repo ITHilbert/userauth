@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     /*
     |--------------------------------------------------------------------------
@@ -12,22 +14,22 @@ return [
     |
     */
 
-    //Views Header
-    'header_list'           => 'Roles',
-    'header_show'           => 'Role',
-    'header_create'         => 'New role',
-    'header_edit'           => 'Edit role',
+    // Views Header
+    'header_list' => 'Roles',
+    'header_show' => 'Role',
+    'header_create' => 'New role',
+    'header_edit' => 'Edit role',
 
-    'id'                    => 'ID',
-    'role'                  => 'role',
-    'role_display'          => 'role display',
-    'role_intern'           => 'Role intern',
-    'crud'                  => 'CRUD',
-    'group'                 => 'group',
+    'id' => 'ID',
+    'role' => 'role',
+    'role_display' => 'role display',
+    'role_intern' => 'Role intern',
+    'crud' => 'CRUD',
+    'group' => 'group',
 
-    //Meldungen
-    'MsgAddSuccess'         => 'Role add successfull.',
-    'MsgEditSuccess'        => 'Role edit successfull',
-    'MsgDeleteSuccess'      => 'Role delete successfull',
-    'MsgDeleteRoot'         => 'Not allowed.',
+    // Meldungen
+    'MsgAddSuccess' => 'Role add successfull.',
+    'MsgEditSuccess' => 'Role edit successfull',
+    'MsgDeleteSuccess' => 'Role delete successfull',
+    'MsgDeleteRoot' => 'Not allowed.',
 ];

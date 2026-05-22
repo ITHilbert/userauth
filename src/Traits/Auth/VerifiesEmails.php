@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth\Traits\Auth;
 
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 trait VerifiesEmails
 {
@@ -13,8 +16,7 @@ trait VerifiesEmails
     /**
      * Show the email verification notice.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function show(Request $request)
     {
@@ -26,10 +28,9 @@ trait VerifiesEmails
     /**
      * Mark the authenticated user's email address as verified.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * @return Response
      *
-     * @throws \Illuminate\Auth\Access\AuthorizationException
+     * @throws AuthorizationException
      */
     public function verify(Request $request)
     {
@@ -55,8 +56,7 @@ trait VerifiesEmails
     /**
      * Resend the email verification notification.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function resend(Request $request)
     {

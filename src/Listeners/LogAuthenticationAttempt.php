@@ -1,26 +1,27 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth\Listeners;
 
-use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Failed;
+use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Http\Request;
 use ITHilbert\UserAuth\Entities\UserAuthAuditLog;
 
-class LogAuthenticationAttempt
+final class LogAuthenticationAttempt
 {
     /**
      * The request instance.
      *
-     * @var \Illuminate\Http\Request
+     * @var Request
      */
     public $request;
 
     /**
      * Create the event listener.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return void
      */
     public function __construct(Request $request)
@@ -36,7 +37,7 @@ class LogAuthenticationAttempt
      */
     public function handle($event)
     {
-        if (!config('userauth.audit_log_enabled')) {
+        if (! config('userauth.audit_log_enabled')) {
             return;
         }
 

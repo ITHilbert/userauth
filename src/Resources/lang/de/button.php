@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     /*
     |--------------------------------------------------------------------------
@@ -12,14 +14,14 @@ return [
     |
     */
 
-    //Buttons
-    'back'                  => 'Zurück',
-    'save'                  => 'Speichern',
-    'addPermission'         => 'Neues Recht',
-    'addRole'               => 'Neue Rolle',
-    'addUser'               => 'Neuer Benutzer',
-    'editPassword'          => 'Passwort ändern',
-    'login'                 => 'Login',
-    'send'                  => 'Senden',
+    // Buttons
+    'back' => 'Zurück',
+    'save' => 'Speichern',
+    'addPermission' => 'Neues Recht',
+    'addRole' => 'Neue Rolle',
+    'addUser' => 'Neuer Benutzer',
+    'editPassword' => 'Passwort ändern',
+    'login' => 'Login',
+    'send' => 'Senden',
 
 ];

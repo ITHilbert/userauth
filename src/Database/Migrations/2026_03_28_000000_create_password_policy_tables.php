@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -14,7 +16,7 @@ class CreatePasswordPolicyTables extends Migration
     public function up()
     {
         // Erweiterung der users Tabelle um password_changed_at
-        if (!Schema::hasColumn('users', 'password_changed_at')) {
+        if (! Schema::hasColumn('users', 'password_changed_at')) {
             Schema::table('users', function (Blueprint $table) {
                 // Kann null sein bei Nutzern, die nie eine Policy hatten
                 $table->timestamp('password_changed_at')->nullable()->after('password');
@@ -22,7 +24,7 @@ class CreatePasswordPolicyTables extends Migration
         }
 
         // Neue Tabelle für historische Passwörter aufbauen
-        if (!Schema::hasTable('user_password_histories')) {
+        if (! Schema::hasTable('user_password_histories')) {
             Schema::create('user_password_histories', function (Blueprint $table) {
                 $table->id();
                 $table->unsignedBigInteger('user_id');
@@ -30,9 +32,9 @@ class CreatePasswordPolicyTables extends Migration
                 $table->timestamps();
 
                 $table->foreign('user_id')
-                      ->references('id')
-                      ->on('users')
-                      ->onDelete('cascade');
+                    ->references('id')
+                    ->on('users')
+                    ->onDelete('cascade');
             });
         }
     }

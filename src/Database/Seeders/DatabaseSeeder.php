@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth\Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {

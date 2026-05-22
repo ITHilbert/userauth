@@ -1,12 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth\App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Foundation\ComposerScripts;
 
-
-class UserAuthCopyFiles extends Command
+final class UserAuthCopyFiles extends Command
 {
     /**
      * The name and signature of the console command.
@@ -39,10 +39,10 @@ class UserAuthCopyFiles extends Command
      */
     public function handle()
     {
-        //Laravel UI
+        // Laravel UI
         $this->info('Dateien werden kopiert');
 
-        //UserAuth Dateien kopieren
+        // UserAuth Dateien kopieren
         exec('php artisan vendor:publish --provider="ITHilbert\UserAuth\UserAuthServiceProvider" --force');
 
         return 0;

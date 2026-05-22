@@ -1,29 +1,32 @@
 <?php
 
-namespace ITHilbert\UserAuth\App\Classes;
+declare(strict_types=1);
 
+namespace ITHilbert\UserAuth\App\Classes;
 
 class Anrede
 {
     /**
      * Gibt eine ComboBox zurück
      *
-     * @param integer $id
-     * @param string $name
+     * @param  int  $id
+     * @param  string  $name
      * @return void
      */
-    public static function getComboBox($id = 1, $name="anrede"){
+    public static function getComboBox($id = 1, $name = 'anrede')
+    {
         $anreden = config('userauth.anrede');
 
         $ausgabe = '<select name="'.$name.'" class="form-control">';
-        foreach($anreden as $anrede){
-            if($anrede['id'] == $id){
-                $ausgabe.= '<option selected value="'.$anrede['id'].'">'.$anrede['anrede'].'</option>';
-            }else{
-                $ausgabe.= '<option value="'.$anrede['id'].'">'.$anrede['anrede'].'</option>';
+        foreach ($anreden as $anrede) {
+            if ($anrede['id'] == $id) {
+                $ausgabe .= '<option selected value="'.$anrede['id'].'">'.$anrede['anrede'].'</option>';
+            } else {
+                $ausgabe .= '<option value="'.$anrede['id'].'">'.$anrede['anrede'].'</option>';
             }
         }
         $ausgabe .= '</select>';
+
         return $ausgabe;
     }
 
@@ -33,10 +36,11 @@ class Anrede
      * @param [int] $id
      * @return void
      */
-    public static function get(int $id){
+    public static function get(int $id)
+    {
         $daten = config('userauth.anrede');
 
-        return $daten[$id -1];
+        return $daten[$id - 1];
     }
 
     /**
@@ -45,9 +49,10 @@ class Anrede
      * @param [type] $statusID
      * @return void
      */
-    public static function getAnrede(int $id){
+    public static function getAnrede(int $id)
+    {
         $daten = config('userauth.anrede');
 
-        return $daten[$id -1]['anrede'];
+        return $daten[$id - 1]['anrede'];
     }
 }

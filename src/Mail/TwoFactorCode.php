@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth\Mail;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
-class TwoFactorCode extends Mailable
+final class TwoFactorCode extends Mailable
 {
     use Queueable, SerializesModels;
 

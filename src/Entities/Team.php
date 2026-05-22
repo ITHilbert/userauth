@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth\Entities;
 
 use Illuminate\Database\Eloquent\Model;
@@ -14,7 +16,7 @@ class Team extends Model
     public function users()
     {
         return $this->belongsToMany(config('auth.providers.users.model', '\\App\\Models\\User'), 'team_user')
-                    ->withPivot('role_id')
-                    ->withTimestamps();
+            ->withPivot('role_id')
+            ->withTimestamps();
     }
 }

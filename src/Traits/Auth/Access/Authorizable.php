@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth\Traits\Auth\Access;
 
 use Illuminate\Contracts\Auth\Access\Gate;

@@ -1,14 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
-
+use Illuminate\Support\Facades\Mail;
+use ITHilbert\UserAuth\Mail\TwoFactorCode;
 use ITHilbert\UserAuth\Traits\Auth\AuthenticatesUsers;
 
-class LoginController extends Controller
+final class LoginController extends Controller
 {
     /*
     |--------------------------------------------------------------------------
@@ -36,7 +38,6 @@ class LoginController extends Controller
     /**
      * The user has logged out of the application.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return mixed
      */
     protected function loggedOut(Request $request)
@@ -65,12 +66,11 @@ class LoginController extends Controller
             $user->generateTwoFactorCode();
 
             // Mail senden
-            \Illuminate\Support\Facades\Mail::to($user->email)->send(new \ITHilbert\UserAuth\Mail\TwoFactorCode($user->two_factor_code));
+            Mail::to($user->email)->send(new TwoFactorCode($user->two_factor_code));
 
             return redirect()->route('verify.index');
         }
 
         return redirect()->intended($this->redirectPath());
     }
-
 }

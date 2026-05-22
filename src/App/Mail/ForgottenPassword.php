@@ -1,17 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth\App\Mail;
 
+use App\Models\User;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
-use App\Models\User;
 
-class ForgottenPassword extends Mailable
+final class ForgottenPassword extends Mailable
 {
     use Queueable, SerializesModels;
-
 
     public $user;
 

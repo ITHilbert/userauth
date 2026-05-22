@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth\Traits\Auth;
 
 use Illuminate\Auth\Authenticatable;
@@ -11,10 +13,7 @@ use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Auth\Access\Authorizable;
 
-class User extends Model implements
-    AuthenticatableContract,
-    AuthorizableContract,
-    CanResetPasswordContract
+class User extends Model implements AuthenticatableContract, AuthorizableContract, CanResetPasswordContract
 {
     use Authenticatable, Authorizable, CanResetPassword, MustVerifyEmail, TwoFactorAuthenticatable;
 }

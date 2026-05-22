@@ -1,11 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth\Http\Middleware;
 
 use Closure;
-use Illuminate\Support\Facades\Auth;
 
-class TwoFactorMiddleware
+final class TwoFactorMiddleware
 {
     public function handle($request, Closure $next)
     {
@@ -18,10 +19,11 @@ class TwoFactorMiddleware
                 $user->save();
 
                 auth()->logout();
+
                 return redirect()->route('login')->withErrors(['email' => 'Ihr Sicherheitscode ist abgelaufen. Bitte loggen Sie sich erneut ein.']);
             }
 
-            if (!$request->is('verify*')) {
+            if (! $request->is('verify*')) {
                 return redirect()->route('verify.index');
             }
         }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use ITHilbert\UserAuth\Http\Middleware\TwoFactorMiddleware;
 
 return [

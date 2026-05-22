@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     /*
     |--------------------------------------------------------------------------
@@ -12,22 +14,22 @@ return [
     |
     */
 
-    //Views Header
-    'header_list'           => 'Rollen',
-    'header_show'           => 'Rolle',
-    'header_create'         => 'Neue Rolle',
-    'header_edit'           => 'Rolle anpassen',
+    // Views Header
+    'header_list' => 'Rollen',
+    'header_show' => 'Rolle',
+    'header_create' => 'Neue Rolle',
+    'header_edit' => 'Rolle anpassen',
 
-    'id'                    => 'ID',
-    'role'                  => 'Rolle',
-    'role_display'          => 'Rollenname',
-    'role_intern'           => 'Rolle intern',
-    'crud'                  => 'CRUD',
-    'group'                 => 'Gruppe',
+    'id' => 'ID',
+    'role' => 'Rolle',
+    'role_display' => 'Rollenname',
+    'role_intern' => 'Rolle intern',
+    'crud' => 'CRUD',
+    'group' => 'Gruppe',
 
-    //Meldungen
-    'MsgAddSuccess'         => 'Die Rolle wurde erfolgreich angelegt.',
-    'MsgEditSuccess'        => 'Die Rolle wurde erfolgreich angepasst',
-    'MsgDeleteSuccess'      => 'Die Rolle wurde erfolgreich gelöscht',
-    'MsgDeleteRoot'         => 'Die Rollen Developer und Admin können nicht gelöscht werden.',
+    // Meldungen
+    'MsgAddSuccess' => 'Die Rolle wurde erfolgreich angelegt.',
+    'MsgEditSuccess' => 'Die Rolle wurde erfolgreich angepasst',
+    'MsgDeleteSuccess' => 'Die Rolle wurde erfolgreich gelöscht',
+    'MsgDeleteRoot' => 'Die Rollen Developer und Admin können nicht gelöscht werden.',
 ];

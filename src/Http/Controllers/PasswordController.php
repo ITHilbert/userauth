@@ -1,25 +1,26 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Auth;
 use App\Models\User;
-use DateTime;
-use DateTimeZone;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\DB;
-use ITHilbert\LaravelKit\Helpers\MyDateTime;
-use ITHilbert\UserAuth\App\Mail\ForgottenPassword;
-use Illuminate\Support\Str;
-use ITHilbert\LaravelKit\Helpers\Breadcrumb;
-use ITHilbert\UserAuth\Rules\PasswordHistoryRule;
+use App\Product;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
+use ITHilbert\LaravelKit\Helpers\Breadcrumb;
+use ITHilbert\LaravelKit\Helpers\MyDateTime;
+use ITHilbert\UserAuth\App\Mail\ForgottenPassword;
+use ITHilbert\UserAuth\Rules\PasswordHistoryRule;
 
-class PasswordController extends Controller implements HasMiddleware
+final class PasswordController extends Controller implements HasMiddleware
 {
     public static function middleware(): array
     {
@@ -31,24 +32,23 @@ class PasswordController extends Controller implements HasMiddleware
     /**
      * Edit the form for editing the specified resource.
      *
-     * @param  \App\Product  $product
-     * @return \Illuminate\Http\Response
+     * @param  Product  $product
+     * @return Response
      */
     public function edit()
     {
-        $breadcrumb = new Breadcrumb();
+        $breadcrumb = new Breadcrumb;
         $breadcrumb->add(trans('userauth::password.header_change'));
 
         return view('userauth::password.edit')->with(compact('breadcrumb'));
     }
 
-
     /**
      * Passwort Änderung speichern
      *
-     * @param  \Illuminate\Http\Request  $requestliste
-     * @param  \App\Product  $product
-     * @return \Illuminate\Http\Response
+     * @param  Request  $requestliste
+     * @param  Product  $product
+     * @return Response
      */
     public function update(Request $request)
     {
@@ -56,7 +56,7 @@ class PasswordController extends Controller implements HasMiddleware
 
         $request->validate([
             'password' => ['required', 'min:8', 'confirmed', new PasswordHistoryRule($user)],
-            'password_confirmation' => 'required|same:password'
+            'password_confirmation' => 'required|same:password',
         ]);
 
         $this->savePasswordHistory($user);
@@ -71,8 +71,6 @@ class PasswordController extends Controller implements HasMiddleware
             ->with('message', 'Passwort wurde geändert');
     }
 
-
-
     /**
      * Öffnet das Formular um den Passwort ändern Token anzufordern
      *
@@ -86,7 +84,6 @@ class PasswordController extends Controller implements HasMiddleware
     /**
      * Sendet die Mail mit dem Änderungstoken
      *
-     * @param Request $request
      * @return void
      */
     public function sendtocken(Request $request)
@@ -98,7 +95,7 @@ class PasswordController extends Controller implements HasMiddleware
 
         $email = $request->email;
 
-        $user = User::where('email', $email)->where('deleted_at', NULL)->first();
+        $user = User::where('email', $email)->where('deleted_at', null)->first();
 
         $user->edit_pw_token = Str::random(10);
 
@@ -128,7 +125,6 @@ class PasswordController extends Controller implements HasMiddleware
         return view('userauth::password.tokensend');
     }
 
-
     /**
      * Öffnet die View zum Passwort ändern mit Token
      *
@@ -144,12 +140,11 @@ class PasswordController extends Controller implements HasMiddleware
     /**
      * Ändert das Passwort mit Token
      *
-     * @param Request $request
      * @return void
      */
     public function updatewithtoken(Request $request)
     {
-        $user = User::where('email', $request->email)->where('edit_pw_token', $request->pwtoken)->where('deleted_at', NULL)->first();
+        $user = User::where('email', $request->email)->where('edit_pw_token', $request->pwtoken)->where('deleted_at', null)->first();
 
         $request->validate([
             'password' => ['required', 'min:8', 'confirmed', new PasswordHistoryRule($user)],
@@ -161,7 +156,7 @@ class PasswordController extends Controller implements HasMiddleware
         $date1 = new MyDateTime('now');
         $date2 = new MyDateTime($user->edit_pw_token_end);
 
-        //echo $date1->getTimestamp() . ' - ' . $date2->getTimestamp();
+        // echo $date1->getTimestamp() . ' - ' . $date2->getTimestamp();
 
         if ($date1->getTimestamp() > $date2->getTimestamp()) {
             return redirect()->route('password.forgotten')->withErrors('Token ist abgelaufen.');
@@ -172,7 +167,7 @@ class PasswordController extends Controller implements HasMiddleware
 
             $user->password = Hash::make($request->password);
             $user->password_changed_at = now();
-            $user->edit_pw_token = NULL;
+            $user->edit_pw_token = null;
             $user->edit_pw_token_end = null;
             $user->update();
 

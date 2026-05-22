@@ -1,22 +1,24 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth\Http\Controllers;
 
-use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 
-class ImpersonateController extends Controller
+final class ImpersonateController extends Controller
 {
     /**
      * Start impersonating another user.
      *
-     * @param int $id The ID of the user to impersonate
-     * @return \Illuminate\Http\RedirectResponse
+     * @param  int  $id  The ID of the user to impersonate
+     * @return RedirectResponse
      */
     public function impersonate($id)
     {
-        if (!config('userauth.impersonate_enabled', true)) {
+        if (! config('userauth.impersonate_enabled', true)) {
             abort(403, 'Impersonation is disabled in configuration.');
         }
 
@@ -25,34 +27,35 @@ class ImpersonateController extends Controller
         $currentUser = Auth::user();
 
         // Check if current user is allowed to impersonate
-        if (method_exists($currentUser, 'canImpersonate') && !$currentUser->canImpersonate()) {
+        if (method_exists($currentUser, 'canImpersonate') && ! $currentUser->canImpersonate()) {
             abort(403, 'You do not have permission to impersonate.');
         }
 
         // Check if target user is allowed to be impersonated
-        if (method_exists($targetUser, 'canBeImpersonated') && !$targetUser->canBeImpersonated()) {
+        if (method_exists($targetUser, 'canBeImpersonated') && ! $targetUser->canBeImpersonated()) {
             abort(403, 'This user cannot be impersonated.');
         }
 
         // Save original admin ID to session
         session()->put('impersonated_by', $currentUser->id);
-        
+
         // Login as the target user without password
         Auth::login($targetUser);
 
         // Redirect appropriately
         $redirect = config('userauth.redirect_after_login', '/home');
-        return redirect($redirect)->with('success', 'You are now impersonating ' . $targetUser->getName());
+
+        return redirect($redirect)->with('success', 'You are now impersonating '.$targetUser->getName());
     }
 
     /**
      * Stop impersonating and return to the original user account.
      *
-     * @return \Illuminate\Http\RedirectResponse
+     * @return RedirectResponse
      */
     public function leave()
     {
-        if (!session()->has('impersonated_by')) {
+        if (! session()->has('impersonated_by')) {
             return redirect()->back();
         }
 
@@ -66,6 +69,7 @@ class ImpersonateController extends Controller
         Auth::login($impersonator);
 
         $redirect = config('userauth.redirect_after_login', '/home');
+
         return redirect($redirect)->with('success', 'You have returned to your original account.');
     }
 }

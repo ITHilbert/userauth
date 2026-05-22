@@ -1,9 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
 class RolesTableSeeder extends Seeder
@@ -18,25 +19,22 @@ class RolesTableSeeder extends Seeder
 
         DB::table('roles')->delete();
 
-        DB::table('roles')->insert(array (
-            0 =>
-            array (
+        DB::table('roles')->insert([
+            0 => [
                 'id' => 1,
                 'role' => 'dev',
                 'role_display' => 'Developer',
-            ),
-            1 =>
-            array (
+            ],
+            1 => [
                 'id' => 2,
                 'role' => 'admin',
                 'role_display' => 'Admin',
-            ),
-            2 =>
-            array (
+            ],
+            2 => [
                 'id' => 3,
                 'role' => 'user',
                 'role_display' => 'Anwender',
-            ),
-        ));
+            ],
+        ]);
     }
 }

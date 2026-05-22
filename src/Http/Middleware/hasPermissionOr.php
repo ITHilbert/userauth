@@ -1,35 +1,35 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth\Http\Middleware;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\User;
 use Illuminate\Support\Facades\Redirect;
 
-class hasPermissionOr
+final class hasPermissionOr
 {
     /**
      * Handle an incoming request.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
      * @return mixed
      */
     public function handle(Request $request, Closure $next, $permissions)
     {
-        /** @var \App\Models\User|null $user */
+        /** @var User|null $user */
         $user = Auth::user();
 
-        if (!$user) {
+        if (! $user) {
             return redirect()->guest(route('login'));
         }
-        //Admin und Developer  haben immer das Recht
+        // Admin und Developer  haben immer das Recht
         if ($user->role_id <= 2) {
             return $next($request);
         }
-        //recht prüfen
+        // recht prüfen
         foreach ($permissions as $permission) {
             if ($user->hasPermission($permission)) {
                 return $next($request);

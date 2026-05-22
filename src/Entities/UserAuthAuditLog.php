@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth\Entities;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
 class UserAuthAuditLog extends Model
@@ -18,6 +21,6 @@ class UserAuthAuditLog extends Model
 
     public function user()
     {
-        return $this->belongsTo(\App\Models\User::class);
+        return $this->belongsTo(User::class);
     }
 }

@@ -1,15 +1,32 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth;
 
-use Illuminate\Support\ServiceProvider;
+use Illuminate\Auth\Events\Failed;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\ServiceProvider;
 use Illuminate\View\Compilers\BladeCompiler;
+use ITHilbert\UserAuth\App\Console\Commands\AssignRoleCommand;
+use ITHilbert\UserAuth\App\Console\Commands\CreatePermissionCommand;
+use ITHilbert\UserAuth\App\Console\Commands\UserAuthCopyFiles;
+use ITHilbert\UserAuth\Http\Middleware\EnforcePasswordPolicy;
+use ITHilbert\UserAuth\Http\Middleware\hasPermission;
+use ITHilbert\UserAuth\Http\Middleware\hasPermissionAnd;
+use ITHilbert\UserAuth\Http\Middleware\hasPermissionOr;
+use ITHilbert\UserAuth\Http\Middleware\hasRole;
+use ITHilbert\UserAuth\Http\Middleware\isAdmin;
+use ITHilbert\UserAuth\Http\Middleware\isDev;
+use ITHilbert\UserAuth\Http\Middleware\TwoFactorMiddleware;
+use ITHilbert\UserAuth\Listeners\LogAuthenticationAttempt;
 
 class UserAuthServiceProvider extends ServiceProvider
 {
-
     /**
      * Boot the application events.
      *
@@ -20,22 +37,22 @@ class UserAuthServiceProvider extends ServiceProvider
         $this->registerConfig();
         $this->registerTranslations();
         $this->registerViews();
-        $this->loadMigrationsFrom(__DIR__ . '/Database/Migrations');
+        $this->loadMigrationsFrom(__DIR__.'/Database/Migrations');
         $this->registerRoutes();
         $this->publishAssets();
         $this->registerMiddleware();
 
-        //Commands Registrieren
+        // Commands Registrieren
         $this->commands([
-            \ITHilbert\UserAuth\App\Console\Commands\UserAuthCopyFiles::class,
-            \ITHilbert\UserAuth\App\Console\Commands\AssignRoleCommand::class,
-            \ITHilbert\UserAuth\App\Console\Commands\CreatePermissionCommand::class,
+            UserAuthCopyFiles::class,
+            AssignRoleCommand::class,
+            CreatePermissionCommand::class,
         ]);
 
         // Register Event Listeners
-        \Illuminate\Support\Facades\Event::listen(
-            [\Illuminate\Auth\Events\Login::class, \Illuminate\Auth\Events\Failed::class, \Illuminate\Auth\Events\Logout::class],
-            \ITHilbert\UserAuth\Listeners\LogAuthenticationAttempt::class
+        Event::listen(
+            [Login::class, Failed::class, Logout::class],
+            LogAuthenticationAttempt::class
         );
 
         $this->registerGates();
@@ -59,30 +76,27 @@ class UserAuthServiceProvider extends ServiceProvider
         });
     }
 
-
-
     public function registerMiddleware()
     {
         $router = $this->app['router'];
 
-        $router->aliasMiddleware('hasPermissionAnd', \ITHilbert\UserAuth\Http\Middleware\hasPermissionAnd::class);
-        $router->aliasMiddleware('hasPermissionOr', \ITHilbert\UserAuth\Http\Middleware\hasPermissionOr::class);
-        $router->aliasMiddleware('hasPermission', \ITHilbert\UserAuth\Http\Middleware\hasPermission::class);
-        $router->aliasMiddleware('hasRole', \ITHilbert\UserAuth\Http\Middleware\hasRole::class);
-        $router->aliasMiddleware('isAdmin', \ITHilbert\UserAuth\Http\Middleware\isAdmin::class);
-        $router->aliasMiddleware('isDev', \ITHilbert\UserAuth\Http\Middleware\isDev::class);
+        $router->aliasMiddleware('hasPermissionAnd', hasPermissionAnd::class);
+        $router->aliasMiddleware('hasPermissionOr', hasPermissionOr::class);
+        $router->aliasMiddleware('hasPermission', hasPermission::class);
+        $router->aliasMiddleware('hasRole', hasRole::class);
+        $router->aliasMiddleware('isAdmin', isAdmin::class);
+        $router->aliasMiddleware('isDev', isDev::class);
 
-        // Füge die EnforcePasswordPolicy Middleware zur globalen "web" Gruppe hinzu 
+        // Füge die EnforcePasswordPolicy Middleware zur globalen "web" Gruppe hinzu
         // (besser: Die Applikation entscheidet selbst, ob sie es nutzen will, oder wir pushen es in den web Group)
-        $router->pushMiddlewareToGroup('web', \ITHilbert\UserAuth\Http\Middleware\EnforcePasswordPolicy::class);
-        $router->pushMiddlewareToGroup('web', \ITHilbert\UserAuth\Http\Middleware\TwoFactorMiddleware::class);
+        $router->pushMiddlewareToGroup('web', EnforcePasswordPolicy::class);
+        $router->pushMiddlewareToGroup('web', TwoFactorMiddleware::class);
     }
-
 
     public function publishAssets()
     {
         $this->publishes([
-            __DIR__ . '/Resources/assets' => public_path('vendor/userauth'),
+            __DIR__.'/Resources/assets' => public_path('vendor/userauth'),
         ]);
     }
 
@@ -93,9 +107,8 @@ class UserAuthServiceProvider extends ServiceProvider
      */
     protected function registerRoutes()
     {
-        $this->loadRoutesFrom(__DIR__ . '/Routes/web.php');
+        $this->loadRoutesFrom(__DIR__.'/Routes/web.php');
     }
-
 
     /**
      * Register the service provider.
@@ -116,7 +129,7 @@ class UserAuthServiceProvider extends ServiceProvider
     protected function registerConfig()
     {
         $this->publishes([
-            __DIR__ . '/Config/config.php' => config_path('userauth.php'),
+            __DIR__.'/Config/config.php' => config_path('userauth.php'),
         ]);
 
         $this->mergeConfigFrom(
@@ -132,14 +145,14 @@ class UserAuthServiceProvider extends ServiceProvider
     public function registerViews()
     {
         $this->publishes([
-            __DIR__ . '/Resources/views' => resource_path('views/vendor/userauth'),
-            __DIR__ . '/Resources/views/layouts/userauth.blade.php' => resource_path('views/layouts/userauth.blade.php'),
+            __DIR__.'/Resources/views' => resource_path('views/vendor/userauth'),
+            __DIR__.'/Resources/views/layouts/userauth.blade.php' => resource_path('views/layouts/userauth.blade.php'),
         ]);
 
         if (config('userauth.view') == 'ressources') {
             $this->loadViewsFrom(resource_path('Resources/views/vendor/userauth'), 'userauth');
         } else {
-            $this->loadViewsFrom(__DIR__ . '/Resources/views', 'userauth');
+            $this->loadViewsFrom(__DIR__.'/Resources/views', 'userauth');
         }
     }
 
@@ -151,16 +164,15 @@ class UserAuthServiceProvider extends ServiceProvider
     public function registerTranslations()
     {
         $this->publishes([
-            __DIR__ . '/Resources/lang' => resource_path('lang/vendor/userauth'),
+            __DIR__.'/Resources/lang' => resource_path('lang/vendor/userauth'),
         ]);
 
         if (config('userauth.view') == 'ressources') {
             $this->loadTranslationsFrom(resource_path('/Resources/lang/vendor/userauth'), 'userauth');
         } else {
-            $this->loadTranslationsFrom(__DIR__ . '/Resources/lang', 'userauth');
+            $this->loadTranslationsFrom(__DIR__.'/Resources/lang', 'userauth');
         }
     }
-
 
     /**
      * Eigende Blade function (Directive)
@@ -204,17 +216,20 @@ class UserAuthServiceProvider extends ServiceProvider
             /* ##################################################### */
             /* hasPermission */
             $bladeCompiler->directive('hasPermission', function ($arguments, $guard = '') {
-                list($permission, $guard) = explode(',', $arguments . ',');
+                [$permission, $guard] = explode(',', $arguments.',');
+
                 return "<?php if(auth({$guard})->check() && auth({$guard})->user()->hasPermission({$permission})): ?>";
             });
             /* hasPermissionNot */
             $bladeCompiler->directive('hasPermissionNot', function ($arguments, $guard = '') {
-                list($permission, $guard) = explode(',', $arguments . ',');
+                [$permission, $guard] = explode(',', $arguments.',');
+
                 return "<?php if(auth({$guard})->check() && !auth({$guard})->user()->hasPermission({$permission})): ?>";
             });
             /* elsehasPermission */
             $bladeCompiler->directive('elsehasPermission', function ($arguments, $guard = '') {
-                list($permission, $guard) = explode(',', $arguments . ',');
+                [$permission, $guard] = explode(',', $arguments.',');
+
                 return "<?php elseif(auth({$guard})->check() && auth({$guard})->user()->hasPermission({$permission})): ?>";
             });
 
@@ -252,7 +267,6 @@ class UserAuthServiceProvider extends ServiceProvider
             $bladeCompiler->directive('endhasPermissionAnd', function () {
                 return '<?php endif; ?>';
             });
-
 
         });
     }

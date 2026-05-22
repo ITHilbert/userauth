@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     /*
     |--------------------------------------------------------------------------
@@ -12,17 +14,17 @@ return [
     |
     */
 
-    //Views Header
-    'header_change'         => 'Passwort ändern',
-    'header_pw_forgotten'   => 'Passwort vergessen',
+    // Views Header
+    'header_change' => 'Passwort ändern',
+    'header_pw_forgotten' => 'Passwort vergessen',
 
-    'id'                  => 'ID',
-    'password'            => 'Passwort',
-    'password-new'        => 'Neues Passwort',
-    'password-confirm'    => 'Passwort wiederholen',
+    'id' => 'ID',
+    'password' => 'Passwort',
+    'password-new' => 'Neues Passwort',
+    'password-confirm' => 'Passwort wiederholen',
 
-    //Meldungen
-    'MsgAddSuccess'         => 'Das Recht wurde erfolgreich angelegt.',
-    'MsgEditSuccess'        => 'Das Recht wurde erfolgreich angepasst',
-    'MsgDeleteSuccess'      => 'Das Recht wurde erfolgreich gelöscht',
+    // Meldungen
+    'MsgAddSuccess' => 'Das Recht wurde erfolgreich angelegt.',
+    'MsgEditSuccess' => 'Das Recht wurde erfolgreich angepasst',
+    'MsgDeleteSuccess' => 'Das Recht wurde erfolgreich gelöscht',
 ];

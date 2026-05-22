@@ -1,21 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth\Rules;
 
-use Illuminate\Contracts\Validation\Rule;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB;
 use App\Models\User;
+use Illuminate\Contracts\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
-class PasswordHistoryRule implements Rule
+final class PasswordHistoryRule implements Rule
 {
     protected $user;
 
     /**
      * Create a new rule instance.
      *
-     * @param \App\Models\User|null $user
+     * @param  User|null  $user
      * @return void
      */
     public function __construct($user = null)
@@ -32,16 +34,16 @@ class PasswordHistoryRule implements Rule
      */
     public function passes($attribute, $value)
     {
-        if (!config('userauth.password_policy.enabled', false)) {
+        if (! config('userauth.password_policy.enabled', false)) {
             return true;
         }
 
-        if (!$this->user) {
+        if (! $this->user) {
             return true;
         }
 
         $preventReuseCount = config('userauth.password_policy.prevent_reuse_last_passwords', 3);
-        
+
         if ($preventReuseCount <= 0) {
             return true;
         }

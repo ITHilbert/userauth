@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -13,7 +15,7 @@ class CreateTeamsTables extends Migration
      */
     public function up()
     {
-        if (!Schema::hasTable('teams')) {
+        if (! Schema::hasTable('teams')) {
             Schema::create('teams', function (Blueprint $table) {
                 $table->id();
                 $table->string('name');
@@ -22,7 +24,7 @@ class CreateTeamsTables extends Migration
             });
         }
 
-        if (!Schema::hasTable('team_user')) {
+        if (! Schema::hasTable('team_user')) {
             Schema::create('team_user', function (Blueprint $table) {
                 $table->id();
                 $table->unsignedBigInteger('team_id');
@@ -34,13 +36,13 @@ class CreateTeamsTables extends Migration
                 $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
                 // Falls Rollen eine Tabelle haben (haben sie laut Entities/Role)
                 $table->foreign('role_id')->references('id')->on('roles')->onDelete('set null');
-                
+
                 $table->unique(['team_id', 'user_id']);
             });
         }
 
         // Aktives Team beim User setzen
-        if (!Schema::hasColumn('users', 'current_team_id')) {
+        if (! Schema::hasColumn('users', 'current_team_id')) {
             Schema::table('users', function (Blueprint $table) {
                 $table->unsignedBigInteger('current_team_id')->nullable()->after('role_id');
                 $table->foreign('current_team_id')->references('id')->on('teams')->onDelete('set null');

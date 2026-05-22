@@ -1,25 +1,25 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth\Http\Middleware;
 
+use Carbon\Carbon;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
 
-class EnforcePasswordPolicy
+final class EnforcePasswordPolicy
 {
     /**
      * Handle an incoming request.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
      * @return mixed
      */
     public function handle(Request $request, Closure $next)
     {
         // Wenn nicht eingeloggt oder Feature deaktiviert ist, durchwinken
-        if (!Auth::check() || !config('userauth.password_policy.enabled', false)) {
+        if (! Auth::check() || ! config('userauth.password_policy.enabled', false)) {
             return $next($request);
         }
 
@@ -36,10 +36,11 @@ class EnforcePasswordPolicy
         if ($daysLimit > 0) {
             // Wenn der User kein changed_at hat, setzen wir simulativ sein Registrierungsdatum oder yesterday
             $lastChanged = $user->password_changed_at ? Carbon::parse($user->password_changed_at) : ($user->created_at ?? now()->subDays($daysLimit + 1));
-            
+
             if ($lastChanged->diffInDays(now()) >= $daysLimit) {
                 // Passwort ist abgelaufen - User zwingen
                 session()->flash('warning', 'Dein Passwort ist abgelaufen und muss aus Sicherheitsgründen neu gesetzt werden.');
+
                 return redirect()->route('password.edit');
             }
         }

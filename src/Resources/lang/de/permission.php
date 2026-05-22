@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     /*
     |--------------------------------------------------------------------------
@@ -12,29 +14,29 @@ return [
     |
     */
 
-    //Views Header
-    'header_list'           => 'Rechte',
-    'header_show'           => 'Recht',
-    'header_create'         => 'Neues Recht',
-    'header_edit'           => 'Rechts anpassen',
-    'header_no'             => 'Keine Berechtigung',
+    // Views Header
+    'header_list' => 'Rechte',
+    'header_show' => 'Recht',
+    'header_create' => 'Neues Recht',
+    'header_edit' => 'Rechts anpassen',
+    'header_no' => 'Keine Berechtigung',
 
-    'id'                    => 'ID',
-    'permission'            => 'Recht',
-    'permission_display'    => 'Recht Name',
-    'no-permission'         => 'Sie haben keine Berechtigung um auf diese Seite zuzugreifen.',
+    'id' => 'ID',
+    'permission' => 'Recht',
+    'permission_display' => 'Recht Name',
+    'no-permission' => 'Sie haben keine Berechtigung um auf diese Seite zuzugreifen.',
 
-    'read'                  => 'lesen',
-    'edit'                  => 'ändern',
-    'create'                => 'erstellen',
-    'delete'                => 'delete',
+    'read' => 'lesen',
+    'edit' => 'ändern',
+    'create' => 'erstellen',
+    'delete' => 'delete',
 
-    'group_name'            => 'Rechtname intern',
-    'group_display'         => 'Rechtname',
-    'ck-permission-group'   => 'Rechtgroupe anlegen',
+    'group_name' => 'Rechtname intern',
+    'group_display' => 'Rechtname',
+    'ck-permission-group' => 'Rechtgroupe anlegen',
 
-    //Meldungen
-    'MsgAddSuccess'         => 'Das Recht wurde erfolgreich angelegt.',
-    'MsgEditSuccess'        => 'Das Recht wurde erfolgreich angepasst',
-    'MsgDeleteSuccess'      => 'Das Recht wurde erfolgreich gelöscht',
+    // Meldungen
+    'MsgAddSuccess' => 'Das Recht wurde erfolgreich angelegt.',
+    'MsgEditSuccess' => 'Das Recht wurde erfolgreich angepasst',
+    'MsgDeleteSuccess' => 'Das Recht wurde erfolgreich gelöscht',
 ];

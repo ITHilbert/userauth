@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     /*
     |--------------------------------------------------------------------------
@@ -12,13 +14,13 @@ return [
     |
     */
 
-    //Views Header
-    'header'              => 'Login',
+    // Views Header
+    'header' => 'Login',
 
-    'id'                  => 'ID',
-    'login'               => 'Login',
-    'email'               => 'E-Mail Addresse',
-    'password'            => 'Passwort',
-    'remember'            => 'Eingeloggt bleiben',
-    'pwforgotten'         => 'Passwort vergessen',
+    'id' => 'ID',
+    'login' => 'Login',
+    'email' => 'E-Mail Addresse',
+    'password' => 'Passwort',
+    'remember' => 'Eingeloggt bleiben',
+    'pwforgotten' => 'Passwort vergessen',
 ];

@@ -1,14 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ITHilbert\UserAuth\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use ITHilbert\UserAuth\Mail\TwoFactorCode;
 
-class TwoFactorController extends Controller
+final class TwoFactorController extends Controller
 {
     public function __construct()
     {
@@ -30,6 +31,7 @@ class TwoFactorController extends Controller
 
         if ($request->two_factor_code == $user->two_factor_code) {
             $user->resetTwoFactorCode();
+
             return redirect()->intended(config('userauth.redirect_after_login', '/'));
         }
 
