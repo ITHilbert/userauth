@@ -21,6 +21,9 @@ return [
     // Route wenn Rechte fehlen: Weiterleitung zur Login-Seite ('login') oder zur Fehlerseite ('no-permission')
     'redirect_on_no_permission' => 'login',
 
+    // Theme-Auswahl: 'bootstrap' (Phoenix/Bootstrap, Default) oder 'tailwind'
+    'theme' => env('USERAUTH_THEME', 'bootstrap'),
+
     // Aktiviert das Audit Log
     'audit_log_enabled' => env('USERAUTH_AUDIT_LOG_ENABLED', false),
     // Aktiviert 2-Faktor-Authentifizierung

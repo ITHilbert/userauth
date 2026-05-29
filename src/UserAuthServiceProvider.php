@@ -133,7 +133,7 @@ class UserAuthServiceProvider extends ServiceProvider
         ]);
 
         $this->mergeConfigFrom(
-            __DIR__ . '/Config/config.php', 'userauth'
+            __DIR__.'/Config/config.php', 'userauth'
         );
     }
 
@@ -147,6 +147,7 @@ class UserAuthServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/Resources/views' => resource_path('views/vendor/userauth'),
             __DIR__.'/Resources/views/layouts/userauth.blade.php' => resource_path('views/layouts/userauth.blade.php'),
+            __DIR__.'/Resources/views/layouts/auth.blade.php' => resource_path('views/vendor/userauth/layouts/auth.blade.php'),
         ]);
 
         if (config('userauth.view') == 'ressources') {
@@ -172,6 +173,11 @@ class UserAuthServiceProvider extends ServiceProvider
         } else {
             $this->loadTranslationsFrom(__DIR__.'/Resources/lang', 'userauth');
         }
+
+        // Globale Auth-Keys (auth.failed, auth.password, auth.throttle) OHNE Namespace
+        // registrieren, damit Laravels Standard-Auth-Meldungen projektübergreifend
+        // übersetzt werden. App-eigene lang/-Dateien überschreiben dies bei Bedarf.
+        $this->loadTranslationsFrom(__DIR__.'/Resources/lang/global', null);
     }
 
     /**
