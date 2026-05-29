@@ -21,8 +21,10 @@ return [
     // Route wenn Rechte fehlen: Weiterleitung zur Login-Seite ('login') oder zur Fehlerseite ('no-permission')
     'redirect_on_no_permission' => 'login',
 
-    // Theme-Auswahl: 'bootstrap' (Phoenix/Bootstrap, Default) oder 'tailwind'
-    'theme' => env('USERAUTH_THEME', 'bootstrap'),
+    // Theme-Auswahl der Auth-Views: 'tailwind' (Default) oder 'bootstrap' (Phoenix/Bootstrap).
+    // Neue Projekte brauchen nichts zu setzen. Ältere Bootstrap-Projekte setzen
+    // USERAUTH_THEME=bootstrap in der .env.
+    'theme' => env('USERAUTH_THEME', 'tailwind'),
 
     // Aktiviert das Audit Log
     'audit_log_enabled' => env('USERAUTH_AUDIT_LOG_ENABLED', false),

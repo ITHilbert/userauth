@@ -30,7 +30,28 @@ USERAUTH_PASSWORD_POLICY_ENABLED=true
 
 # Mandantenfähigkeit (Teams)
 USERAUTH_TEAMS_ENABLED=true
+
+# Theme der Auth-Views (Login, Passwort-Reset): 'tailwind' (Default) oder 'bootstrap'
+# Nur in ÄLTEREN Bootstrap-/Phoenix-Projekten setzen:
+USERAUTH_THEME=bootstrap
 ```
+
+### Auth-View-Theme (Login & Passwort-Reset)
+
+Die Auth-Views (Login, Passwort-vergessen/-zurücksetzen) liegen in zwei Theme-Varianten vor und werden über `config('userauth.theme')` gewählt:
+
+- **`tailwind`** (Default) — Tailwind CSS. Neue Projekte brauchen **nichts** zu konfigurieren.
+- **`bootstrap`** — das ältere Phoenix/Bootstrap-Markup. In bestehenden Bootstrap-Projekten per `USERAUTH_THEME=bootstrap` in der `.env` aktivieren.
+
+**Projektspezifisches Design:** Die Tailwind-Views erweitern das Layout `userauth::layouts.auth`. Um das Login-Design an das jeweilige Projekt anzupassen, überschreibe dieses Layout im Projekt:
+
+```
+resources/views/vendor/userauth/layouts/auth.blade.php
+```
+
+Das Package liefert eine neutrale Default-Hülle; das überschriebene Layout bestimmt Branding, Farben und Hintergrund. So bleibt die Login-*Struktur* im Package, das *Aussehen* pro Projekt.
+
+**Globale Auth-Übersetzungen:** Die Standard-Laravel-Auth-Keys (`auth.failed`, `auth.password`, `auth.throttle`) werden vom Package namespace-los registriert und sind damit in jedem Projekt übersetzt (de/en), ohne dass eine `lang/`-Datei im Projekt nötig ist.
 
 ### Config-Optionen
 Nach der Paket-Installation können die Details auch in der veröffentlichten Config-Datei unter `config/userauth.php` angepasst werden:
