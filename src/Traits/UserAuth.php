@@ -15,9 +15,7 @@ use ITHilbert\UserAuth\Entities\Team;
 trait UserAuth
 {
     use SoftDeletes;
-    use VueComboBox {
-        VueComboBox::__construct as private initVueComboBox;
-    }
+    use VueComboBox;
 
     private $permissions = [];
 
