@@ -7,8 +7,8 @@
 
     <title>{{ config('app.name', 'IdeaAuditAI') }} - Login</title>
 
-    <!-- Tailwind / Vite -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <!-- Frontend-Assets des Host-Projekts (Vite oder Mix) -->
+    @include('userauth::partials.assets')
 </head>
 <body class="bg-gray-100 font-sans antialiased text-gray-900">
     @yield('main')
