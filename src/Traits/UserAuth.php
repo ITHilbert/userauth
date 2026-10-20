@@ -201,7 +201,7 @@ trait UserAuth
     public function hasPermission(string $permission)
     {
         // Admin darf immer
-        if ($this->getActiveRoleId() <= 2) {
+        if ($this->istPrivilegierteRolle($this->getActiveRoleId())) {
             return true;
         }
 
@@ -219,7 +219,7 @@ trait UserAuth
     public function hasPermissionOr($permissions)
     {
         // Admin darf immer
-        if ($this->getActiveRoleId() <= 2) {
+        if ($this->istPrivilegierteRolle($this->getActiveRoleId())) {
             return true;
         }
 
@@ -243,7 +243,7 @@ trait UserAuth
     public function hasPermissionAnd($permissions)
     {
         // Admin darf immer
-        if ($this->getActiveRoleId() <= 2) {
+        if ($this->istPrivilegierteRolle($this->getActiveRoleId())) {
             return true;
         }
 
@@ -270,7 +270,7 @@ trait UserAuth
         $activeRoleId = $this->getActiveRoleId();
 
         // Admin darf immer, rechte müssen nicht geladen werden
-        if ($activeRoleId <= 2) {
+        if ($this->istPrivilegierteRolle($activeRoleId)) {
             return true;
         }
 
@@ -358,7 +358,7 @@ trait UserAuth
     public function canImpersonate()
     {
         // Beispiel: Nur Role 1 (Dev) und 2 (Admin) oder eine dedizierte Permission "impersonate_users"
-        if ($this->role_id <= 2) {
+        if ($this->istPrivilegierteRolle($this->role_id)) {
             return true;
         }
 
@@ -378,6 +378,34 @@ trait UserAuth
     public function canBeImpersonated()
     {
         // Ein Admin darf sich nicht selbst übernehmen und ein Dev/Admin darf in der Regel nicht von anderen übernommen werden.
-        return $this->id !== auth()->id() && $this->role_id > 2;
+        return $this->id !== auth()->id()
+            && $this->istGueltigeRolle($this->role_id)
+            && ! $this->istPrivilegierteRolle($this->role_id);
+    }
+
+    /**
+     * Prüft, ob die Rollen-ID gültig ist (Integer bzw. numerischer String, Wert >= 1).
+     * null, leer, 0 und nicht numerische Werte gelten nie als gültig (fail-closed).
+     */
+    private function istGueltigeRolle(mixed $roleId): bool
+    {
+        if (is_string($roleId) && ctype_digit($roleId)) {
+            $roleId = (int) $roleId;
+        }
+
+        return is_int($roleId) && $roleId >= 1;
+    }
+
+    /**
+     * Prüft, ob die Rollen-ID eine privilegierte Rolle ist (1 = Dev, 2 = Admin).
+     * Nur gültige Rollen zählen, null/leer/0 ist nie privilegiert (kein "null <= 2").
+     */
+    private function istPrivilegierteRolle(mixed $roleId): bool
+    {
+        if (! $this->istGueltigeRolle($roleId)) {
+            return false;
+        }
+
+        return (int) $roleId <= 2;
     }
 }
