@@ -197,7 +197,7 @@ class UserAuthServiceProvider extends ServiceProvider
         ]);
 
         if (config('userauth.view') == 'ressources') {
-            $this->loadViewsFrom(resource_path('Resources/views/vendor/userauth'), 'userauth');
+            $this->loadViewsFrom(resource_path('views/vendor/userauth'), 'userauth');
         } else {
             $this->loadViewsFrom(__DIR__.'/Resources/views', 'userauth');
         }
