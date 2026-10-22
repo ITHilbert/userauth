@@ -3,13 +3,18 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
+use ITHilbert\UserAuth\Http\Controllers\AuthCssController;
 use ITHilbert\UserAuth\Http\Controllers\ImpersonateController;
 use ITHilbert\UserAuth\Http\Controllers\LoginController;
 use ITHilbert\UserAuth\Http\Controllers\PasswordController;
 use ITHilbert\UserAuth\Http\Controllers\PermissionController;
 use ITHilbert\UserAuth\Http\Controllers\RoleController;
+use ITHilbert\UserAuth\Http\Controllers\SocialAccountController;
+use ITHilbert\UserAuth\Http\Controllers\SocialLinkConfirmationController;
+use ITHilbert\UserAuth\Http\Controllers\SocialLoginController;
 use ITHilbert\UserAuth\Http\Controllers\TwoFactorController;
 use ITHilbert\UserAuth\Http\Controllers\UserController;
+use ITHilbert\UserAuth\Http\Middleware\EnsureSocialLoginEnabled;
 
 /*
 |--------------------------------------------------------------------------
@@ -24,6 +29,9 @@ use ITHilbert\UserAuth\Http\Controllers\UserController;
 
 Route::middleware(['web'])
     ->group(function () {
+
+        // Vorkompilierte CSS der Tailwind-Auth-Views (öffentlich, versioniert über ?v=)
+        Route::get('userauth/assets/userauth.css', AuthCssController::class)->name('userauth.assets.css');
 
         // Permission routes
         Route::middleware(config('userauth.routes.permissions_middleware'))
@@ -109,6 +117,19 @@ Route::middleware(['web'])
         Route::middleware(['web', 'auth'])->group(function () {
             Route::get('impersonate/{id}', [ImpersonateController::class, 'impersonate'])->name('userauth.impersonate');
             Route::get('impersonate-leave', [ImpersonateController::class, 'leave'])->name('userauth.impersonate.leave');
+        });
+
+        // Social Login (404, solange userauth.social.enabled = false)
+        Route::middleware([EnsureSocialLoginEnabled::class, 'throttle:30,1'])->group(function () {
+            Route::get('auth/{provider}/redirect', [SocialLoginController::class, 'redirect'])->name('userauth.social.redirect');
+            Route::get('auth/{provider}/callback', [SocialLoginController::class, 'callback'])->name('userauth.social.callback');
+            Route::get('auth/social/confirm/{token}', [SocialLinkConfirmationController::class, 'show'])->name('userauth.social.confirm');
+            Route::post('auth/social/confirm/{token}', [SocialLinkConfirmationController::class, 'store'])->name('userauth.social.confirm.store');
+
+            Route::middleware('auth')->group(function () {
+                Route::get('social-accounts', [SocialAccountController::class, 'index'])->name('userauth.social.accounts');
+                Route::delete('social-accounts/{provider}', [SocialAccountController::class, 'disconnect'])->name('userauth.social.disconnect');
+            });
         });
 
         Route::get('password/editwithtoken/{token}/{email}', [PasswordController::class, 'editwithtoken'])->name('password.editwithtoken');

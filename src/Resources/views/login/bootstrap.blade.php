@@ -39,6 +39,26 @@
                         <h3 class="text-1000">Login</h3>
                         <p class="text-700">Get access to your account</p>
                       </div>
+                      @if (session('status'))
+                        <div class="alert alert-success" role="alert">{{ session('status') }}</div>
+                      @endif
+                      @if ($errors->any())
+                        <div class="alert alert-danger" role="alert">
+                          @foreach ($errors->all() as $error)
+                            <div>{{ $error }}</div>
+                          @endforeach
+                        </div>
+                      @endif
+                      @if (in_array('google', $availableSocialProviders ?? [], true))
+                        <a class="btn btn-phoenix-secondary w-100 mb-3 d-inline-flex align-items-center justify-content-center gap-2" href="{{ route('userauth.social.redirect', 'google') }}">
+                          @include('userauth::partials.google-logo')
+                          @lang('userauth::social.login_with', ['provider' => 'Google'])
+                        </a>
+                        <div class="position-relative">
+                          <hr class="bg-200 mt-4 mb-4" />
+                          <div class="divider-content-center bg-white">@lang('userauth::social.or')</div>
+                        </div>
+                      @endif
                       {{-- <button class="btn btn-phoenix-secondary w-100 mb-3"><span class="fab fa-google text-danger me-2 fs--1"></span>Sign in with google</button>
                       <button class="btn btn-phoenix-secondary w-100"><span class="fab fa-facebook text-primary me-2 fs--1"></span>Sign in with facebook</button>
                       <div class="position-relative">

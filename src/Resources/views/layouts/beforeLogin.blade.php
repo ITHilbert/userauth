@@ -9,6 +9,7 @@
 
     <!-- Frontend-Assets des Host-Projekts (Vite oder Mix) -->
     @include('userauth::partials.assets')
+    @include('userauth::partials.auth-assets')
 </head>
 <body class="bg-gray-100 font-sans antialiased text-gray-900">
     @yield('main')

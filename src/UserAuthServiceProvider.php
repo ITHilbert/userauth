@@ -7,14 +7,25 @@ namespace ITHilbert\UserAuth;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\View\Compilers\BladeCompiler;
 use ITHilbert\UserAuth\App\Console\Commands\AssignRoleCommand;
 use ITHilbert\UserAuth\App\Console\Commands\CreatePermissionCommand;
+use ITHilbert\UserAuth\App\Console\Commands\PruneSocialLinksCommand;
 use ITHilbert\UserAuth\App\Console\Commands\UserAuthCopyFiles;
+use ITHilbert\UserAuth\Application\SocialLogin\Contracts\AuthSession;
+use ITHilbert\UserAuth\Application\SocialLogin\Contracts\PendingSocialLinkPruner;
+use ITHilbert\UserAuth\Application\SocialLogin\Contracts\PendingSocialLinkRepository;
+use ITHilbert\UserAuth\Application\SocialLogin\Contracts\SocialAccountRepository;
+use ITHilbert\UserAuth\Application\SocialLogin\Contracts\SocialIdentityProvider;
+use ITHilbert\UserAuth\Application\SocialLogin\Contracts\SocialUserRepository;
+use ITHilbert\UserAuth\Domain\SocialLogin\Events\SocialAccountLinked;
+use ITHilbert\UserAuth\Domain\SocialLogin\Events\SocialAccountUnlinked;
 use ITHilbert\UserAuth\Http\Middleware\EnforcePasswordPolicy;
 use ITHilbert\UserAuth\Http\Middleware\hasPermission;
 use ITHilbert\UserAuth\Http\Middleware\hasPermissionAnd;
@@ -23,7 +34,15 @@ use ITHilbert\UserAuth\Http\Middleware\hasRole;
 use ITHilbert\UserAuth\Http\Middleware\isAdmin;
 use ITHilbert\UserAuth\Http\Middleware\isDev;
 use ITHilbert\UserAuth\Http\Middleware\TwoFactorMiddleware;
+use ITHilbert\UserAuth\Http\ViewComposers\AvailableSocialProvidersComposer;
+use ITHilbert\UserAuth\Infrastructure\SocialLogin\EloquentPendingSocialLinkRepository;
+use ITHilbert\UserAuth\Infrastructure\SocialLogin\EloquentSocialAccountRepository;
+use ITHilbert\UserAuth\Infrastructure\SocialLogin\EloquentSocialUserRepository;
+use ITHilbert\UserAuth\Infrastructure\SocialLogin\SessionAuth;
+use ITHilbert\UserAuth\Infrastructure\SocialLogin\SocialiteIdentityProvider;
 use ITHilbert\UserAuth\Listeners\LogAuthenticationAttempt;
+use ITHilbert\UserAuth\Listeners\LogSocialAccountChange;
+use ITHilbert\UserAuth\Listeners\SendSocialAccountLinkedMail;
 
 class UserAuthServiceProvider extends ServiceProvider
 {
@@ -47,12 +66,25 @@ class UserAuthServiceProvider extends ServiceProvider
             UserAuthCopyFiles::class,
             AssignRoleCommand::class,
             CreatePermissionCommand::class,
+            PruneSocialLinksCommand::class,
         ]);
+
+        $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
+            $schedule->command('userauth:prune-social-links')->daily();
+        });
 
         // Register Event Listeners
         Event::listen(
             [Login::class, Failed::class, Logout::class],
             LogAuthenticationAttempt::class
+        );
+
+        Event::listen(SocialAccountLinked::class, [SendSocialAccountLinkedMail::class, 'handle']);
+        Event::listen([SocialAccountLinked::class, SocialAccountUnlinked::class], LogSocialAccountChange::class);
+
+        View::composer(
+            ['userauth::login.*', 'userauth::social.accounts.*'],
+            AvailableSocialProvidersComposer::class
         );
 
         $this->registerGates();
@@ -119,6 +151,20 @@ class UserAuthServiceProvider extends ServiceProvider
     {
         /*  $this->app->register(RouteServiceProvider::class); */
         $this->registerBladeExtensions();
+        $this->registerSocialLogin();
+    }
+
+    /**
+     * Port-Bindings des Social Logins (Ports in Application, Adapter in Infrastructure).
+     */
+    protected function registerSocialLogin(): void
+    {
+        $this->app->bind(SocialIdentityProvider::class, SocialiteIdentityProvider::class);
+        $this->app->bind(SocialAccountRepository::class, EloquentSocialAccountRepository::class);
+        $this->app->bind(PendingSocialLinkRepository::class, EloquentPendingSocialLinkRepository::class);
+        $this->app->bind(PendingSocialLinkPruner::class, EloquentPendingSocialLinkRepository::class);
+        $this->app->bind(SocialUserRepository::class, EloquentSocialUserRepository::class);
+        $this->app->bind(AuthSession::class, SessionAuth::class);
     }
 
     /**

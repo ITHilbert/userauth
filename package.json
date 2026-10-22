@@ -1,0 +1,11 @@
+{
+    "name": "ithilbert-userauth-assets",
+    "private": true,
+    "scripts": {
+        "build:css": "tailwindcss -i ./resources-src/userauth.css -o ./src/Resources/assets/css/userauth.css --minify"
+    },
+    "devDependencies": {
+        "@tailwindcss/cli": "^4.0.0",
+        "tailwindcss": "^4.0.0"
+    }
+}

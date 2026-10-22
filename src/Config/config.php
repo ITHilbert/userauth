@@ -26,12 +26,36 @@ return [
     // USERAUTH_THEME=bootstrap in der .env.
     'theme' => env('USERAUTH_THEME', 'tailwind'),
 
+    // Zusätzliche Assets für die Auth-Views (beide Themes), Pfade relativ zu public/, geladen via asset().
+    // z. B. Phoenix-Theme für das Bootstrap-Theme: 'css' => ['assets/css/theme.min.css'], 'js' => ['assets/js/config.js']
+    'auth_assets' => [
+        'css' => [],
+        'js' => [],
+    ],
+
     // Aktiviert das Audit Log
     'audit_log_enabled' => env('USERAUTH_AUDIT_LOG_ENABLED', false),
     // Aktiviert 2-Faktor-Authentifizierung
     'two_factor_enabled' => env('USERAUTH_2FA_ENABLED', false),
     // Darf ein Admin ("dev" oder "admin") sich temporär als ein anderer Nutzer anmelden?
     'impersonate_enabled' => true,
+
+    // Social Login (OAuth). Zugangsdaten liegen in der Host-App unter config('services.google.*')
+    // (client_id, client_secret). Die Redirect-URL setzt das Package selbst (Route userauth.social.callback).
+    'social' => [
+        // Schaltet alle Social-Login-Routen und -Buttons ein/aus (aus = Routen liefern 404)
+        'enabled' => env('USERAUTH_SOCIAL_ENABLED', false),
+        // Aktivierte Anbieter (aktuell unterstützt: 'google')
+        'providers' => ['google'],
+        // Dürfen unbekannte Nutzer beim ersten Social-Login automatisch ein Konto erhalten?
+        'allow_registration' => env('USERAUTH_SOCIAL_REGISTRATION', false),
+        // Rollen-Key (roles.role) für automatisch angelegte Konten
+        'default_role' => env('USERAUTH_SOCIAL_DEFAULT_ROLE', 'user'),
+        // Erlaubte E-Mail-/Workspace-Domains (z. B. ['firma.de']); leer = alle Domains
+        'allowed_domains' => [],
+        // Gültigkeit des Bestätigungslinks für das Verknüpfen unbestätigter Konten
+        'pending_link_ttl_minutes' => 60,
+    ],
 
     // Erweiterte Passwort-Sicherheitsrichtlinien
     'password_policy' => [

@@ -6,8 +6,8 @@ namespace ITHilbert\UserAuth\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Mail;
-use ITHilbert\UserAuth\Mail\TwoFactorCode;
+use ITHilbert\UserAuth\Application\Auth\AuthenticationNextStep;
+use ITHilbert\UserAuth\Application\Auth\CompleteAuthentication;
 use ITHilbert\UserAuth\Traits\Auth\AuthenticatesUsers;
 
 final class LoginController extends Controller
@@ -50,7 +50,7 @@ final class LoginController extends Controller
      *
      * @return void
      */
-    public function __construct()
+    public function __construct(private readonly CompleteAuthentication $completeAuthentication)
     {
         $this->middleware('guest')->except('logout');
     }
@@ -62,12 +62,7 @@ final class LoginController extends Controller
 
     protected function authenticated(Request $request, $user)
     {
-        if (config('userauth.two_factor_enabled')) {
-            $user->generateTwoFactorCode();
-
-            // Mail senden
-            Mail::to($user->email)->send(new TwoFactorCode($user->two_factor_code));
-
+        if ($this->completeAuthentication->handle($user) === AuthenticationNextStep::TwoFactorRequired) {
             return redirect()->route('verify.index');
         }
 

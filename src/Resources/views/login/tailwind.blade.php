@@ -7,6 +7,12 @@
         <h1 class="text-2xl font-bold text-gray-900 text-center mb-2">Anmelden</h1>
         <p class="text-sm text-gray-500 text-center mb-8">Melden Sie sich mit Ihrem Konto an</p>
 
+        @if (session('status'))
+            <div class="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 text-sm text-green-700">
+                {{ session('status') }}
+            </div>
+        @endif
+
         @if ($errors->any())
             <div class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
                 <ul class="list-disc list-inside text-sm text-red-700 space-y-1">
@@ -85,5 +91,19 @@
                 Anmelden
             </button>
         </form>
+
+        @if (in_array('google', $availableSocialProviders ?? [], true))
+            <div class="relative my-6">
+                <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-200"></div></div>
+                <div class="relative flex justify-center"><span class="bg-white px-3 text-xs text-gray-500">@lang('userauth::social.or')</span></div>
+            </div>
+            <a
+                href="{{ route('userauth.social.redirect', 'google') }}"
+                class="w-full inline-flex items-center justify-center gap-3 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium text-sm rounded-lg px-4 py-2.5 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            >
+                @include('userauth::partials.google-logo')
+                @lang('userauth::social.login_with', ['provider' => 'Google'])
+            </a>
+        @endif
     </div>
 @endsection
