@@ -7,7 +7,7 @@ namespace ITHilbert\UserAuth\Tests\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use ITHilbert\UserAuth\Mail\TwoFactorCode;
-use Tests\TestCase;
+use ITHilbert\UserAuth\Tests\TestCase;
 
 /**
  * Regressionsschutz für das Auslagern der 2FA-Auslösung in CompleteAuthentication.

@@ -7,7 +7,7 @@ namespace ITHilbert\UserAuth\Tests\Feature;
 use Illuminate\Support\Carbon;
 use ITHilbert\UserAuth\Traits\Auth\TwoFactorAuthenticatable;
 use ReflectionClass;
-use Tests\TestCase;
+use ITHilbert\UserAuth\Tests\TestCase;
 
 final class TwoFactorCodeGenerationTest extends TestCase
 {

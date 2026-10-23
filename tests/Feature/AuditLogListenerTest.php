@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Schema;
 use ITHilbert\UserAuth\Entities\UserAuthAuditLog;
 use ITHilbert\UserAuth\Listeners\LogAuthenticationAttempt;
 use stdClass;
-use Tests\TestCase;
+use ITHilbert\UserAuth\Tests\TestCase;
 
 final class AuditLogListenerTest extends TestCase
 {

@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 use ITHilbert\UserAuth\Application\SocialLogin\Exceptions\SocialProviderUnavailableException;
 use ITHilbert\UserAuth\Domain\SocialLogin\SocialProvider;
 use ITHilbert\UserAuth\Infrastructure\SocialLogin\SocialiteIdentityProvider;
-use Tests\TestCase;
+use ITHilbert\UserAuth\Tests\TestCase;
 
 /**
  * Adapter-Test gegen den ECHTEN Socialite-Google-Treiber (ohne HTTP-Aufruf).

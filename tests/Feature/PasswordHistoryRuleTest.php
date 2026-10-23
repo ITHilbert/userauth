@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use ITHilbert\UserAuth\Rules\PasswordHistoryRule;
 use stdClass;
-use Tests\TestCase;
+use ITHilbert\UserAuth\Tests\TestCase;
 
 final class PasswordHistoryRuleTest extends TestCase
 {
