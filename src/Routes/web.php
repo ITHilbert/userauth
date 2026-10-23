@@ -73,17 +73,15 @@ Route::middleware(['web'])
                 Route::delete('delete/{id}', [UserController::class, 'delete'])->name('user.delete')->middleware('hasPermission:user_delete');
             });
 
-        // Password und Logout
+        // Password edit
         Route::middleware(['auth'])
             ->group(function () {
-
-                // Password edit
                 Route::get('password/edit', [PasswordController::class, 'edit'])->name('password.edit');
                 Route::post('password/update', [PasswordController::class, 'update'])->name('password.update');
-
-                // Logout
-                Route::any('logout', [LoginController::class, 'logout'])->name('logout');
             });
+
+        // Logout – auch für Gäste mit offener Zwei-Faktor-Anmeldung („Abbrechen“)
+        Route::any('logout', [LoginController::class, 'logout'])->name('logout');
 
         // User Icon
         Route::middleware(['auth'])
@@ -108,11 +106,11 @@ Route::middleware(['web'])
             ->middleware(['throttle:userauth-passwort-anfordern', InvokeDeferredCallbacks::class]);
         Route::post('password/updatewithtoken', [PasswordController::class, 'updatewithtoken'])->name('password.updatewithtoken')->middleware('throttle:userauth-passwort-zuruecksetzen');
 
-        // 2FA
-        Route::middleware(['web', 'auth'])->group(function () {
+        // 2FA: vor dem Code ist niemand angemeldet; der Controller verlangt eine offene Anmeldung in dieser Sitzung
+        Route::middleware(['guest'])->group(function () {
             Route::get('verify', [TwoFactorController::class, 'index'])->name('verify.index');
             Route::post('verify', [TwoFactorController::class, 'store'])->name('verify.store');
-            Route::get('verify/resend', [TwoFactorController::class, 'resend'])->name('verify.resend');
+            Route::post('verify/resend', [TwoFactorController::class, 'resend'])->name('verify.resend');
         });
 
         // Impersonate

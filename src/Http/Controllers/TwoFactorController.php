@@ -4,48 +4,54 @@ declare(strict_types=1);
 
 namespace ITHilbert\UserAuth\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Mail;
-use ITHilbert\UserAuth\Mail\TwoFactorCode;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
+use ITHilbert\UserAuth\Application\Auth\CodeErneutSendenErgebnis;
+use ITHilbert\UserAuth\Application\Auth\Contracts\OffeneAnmeldungen;
+use ITHilbert\UserAuth\Application\Auth\ZweiFaktorBestaetigen;
+use ITHilbert\UserAuth\Application\Auth\ZweiFaktorCodeErneutSenden;
+use ITHilbert\UserAuth\Application\Auth\ZweiFaktorStatus;
+use ITHilbert\UserAuth\Domain\Auth\OffeneAnmeldung;
+use ITHilbert\UserAuth\Http\Requests\ZweiFaktorCodeRequest;
 
-final class TwoFactorController extends Controller
+/**
+ * Code-Eingabe der Zwei-Faktor-Anmeldung. Nur für Gäste mit offener Anmeldung in der eigenen Sitzung.
+ */
+final class TwoFactorController
 {
-    public function __construct()
+    public function index(OffeneAnmeldungen $anmeldungen): View|RedirectResponse
     {
-        $this->middleware(['web', 'auth']);
-    }
-
-    public function index()
-    {
-        return view('userauth::auth.twoFactor');
-    }
-
-    public function store(Request $request)
-    {
-        $request->validate([
-            'two_factor_code' => 'required|string',
-        ]);
-
-        $user = auth()->user();
-
-        if ($request->two_factor_code == $user->two_factor_code) {
-            $user->resetTwoFactorCode();
-
-            return redirect()->intended(config('userauth.redirect_after_login', '/'));
+        if ($anmeldungen->laden() === null) {
+            return redirect()->route('login');
         }
 
-        return redirect()->back()->withErrors(['two_factor_code' => 'Der eingegebene Code ist ungültig.']);
+        return view('userauth::auth.twoFactor', ['gueltigMinuten' => OffeneAnmeldung::CODE_GUELTIG_MINUTEN]);
     }
 
-    public function resend()
+    public function store(ZweiFaktorCodeRequest $request, ZweiFaktorBestaetigen $bestaetigen): RedirectResponse
     {
-        $user = auth()->user();
-        $user->generateTwoFactorCode();
+        $ergebnis = $bestaetigen->handle($request->code());
 
-        // Mail senden
-        Mail::to($user->email)->send(new TwoFactorCode($user->two_factor_code));
+        return match ($ergebnis->status) {
+            ZweiFaktorStatus::Bestanden => redirect()->to($ergebnis->ziel ?? (string) config('userauth.redirect_after_login', '/')),
+            ZweiFaktorStatus::Abgelehnt => $this->zurCodeEingabe(__('userauth::zwei_faktor.ungueltig')),
+            ZweiFaktorStatus::Abgelaufen => $this->zurCodeEingabe(__('userauth::zwei_faktor.abgelaufen')),
+            ZweiFaktorStatus::Gesperrt => redirect()->route('login')->withErrors(['two_factor_code' => __('userauth::zwei_faktor.gesperrt')]),
+            ZweiFaktorStatus::KeineOffeneAnmeldung => redirect()->route('login'),
+        };
+    }
 
-        return redirect()->back()->with('message', 'Der Code wurde erneut gesendet.');
+    public function resend(ZweiFaktorCodeErneutSenden $erneutSenden): RedirectResponse
+    {
+        return match ($erneutSenden->handle()) {
+            CodeErneutSendenErgebnis::Gesendet => redirect()->route('verify.index')->with('status', __('userauth::zwei_faktor.erneut_gesendet')),
+            CodeErneutSendenErgebnis::ZuFrueh => $this->zurCodeEingabe(__('userauth::zwei_faktor.zu_frueh', ['seconds' => OffeneAnmeldung::ERNEUT_SENDEN_SEKUNDEN])),
+            CodeErneutSendenErgebnis::KeineOffeneAnmeldung => redirect()->route('login'),
+        };
+    }
+
+    private function zurCodeEingabe(string $fehler): RedirectResponse
+    {
+        return redirect()->route('verify.index')->withErrors(['two_factor_code' => $fehler]);
     }
 }

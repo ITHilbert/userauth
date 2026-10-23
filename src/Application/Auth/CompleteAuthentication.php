@@ -6,32 +6,35 @@ namespace ITHilbert\UserAuth\Application\Auth;
 
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Config\Repository;
-use Illuminate\Contracts\Mail\Mailer;
-use ITHilbert\UserAuth\Mail\TwoFactorCode;
+use ITHilbert\UserAuth\Application\Auth\Contracts\OffeneAnmeldungen;
+use ITHilbert\UserAuth\Application\Auth\Contracts\Sitzungsanmeldung;
+use ITHilbert\UserAuth\Domain\Auth\OffeneAnmeldung;
 
 /**
- * Schritt nach erfolgreicher primärer Anmeldung (Passwort oder Social Login):
- * löst bei aktivierter 2FA Code-Erzeugung und Versand aus.
+ * Schritt nach bestandenem ersten Faktor (Passwort oder Social Login).
+ * Ohne 2FA: sofort anmelden (AK21). Mit 2FA: noch nicht anmelden, sondern eine offene Anmeldung in der Sitzung
+ * beginnen und den Code senden; „Angemeldet bleiben“ wirkt erst nach bestandener 2FA (AK14).
  */
 final class CompleteAuthentication
 {
     public function __construct(
         private readonly Repository $config,
-        private readonly Mailer $mailer,
+        private readonly Sitzungsanmeldung $sitzung,
+        private readonly OffeneAnmeldungen $anmeldungen,
+        private readonly ZweiFaktorCodeSenden $codeSenden,
     ) {}
 
-    /**
-     * @param  Authenticatable&object{email: string, two_factor_code: mixed}  $user
-     */
-    public function handle(Authenticatable $user): AuthenticationNextStep
+    public function handle(Authenticatable $user, bool $angemeldetBleiben = false): AuthenticationNextStep
     {
         if (! $this->config->get('userauth.two_factor_enabled')) {
+            $this->sitzung->anmelden($user, $angemeldetBleiben);
+
             return AuthenticationNextStep::Done;
         }
 
-        $user->generateTwoFactorCode();
-
-        $this->mailer->to($user->email)->send(new TwoFactorCode($user->two_factor_code));
+        $anmeldung = OffeneAnmeldung::beginnen($user->getAuthIdentifier(), $angemeldetBleiben, $this->anmeldungen->zielEntnehmen());
+        $this->anmeldungen->beginnen($anmeldung);
+        $this->codeSenden->handle($anmeldung, $user);
 
         return AuthenticationNextStep::TwoFactorRequired;
     }

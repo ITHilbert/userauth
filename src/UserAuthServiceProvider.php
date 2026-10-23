@@ -11,6 +11,8 @@ use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Http\Kernel as HttpKernelContract;
+use Illuminate\Foundation\Http\Kernel as HttpKernel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
@@ -23,10 +25,15 @@ use ITHilbert\UserAuth\App\Console\Commands\AssignRoleCommand;
 use ITHilbert\UserAuth\App\Console\Commands\CreatePermissionCommand;
 use ITHilbert\UserAuth\App\Console\Commands\PruneSocialLinksCommand;
 use ITHilbert\UserAuth\App\Console\Commands\UserAuthCopyFiles;
+use ITHilbert\UserAuth\Application\Auth\Contracts\Anmeldedaten;
+use ITHilbert\UserAuth\Application\Auth\Contracts\OffeneAnmeldungen;
+use ITHilbert\UserAuth\Application\Auth\Contracts\Sitzungsanmeldung;
+use ITHilbert\UserAuth\Application\Auth\Contracts\ZweiFaktorCodeHasher;
+use ITHilbert\UserAuth\Application\Auth\Contracts\ZweiFaktorCodeVersand;
+use ITHilbert\UserAuth\Application\Auth\Events\ZweiFaktorCodeAbgelehnt;
 use ITHilbert\UserAuth\Application\Passwort\Contracts\PasswortHistorie;
 use ITHilbert\UserAuth\Application\Passwort\Contracts\PasswortKonten;
 use ITHilbert\UserAuth\Application\Passwort\Contracts\ResetLinkVersand;
-use ITHilbert\UserAuth\Application\SocialLogin\Contracts\AuthSession;
 use ITHilbert\UserAuth\Application\SocialLogin\Contracts\PendingSocialLinkPruner;
 use ITHilbert\UserAuth\Application\SocialLogin\Contracts\PendingSocialLinkRepository;
 use ITHilbert\UserAuth\Application\SocialLogin\Contracts\SocialAccountRepository;
@@ -45,18 +52,23 @@ use ITHilbert\UserAuth\Http\Middleware\isAdmin;
 use ITHilbert\UserAuth\Http\Middleware\isDev;
 use ITHilbert\UserAuth\Http\Middleware\TwoFactorMiddleware;
 use ITHilbert\UserAuth\Http\ViewComposers\AvailableSocialProvidersComposer;
+use ITHilbert\UserAuth\Infrastructure\Auth\GuardAnmeldedaten;
+use ITHilbert\UserAuth\Infrastructure\Auth\GuardSitzungsanmeldung;
+use ITHilbert\UserAuth\Infrastructure\Auth\HmacZweiFaktorCodeHasher;
+use ITHilbert\UserAuth\Infrastructure\Auth\MailZweiFaktorCodeVersand;
+use ITHilbert\UserAuth\Infrastructure\Auth\SessionOffeneAnmeldungen;
 use ITHilbert\UserAuth\Infrastructure\Passwort\DatenbankPasswortHistorie;
 use ITHilbert\UserAuth\Infrastructure\Passwort\EloquentPasswortKonten;
 use ITHilbert\UserAuth\Infrastructure\Passwort\NachAntwortResetLinkVersand;
 use ITHilbert\UserAuth\Infrastructure\SocialLogin\EloquentPendingSocialLinkRepository;
 use ITHilbert\UserAuth\Infrastructure\SocialLogin\EloquentSocialAccountRepository;
 use ITHilbert\UserAuth\Infrastructure\SocialLogin\EloquentSocialUserRepository;
-use ITHilbert\UserAuth\Infrastructure\SocialLogin\SessionAuth;
 use ITHilbert\UserAuth\Infrastructure\SocialLogin\SocialiteIdentityProvider;
 use ITHilbert\UserAuth\Infrastructure\Zugriff\EloquentRollenRepository;
 use ITHilbert\UserAuth\Listeners\LogAuthenticationAttempt;
 use ITHilbert\UserAuth\Listeners\LogSocialAccountChange;
 use ITHilbert\UserAuth\Listeners\SendSocialAccountLinkedMail;
+use ITHilbert\UserAuth\Listeners\SitzungsgebundeneAnmeldungMarkieren;
 use UnitEnum;
 
 class UserAuthServiceProvider extends ServiceProvider
@@ -91,9 +103,10 @@ class UserAuthServiceProvider extends ServiceProvider
 
         // Register Event Listeners
         Event::listen(
-            [Login::class, Failed::class, Logout::class],
+            [Login::class, Failed::class, Logout::class, ZweiFaktorCodeAbgelehnt::class],
             LogAuthenticationAttempt::class
         );
+        Event::listen(Login::class, SitzungsgebundeneAnmeldungMarkieren::class);
 
         Event::listen(SocialAccountLinked::class, [SendSocialAccountLinkedMail::class, 'handle']);
         Event::listen([SocialAccountLinked::class, SocialAccountUnlinked::class], LogSocialAccountChange::class);
@@ -149,10 +162,26 @@ class UserAuthServiceProvider extends ServiceProvider
         $router->aliasMiddleware('isAdmin', isAdmin::class);
         $router->aliasMiddleware('isDev', isDev::class);
 
-        // Füge die EnforcePasswordPolicy Middleware zur globalen "web" Gruppe hinzu
-        // (besser: Die Applikation entscheidet selbst, ob sie es nutzen will, oder wir pushen es in den web Group)
-        $router->pushMiddlewareToGroup('web', EnforcePasswordPolicy::class);
-        $router->pushMiddlewareToGroup('web', TwoFactorMiddleware::class);
+        // Global in "web": Passwort-Ablauf erzwingen (greift erst nach bestandener 2FA, vorher ist niemand angemeldet)
+        // und Sitzungen aus der Zeit vor der sitzungsgebundenen 2FA abmelden (TwoFactorMiddleware)
+        $webMiddleware = [EnforcePasswordPolicy::class, TwoFactorMiddleware::class];
+        foreach ($webMiddleware as $middleware) {
+            $router->pushMiddlewareToGroup('web', $middleware);
+        }
+
+        // Entsteht der HTTP-Kernel erst nach dem Booten der Provider (z. B. Testbench), überschreibt sein Konstruktor
+        // die Gruppen des Routers – dann zusätzlich im Kernel eintragen. Nur in diesem Fall (afterResolving, nicht
+        // callAfterResolving): Ein bereits erzeugter Kernel würde beim Eintragen die Gruppen erneut auf den Router
+        // schreiben und dort von anderen Paketen ergänzte Middlewares verwerfen.
+        $this->app->afterResolving(HttpKernelContract::class, static function (HttpKernelContract $kernel) use ($webMiddleware): void {
+            if (! $kernel instanceof HttpKernel || ! array_key_exists('web', $kernel->getMiddlewareGroups())) {
+                return;
+            }
+
+            foreach ($webMiddleware as $middleware) {
+                $kernel->appendMiddlewareToGroup('web', $middleware);
+            }
+        });
     }
 
     public function publishAssets()
@@ -184,6 +213,19 @@ class UserAuthServiceProvider extends ServiceProvider
         $this->registerSocialLogin();
         $this->registerZugriffspruefung();
         $this->registerPasswort();
+        $this->registerAnmeldung();
+    }
+
+    /**
+     * Port-Bindings der Anmeldung und der sitzungsgebundenen Zwei-Faktor-Anmeldung.
+     */
+    protected function registerAnmeldung(): void
+    {
+        $this->app->bind(Anmeldedaten::class, GuardAnmeldedaten::class);
+        $this->app->bind(Sitzungsanmeldung::class, GuardSitzungsanmeldung::class);
+        $this->app->bind(OffeneAnmeldungen::class, SessionOffeneAnmeldungen::class);
+        $this->app->bind(ZweiFaktorCodeHasher::class, HmacZweiFaktorCodeHasher::class);
+        $this->app->bind(ZweiFaktorCodeVersand::class, MailZweiFaktorCodeVersand::class);
     }
 
     /**
@@ -214,7 +256,6 @@ class UserAuthServiceProvider extends ServiceProvider
         $this->app->bind(PendingSocialLinkRepository::class, EloquentPendingSocialLinkRepository::class);
         $this->app->bind(PendingSocialLinkPruner::class, EloquentPendingSocialLinkRepository::class);
         $this->app->bind(SocialUserRepository::class, EloquentSocialUserRepository::class);
-        $this->app->bind(AuthSession::class, SessionAuth::class);
     }
 
     /**
