@@ -301,6 +301,7 @@ final class ZweiFaktorVersandfehlerTest extends SocialLoginTestCase
         $this->browser('gegenprobe');
         $this->passwortAnmelden()->assertRedirect(route('verify.index'));
         $this->travel(61)->seconds();
+        $this->codeErneutSenden();
 
         $this->assertCount(2, $this->nachrichtenAn(self::EMAIL), 'Gegenprobe: Mit erreichbarem Mailserver wird der Code erneut versendet.');
         $this->codeEingeben($this->zweiFaktorCode(self::EMAIL));
