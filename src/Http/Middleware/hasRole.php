@@ -5,38 +5,33 @@ declare(strict_types=1);
 namespace ITHilbert\UserAuth\Http\Middleware;
 
 use Closure;
-use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use ITHilbert\UserAuth\Application\Zugriff\Zugriffspruefung;
+use ITHilbert\UserAuth\Http\Responses\ZugriffVerweigert;
+use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Route nur mit Rolle: `hasRole:name`. Dev und Admin kommen immer durch (auch bei `hasRole:dev`).
+ */
 final class hasRole
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @return mixed
-     */
-    public function handle(Request $request, Closure $next, $role)
+    public function __construct(
+        private readonly Zugriffspruefung $zugriffspruefung,
+        private readonly ZugriffVerweigert $verweigert,
+    ) {}
+
+    public function handle(Request $request, Closure $next, string $role): Response
     {
-        /** @var Authenticatable|null $user */
-        $user = Auth::user();
+        $user = $request->user();
 
-        if (! $user) {
-            return redirect()->guest(route('login'));
+        if ($user === null) {
+            return $this->verweigert->nichtAngemeldet();
         }
-        // Admin und Developer  haben immer das Recht
-        if ($user->role_id <= 2) {
-            return $next($request);
-        }
-        // recht prüfen
-        if ($user->hasRole($role)) {
+
+        if ($this->zugriffspruefung->istPrivilegiert($user) || $this->zugriffspruefung->hatRolle($user, $role)) {
             return $next($request);
         }
 
-        if (config('userauth.redirect_on_no_permission', 'login') === 'login') {
-            return redirect()->guest(route('login'));
-        }
-
-        return redirect()->route('no-permission', [$request, $user->id]);
+        return $this->verweigert->fehlendesRecht();
     }
 }

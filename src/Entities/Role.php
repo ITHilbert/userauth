@@ -7,6 +7,8 @@ namespace ITHilbert\UserAuth\Entities;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use ITHilbert\LaravelKit\Traits\VueComboBox;
+use ITHilbert\UserAuth\Domain\Zugriff\Namensliste;
+use ITHilbert\UserAuth\Domain\Zugriff\Rolle;
 
 class Role extends Model
 {
@@ -20,8 +22,6 @@ class Role extends Model
         'role_display',
     ];
 
-    private $permissions = [];
-
     public function getCbCaptionAttribute()
     {
         return $this->role_display;
@@ -33,21 +33,35 @@ class Role extends Model
     }
 
     /**
-     * Prüft ob die Rolle eine bestimmte Permission hat
-     *
-     * @param  string  $permission
-     * @return bool
+     * Diese Rolle als Domain-Objekt der Zugriffsprüfung; null bei nicht gespeicherter,
+     * gelöschter oder ungültiger Rolle (fail-closed).
      */
-    public function hasPermission($permission)
+    public function alsZugriffsrolle(): ?Rolle
     {
-        // Admin darf immer
-        if ($this->role == 'dev' || $this->role == 'admin') {
-            return true;
+        $id = Rolle::idAus($this->getKey());
+
+        if ($id === null || ! $this->exists || $this->trashed()) {
+            return null;
         }
 
-        $this->loadPermissions();
+        $this->loadMissing('permissions');
 
-        return in_array($permission, $this->permissions);
+        /** @var list<string> $rechte */
+        $rechte = $this->getRelation('permissions')
+            ->pluck('permission')
+            ->map(static fn (mixed $recht): string => (string) $recht)
+            ->values()
+            ->all();
+
+        return new Rolle($id, (string) $this->role, $rechte);
+    }
+
+    /**
+     * Prüft, ob die Rolle das Recht hat (Dev/Admin: immer).
+     */
+    public function hasPermission(string $permission): bool
+    {
+        return $this->alsZugriffsrolle()?->hatRecht($permission) ?? false;
     }
 
     /**
@@ -67,70 +81,22 @@ class Role extends Model
     }
 
     /**
-     * Prüft ob die Rolle MINDESTENS EINE der übergebenen Permissions hat (OR).
+     * Prüft, ob die Rolle MINDESTENS EINES der Rechte hat (ODER).
      *
-     * @param  string  $permissions  Komma-getrennte Liste
-     * @return bool
+     * @param  string|array<array-key, mixed>  $permissions  Komma-Liste oder Array
      */
-    public function hasPermissionOr($permissions)
+    public function hasPermissionOr(string|array $permissions): bool
     {
-        // Admin darf immer
-        if ($this->role == 'dev' || $this->role == 'admin') {
-            return true;
-        }
-
-        $this->loadPermissions();
-
-        $permission = explode(',', $permissions);
-
-        foreach ($permission as $perm) {
-            if (in_array(trim($perm), $this->permissions)) {
-                return true;
-            }
-        }
-
-        return false;
+        return $this->alsZugriffsrolle()?->hatEinesDerRechte(Namensliste::aus($permissions)) ?? false;
     }
 
     /**
-     * Prüft ob die Rolle eine bestimmte Permission hat
+     * Prüft, ob die Rolle ALLE Rechte hat (UND).
      *
-     * @param  string  $permission
-     * @return bool
+     * @param  string|array<array-key, mixed>  $permissions  Komma-Liste oder Array
      */
-    public function hasPermissionAnd($permissions)
+    public function hasPermissionAnd(string|array $permissions): bool
     {
-        // Admin darf immer
-        if ($this->role == 'dev' || $this->role == 'admin') {
-            return true;
-        }
-
-        $this->loadPermissions();
-        $permission = explode(',', $permissions);
-
-        foreach ($permission as $perm) {
-            if (! in_array(trim($perm), $this->permissions)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Lädt die Permissions in die $permissions Variable
-     *
-     * @param  bool  $force  true wenn auf jeden Fall neu geladen werden soll
-     * @return void
-     */
-    private function loadPermissions($force = false)
-    {
-        if ($force || count($this->permissions) == 0) {
-            $this->loadMissing('permissions');
-            $relation = $this->getRelation('permissions');
-            if ($relation) {
-                $this->permissions = $relation->pluck('permission')->toArray();
-            }
-        }
+        return $this->alsZugriffsrolle()?->hatAlleRechte(Namensliste::aus($permissions)) ?? false;
     }
 }
