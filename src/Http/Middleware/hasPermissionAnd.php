@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ITHilbert\UserAuth\Http\Middleware;
 
-use App\Models\User;
 use Closure;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -18,7 +18,7 @@ final class hasPermissionAnd
      */
     public function handle(Request $request, Closure $next, $permissions)
     {
-        /** @var User|null $user */
+        /** @var Authenticatable|null $user */
         $user = Auth::user();
 
         if (! $user) {

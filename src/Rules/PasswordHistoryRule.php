@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ITHilbert\UserAuth\Rules;
 
-use App\Models\User;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +17,7 @@ final class PasswordHistoryRule implements Rule
     /**
      * Create a new rule instance.
      *
-     * @param  User|null  $user
+     * @param  Authenticatable|null  $user
      * @return void
      */
     public function __construct($user = null)

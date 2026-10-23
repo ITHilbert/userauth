@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ITHilbert\UserAuth\Http\Controllers;
 
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -15,10 +14,13 @@ use Illuminate\Support\Str;
 use ITHilbert\LaravelKit\Helpers\Breadcrumb;
 use ITHilbert\LaravelKit\Helpers\MyDateTime;
 use ITHilbert\UserAuth\App\Mail\ForgottenPassword;
+use ITHilbert\UserAuth\Infrastructure\Auth\UserModel;
 use ITHilbert\UserAuth\Rules\PasswordHistoryRule;
 
 final class PasswordController implements HasMiddleware
 {
+    public function __construct(private readonly UserModel $userModel) {}
+
     public static function middleware(): array
     {
         return [
@@ -85,7 +87,7 @@ final class PasswordController implements HasMiddleware
 
         $email = $request->email;
 
-        $user = User::where('email', $email)->where('deleted_at', null)->first();
+        $user = $this->userModel->query()->where('email', $email)->where('deleted_at', null)->first();
 
         $user->edit_pw_token = Str::random(10);
 
@@ -134,7 +136,7 @@ final class PasswordController implements HasMiddleware
      */
     public function updatewithtoken(Request $request)
     {
-        $user = User::where('email', $request->email)->where('edit_pw_token', $request->pwtoken)->where('deleted_at', null)->first();
+        $user = $this->userModel->query()->where('email', $request->email)->where('edit_pw_token', $request->pwtoken)->where('deleted_at', null)->first();
 
         $request->validate([
             'password' => ['required', 'min:8', 'confirmed', new PasswordHistoryRule($user)],

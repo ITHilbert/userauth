@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ITHilbert\UserAuth\Http\Controllers;
 
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -14,10 +13,13 @@ use Illuminate\Support\Facades\Lang;
 use ITHilbert\LaravelKit\Helpers\Breadcrumb;
 use ITHilbert\LaravelKit\Helpers\HButton;
 use ITHilbert\UserAuth\Entities\Role;
+use ITHilbert\UserAuth\Infrastructure\Auth\UserModel;
 use Yajra\DataTables\Facades\DataTables;
 
 final class UserController extends Controller
 {
+    public function __construct(private readonly UserModel $userModel) {}
+
     /**
      * Display a listing of the resource.
      *
@@ -25,7 +27,7 @@ final class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $data = User::latest()->where('deleted_at', null)->with('role')->get();
+        $data = $this->userModel->query()->latest()->where('deleted_at', null)->with('role')->get();
 
         if ($request->ajax()) {
             $user = Auth::user();
@@ -88,7 +90,7 @@ final class UserController extends Controller
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
         ]);
 
-        $user = new User;
+        $user = $this->userModel->newInstance();
         $user->name = $this->getName($request);
         $user->email = $request->email;
         $user->role_id = $request->role_id;
@@ -165,7 +167,7 @@ final class UserController extends Controller
      */
     public function edit($id)
     {
-        $user = User::findOrFail($id);
+        $user = $this->userModel->query()->findOrFail($id);
         $roles = Role::all();
 
         $breadcrumb = new Breadcrumb;
@@ -205,7 +207,7 @@ final class UserController extends Controller
         }
 
         // Benutzer laden
-        $user = User::findOrFail($id);
+        $user = $this->userModel->query()->findOrFail($id);
 
         // Prüfen ob sich die E-Mail Adresse geändert hat
         if ($user->email != $request->email) {
@@ -283,7 +285,7 @@ final class UserController extends Controller
      */
     public function delete($id)
     {
-        $user = User::findOrFail($id);
+        $user = $this->userModel->query()->findOrFail($id);
         $user->delete();
 
         return redirect()->route('user')->with([
@@ -320,7 +322,7 @@ final class UserController extends Controller
         $userID = Auth::user()->id;
 
         // Benutzer laden
-        $user = User::findOrFail($userID);
+        $user = $this->userModel->query()->findOrFail($userID);
 
         // Image
         if ($request->hasFile('image')) {

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ITHilbert\UserAuth\App\Mail;
 
-use App\Models\User;
 use Illuminate\Bus\Queueable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
@@ -20,7 +20,7 @@ final class ForgottenPassword extends Mailable
      *
      * @return void
      */
-    public function __construct(User $user)
+    public function __construct(Model $user)
     {
         $this->user = $user;
     }
