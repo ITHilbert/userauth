@@ -29,7 +29,7 @@
         "illuminate/routing": "^12.0 || ^13.0",
         "illuminate/mail": "^12.0 || ^13.0",
         "illuminate/validation": "^12.0 || ^13.0",
-        "ithilbert/laravel-kit": "^1.1",
+        "ithilbert/laravel-kit": "dev-main",
         "laravel/socialite": "^5.0",
         "nesbot/carbon": "^2.0 || ^3.0",
         "yajra/laravel-datatables-oracle": "^12.0 || ^13.0"
