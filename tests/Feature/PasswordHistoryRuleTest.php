@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use ITHilbert\UserAuth\Rules\PasswordHistoryRule;
-use stdClass;
 use ITHilbert\UserAuth\Tests\TestCase;
+use stdClass;
 
 final class PasswordHistoryRuleTest extends TestCase
 {
@@ -31,7 +31,7 @@ final class PasswordHistoryRuleTest extends TestCase
 
     private function fakeUser(string $currentPassword): stdClass
     {
-        $user = new stdClass();
+        $user = new stdClass;
         $user->id = 1;
         $user->password = Hash::make($currentPassword);
 

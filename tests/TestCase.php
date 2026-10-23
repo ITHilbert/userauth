@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ITHilbert\UserAuth\Tests;
 
+use Illuminate\Foundation\Application;
 use ITHilbert\UserAuth\Tests\Fixtures\User;
 use ITHilbert\UserAuth\UserAuthServiceProvider;
 use Laravel\Socialite\SocialiteServiceProvider;
@@ -16,7 +17,7 @@ use Yajra\DataTables\DataTablesServiceProvider;
 abstract class TestCase extends Orchestra
 {
     /**
-     * @param  \Illuminate\Foundation\Application  $app
+     * @param  Application  $app
      * @return array<int, class-string>
      */
     protected function getPackageProviders($app): array
@@ -29,7 +30,7 @@ abstract class TestCase extends Orchestra
     }
 
     /**
-     * @param  \Illuminate\Foundation\Application  $app
+     * @param  Application  $app
      */
     protected function defineEnvironment($app): void
     {

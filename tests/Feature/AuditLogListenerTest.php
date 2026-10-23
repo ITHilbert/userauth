@@ -11,8 +11,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use ITHilbert\UserAuth\Entities\UserAuthAuditLog;
 use ITHilbert\UserAuth\Listeners\LogAuthenticationAttempt;
-use stdClass;
 use ITHilbert\UserAuth\Tests\TestCase;
+use stdClass;
 
 final class AuditLogListenerTest extends TestCase
 {
@@ -46,7 +46,7 @@ final class AuditLogListenerTest extends TestCase
 
     public function test_login_event_is_logged(): void
     {
-        $user = new stdClass();
+        $user = new stdClass;
         $user->id = 7;
         $user->email = 'admin@example.com';
 
@@ -76,7 +76,7 @@ final class AuditLogListenerTest extends TestCase
 
     public function test_logout_event_is_logged(): void
     {
-        $user = new stdClass();
+        $user = new stdClass;
         $user->id = 7;
         $user->email = 'admin@example.com';
 
