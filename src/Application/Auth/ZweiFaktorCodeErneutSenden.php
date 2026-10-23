@@ -38,8 +38,8 @@ final class ZweiFaktorCodeErneutSenden
             return CodeErneutSendenErgebnis::ZuFrueh;
         }
 
-        $this->codeSenden->handle($anmeldung, $nutzer);
-
-        return CodeErneutSendenErgebnis::Gesendet;
+        return $this->codeSenden->handle($anmeldung, $nutzer)
+            ? CodeErneutSendenErgebnis::Gesendet
+            : CodeErneutSendenErgebnis::NichtVersendet;
     }
 }

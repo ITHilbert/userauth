@@ -54,9 +54,11 @@ final class LoginController extends Controller
 
         $this->clearLoginAttempts($request);
 
-        return $schritt === AuthenticationNextStep::TwoFactorRequired
-            ? redirect()->route('verify.index')
-            : redirect()->intended($this->redirectPath());
+        return match ($schritt) {
+            AuthenticationNextStep::TwoFactorRequired => redirect()->route('verify.index'),
+            AuthenticationNextStep::CodeNichtVersendet => redirect()->route('login')->withErrors(['two_factor_code' => __('userauth::zwei_faktor.versand_fehlgeschlagen')]),
+            AuthenticationNextStep::Done => redirect()->intended($this->redirectPath()),
+        };
     }
 
     /**

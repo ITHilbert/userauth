@@ -15,6 +15,7 @@ return [
     'ungueltig' => 'The code you entered is invalid.',
     'abgelaufen' => 'The code has expired. Please request a new code.',
     'gesperrt' => 'Too many invalid codes. Please log in again.',
+    'versand_fehlgeschlagen' => 'The code could not be sent. Please try again later.',
     'neu_anmelden' => 'Your login was not confirmed with the security code. Please log in again.',
 
     'mail' => [

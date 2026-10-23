@@ -53,9 +53,11 @@ final class SocialLoginController extends Controller
             return redirect()->route('login')->with('status', __('userauth::social.status.confirmation_sent'));
         }
 
-        return $result->nextStep === AuthenticationNextStep::TwoFactorRequired
-            ? redirect()->route('verify.index')
-            : redirect()->intended(config('userauth.redirect_after_login', '/home'));
+        return match ($result->nextStep) {
+            AuthenticationNextStep::TwoFactorRequired => redirect()->route('verify.index'),
+            AuthenticationNextStep::CodeNichtVersendet => $this->failure(false, __('userauth::zwei_faktor.versand_fehlgeschlagen')),
+            AuthenticationNextStep::Done => redirect()->intended(config('userauth.redirect_after_login', '/home')),
+        };
     }
 
     private function failure(bool $connecting, string $message): RedirectResponse

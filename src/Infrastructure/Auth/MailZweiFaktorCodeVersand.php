@@ -7,6 +7,7 @@ namespace ITHilbert\UserAuth\Infrastructure\Auth;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Mail\Mailer;
 use ITHilbert\UserAuth\Application\Auth\Contracts\ZweiFaktorCodeVersand;
+use ITHilbert\UserAuth\Application\Auth\Exceptions\ZweiFaktorCodeVersandException;
 use ITHilbert\UserAuth\Mail\TwoFactorCode;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 

@@ -47,6 +47,7 @@ final class TwoFactorController
             CodeErneutSendenErgebnis::Gesendet => redirect()->route('verify.index')->with('status', __('userauth::zwei_faktor.erneut_gesendet')),
             CodeErneutSendenErgebnis::ZuFrueh => $this->zurCodeEingabe(__('userauth::zwei_faktor.zu_frueh', ['seconds' => OffeneAnmeldung::ERNEUT_SENDEN_SEKUNDEN])),
             CodeErneutSendenErgebnis::KeineOffeneAnmeldung => redirect()->route('login'),
+            CodeErneutSendenErgebnis::NichtVersendet => redirect()->route('login')->withErrors(['two_factor_code' => __('userauth::zwei_faktor.versand_fehlgeschlagen')]),
         };
     }
 

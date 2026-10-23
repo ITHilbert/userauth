@@ -12,4 +12,7 @@ enum CodeErneutSendenErgebnis
     case ZuFrueh;
 
     case KeineOffeneAnmeldung;
+
+    /** Versand gescheitert; die offene Anmeldung wurde verworfen (AK14b). */
+    case NichtVersendet;
 }

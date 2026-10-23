@@ -15,6 +15,7 @@ return [
     'ungueltig' => 'Der eingegebene Code ist ungültig.',
     'abgelaufen' => 'Der Code ist abgelaufen. Bitte fordern Sie einen neuen Code an.',
     'gesperrt' => 'Zu viele falsche Codes. Bitte melden Sie sich erneut an.',
+    'versand_fehlgeschlagen' => 'Der Code konnte nicht versendet werden. Bitte versuchen Sie es später erneut.',
     'neu_anmelden' => 'Ihre Anmeldung wurde nicht mit dem Sicherheitscode bestätigt. Bitte melden Sie sich erneut an.',
 
     'mail' => [

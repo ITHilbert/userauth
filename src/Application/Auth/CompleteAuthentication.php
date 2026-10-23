@@ -34,7 +34,9 @@ final class CompleteAuthentication
 
         $anmeldung = OffeneAnmeldung::beginnen($user->getAuthIdentifier(), $angemeldetBleiben, $this->anmeldungen->zielEntnehmen());
         $this->anmeldungen->beginnen($anmeldung);
-        $this->codeSenden->handle($anmeldung, $user);
+        if (! $this->codeSenden->handle($anmeldung, $user)) {
+            return AuthenticationNextStep::CodeNichtVersendet;
+        }
 
         return AuthenticationNextStep::TwoFactorRequired;
     }
