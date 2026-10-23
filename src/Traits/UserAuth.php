@@ -7,17 +7,26 @@ namespace ITHilbert\UserAuth\Traits;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Session;
 use ITHilbert\LaravelKit\Traits\VueComboBox;
+use ITHilbert\UserAuth\Application\Zugriff\Zugriffspruefung;
 use ITHilbert\UserAuth\Entities\Role;
 use ITHilbert\UserAuth\Entities\Team;
+use ITHilbert\UserAuth\Infrastructure\Auth\UserModel;
 
 trait UserAuth
 {
     use SoftDeletes;
     use VueComboBox;
 
-    private $permissions = [];
+    /** Nie serialisieren (toArray/toJson): Zugangsdaten, 2FA-Code und Reset-Token. */
+    private const USERAUTH_HIDDEN = [
+        'password',
+        'remember_token',
+        'two_factor_code',
+        'two_factor_expires_at',
+        'edit_pw_token',
+        'edit_pw_token_end',
+    ];
 
     private $role_name = '';
 
@@ -55,6 +64,9 @@ trait UserAuth
             'comment',
             'image',
         ]);
+
+        // Ergänzt ein eigenes $hidden der Model-Klasse, ersetzt es nicht
+        $this->mergeHidden(self::USERAUTH_HIDDEN);
     }
 
     public function getKey()
@@ -114,7 +126,15 @@ trait UserAuth
      */
     public function currentRole()
     {
-        return Role::find($this->getActiveRoleId());
+        $rollenId = $this->getActiveRoleId();
+
+        // Vorab geladene Relation `role` nutzen (z. B. `with('role')` in Listen), solange sie zur aktiven Rolle passt
+        $geladen = $this->relationLoaded('role') ? $this->getRelation('role') : null;
+        if ($geladen instanceof Role && $rollenId !== null && (string) $geladen->getKey() === (string) $rollenId) {
+            return $geladen;
+        }
+
+        return Role::find($rollenId);
     }
 
     public function getImagePath()
@@ -144,46 +164,26 @@ trait UserAuth
     }
 
     /**
-     * Prüft ob der User eine bestimmte Rolle hat
-     *
-     * @param string|int|array| $roles
+     * Prüft die Rolle (Dev erfüllt jede, Admin jede außer `dev`, sonst der eigene Rollenname).
+     * Kein Text (z. B. Array) → nur Dev/Admin.
      */
-    public function hasRole($role): bool
+    public function hasRole(mixed $role): bool
     {
-        // Ausnahmen für Developer und Admin
-        if ($role == 'dev') {
-            if ($this->roleName() == 'dev') {
-                return true;
-            }
-        } else {
-            if ($this->roleName() == 'dev' || $this->roleName() == 'admin') {
-                return true;
-            }
+        if (! is_string($role) && ! is_int($role)) {
+            return $this->userAuthZugriffspruefung()->istPrivilegiert($this);
         }
 
-        if ($role == $this->roleName()) {
-            return true;
-        }
-
-        // kein Treffer
-        return false;
+        return $this->userAuthZugriffspruefung()->hatRolle($this, (string) $role);
     }
 
     /**
-     * Prüft ob der User eine bestimmte Rolle hat
+     * Prüft, ob der User eine der Rollen trägt (ohne Sonderstellung für Dev/Admin).
      *
-     * @param string|int|array| $roles
+     * @param  string|array<array-key, mixed>  $roles  Komma-Liste oder Array
      */
-    public function hasRoleOr($roles): bool
+    public function hasRoleOr(string|array $roles): bool
     {
-        foreach ($roles as $role) {
-            if ($role == $this->roleName()) {
-                return true;
-            }
-        }
-
-        // kein Treffer
-        return false;
+        return $this->userAuthZugriffspruefung()->hatEineDerRollen($this, $roles);
     }
 
     public function roleDisplayname()
@@ -194,97 +194,39 @@ trait UserAuth
     }
 
     /**
-     * Prüft ob die Rolle eine bestimmte Permission hat
-     *
-     * @return bool
+     * Prüft, ob der User das Recht hat (Dev/Admin: immer).
      */
-    public function hasPermission(string $permission)
+    public function hasPermission(string $permission): bool
     {
-        // Admin darf immer
-        if ($this->istPrivilegierteRolle($this->getActiveRoleId())) {
-            return true;
-        }
-
-        $this->loadPermissions();
-
-        return in_array($permission, $this->permissions);
+        return $this->userAuthZugriffspruefung()->hatRecht($this, $permission);
     }
 
     /**
-     * Prüft ob die Rolle eine bestimmte Permission hat
+     * Prüft, ob der User MINDESTENS EINES der Rechte hat (ODER).
      *
-     * @param  string  $permission
-     * @return bool
+     * @param  string|array<array-key, mixed>  $permissions  Komma-Liste oder Array
      */
-    public function hasPermissionOr($permissions)
+    public function hasPermissionOr(string|array $permissions): bool
     {
-        // Admin darf immer
-        if ($this->istPrivilegierteRolle($this->getActiveRoleId())) {
-            return true;
-        }
-
-        $this->loadPermissions();
-
-        foreach ($permissions as $perm) {
-            if (in_array(trim($perm), $this->permissions)) {
-                return true;
-            }
-        }
-
-        return false;
+        return $this->userAuthZugriffspruefung()->hatEinesDerRechte($this, $permissions);
     }
 
     /**
-     * Prüft ob die Rolle eine bestimmte Permission hat
+     * Prüft, ob der User ALLE Rechte hat (UND).
      *
-     * @param  string  $permission
-     * @return bool
+     * @param  string|array<array-key, mixed>  $permissions  Komma-Liste oder Array
      */
-    public function hasPermissionAnd($permissions)
+    public function hasPermissionAnd(string|array $permissions): bool
     {
-        // Admin darf immer
-        if ($this->istPrivilegierteRolle($this->getActiveRoleId())) {
-            return true;
-        }
-
-        $this->loadPermissions();
-
-        foreach ($permissions as $perm) {
-            if (! in_array(trim($perm), $this->permissions)) {
-                return false;
-            }
-        }
-
-        return true;
+        return $this->userAuthZugriffspruefung()->hatAlleRechte($this, $permissions);
     }
 
     /**
-     * Lädt die Permissions in die $permissions Variable mittels Eloquent.
-     * Ohne Session oder rohe DB-Queries.
-     *
-     * @param  bool  $force  true wenn auf jeden Fall neu geladen werden soll
-     * @return bool
+     * Alle Rollen- und Rechteprüfungen laufen über die zentrale Zugriffsprüfung.
      */
-    private function loadPermissions($force = false)
+    private function userAuthZugriffspruefung(): Zugriffspruefung
     {
-        $activeRoleId = $this->getActiveRoleId();
-
-        // Admin darf immer, rechte müssen nicht geladen werden
-        if ($this->istPrivilegierteRolle($activeRoleId)) {
-            return true;
-        }
-
-        if ($force || count($this->permissions) == 0) {
-            // Mit der aktiven Rolle Permissions laden
-            $activeRole = $this->currentRole();
-            if ($activeRole && $activeRole->permissions) {
-                // Hier müssen wir aufpassen: relation laden auf currentRole statt via $this->role!
-                $activeRole->loadMissing('permissions');
-                $this->permissions = $activeRole->permissions->pluck('permission')->toArray();
-            }
-        }
-
-        return true;
+        return app(Zugriffspruefung::class);
     }
 
     // Helper
@@ -310,20 +252,6 @@ trait UserAuth
         return explode('|', trim($pipeString, $quoteCharacter));
     }
 
-    public function generateTwoFactorCode()
-    {
-        $this->two_factor_code = rand(100000, 999999);
-        $this->two_factor_expires_at = now()->addMinutes(10);
-        $this->save();
-    }
-
-    public function resetTwoFactorCode()
-    {
-        $this->two_factor_code = null;
-        $this->two_factor_expires_at = null;
-        $this->save();
-    }
-
     /**
      * Prüft, ob der aktuelle User von einem Admin (Support) im "Impersonate"-Modus betrieben wird.
      *
@@ -342,70 +270,30 @@ trait UserAuth
     public function getImpersonator()
     {
         if ($this->isImpersonated()) {
-            $modelClass = config('auth.providers.users.model', '\\App\\Models\\User');
-
-            return $modelClass::find(session()->get('impersonated_by'));
+            return app(UserModel::class)->query()->find(session()->get('impersonated_by'));
         }
 
         return null;
     }
 
     /**
-     * Prüft, ob der aktuelle User das Recht hat, als anderer User angemeldet zu werden.
-     *
-     * @return bool
+     * Prüft, ob der aktuelle User andere Nutzer übernehmen darf (Dev/Admin oder Recht `impersonate_users`).
      */
-    public function canImpersonate()
+    public function canImpersonate(): bool
     {
-        // Beispiel: Nur Role 1 (Dev) und 2 (Admin) oder eine dedizierte Permission "impersonate_users"
-        if ($this->istPrivilegierteRolle($this->role_id)) {
-            return true;
-        }
-
-        if (method_exists($this, 'hasPermission') && $this->hasPermission('impersonate_users')) {
-            return true;
-        }
-
-        return false;
+        return $this->userAuthZugriffspruefung()->hatRecht($this, 'impersonate_users');
     }
 
     /**
-     * Prüft, ob DIESER User von jemand anderem übernommen werden darf.
-     * Admins/Devs dürfen idR nicht von anderen übernommen werden.
-     *
-     * @return bool
+     * Prüft, ob DIESER User von jemand anderem übernommen werden darf:
+     * nicht man selbst, nur mit gültiger Rolle und nie Dev/Admin.
      */
-    public function canBeImpersonated()
+    public function canBeImpersonated(): bool
     {
-        // Ein Admin darf sich nicht selbst übernehmen und ein Dev/Admin darf in der Regel nicht von anderen übernommen werden.
+        $rolle = $this->userAuthZugriffspruefung()->aktiveRolle($this);
+
         return $this->id !== auth()->id()
-            && $this->istGueltigeRolle($this->role_id)
-            && ! $this->istPrivilegierteRolle($this->role_id);
-    }
-
-    /**
-     * Prüft, ob die Rollen-ID gültig ist (Integer bzw. numerischer String, Wert >= 1).
-     * null, leer, 0 und nicht numerische Werte gelten nie als gültig (fail-closed).
-     */
-    private function istGueltigeRolle(mixed $roleId): bool
-    {
-        if (is_string($roleId) && ctype_digit($roleId)) {
-            $roleId = (int) $roleId;
-        }
-
-        return is_int($roleId) && $roleId >= 1;
-    }
-
-    /**
-     * Prüft, ob die Rollen-ID eine privilegierte Rolle ist (1 = Dev, 2 = Admin).
-     * Nur gültige Rollen zählen, null/leer/0 ist nie privilegiert (kein "null <= 2").
-     */
-    private function istPrivilegierteRolle(mixed $roleId): bool
-    {
-        if (! $this->istGueltigeRolle($roleId)) {
-            return false;
-        }
-
-        return (int) $roleId <= 2;
+            && $rolle !== null
+            && ! $rolle->istPrivilegiert();
     }
 }

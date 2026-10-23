@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Foundation\Http\Middleware\InvokeDeferredCallbacks;
 use Illuminate\Support\Facades\Route;
 use ITHilbert\UserAuth\Http\Controllers\AuthCssController;
 use ITHilbert\UserAuth\Http\Controllers\ImpersonateController;
@@ -59,13 +60,12 @@ Route::middleware(['web'])
                 Route::delete('delete/{id}', [RoleController::class, 'delete'])->name('role.delete')->middleware('hasPermission:role_delete');
             });
 
-        // User
-        // 'hasPermission:user_read'
+        // User (Rechte an jeder Route, unabhängig von `users_middleware` einer veröffentlichten Host-Config)
         Route::middleware(config('userauth.routes.users_middleware'))
             ->prefix(config('userauth.routes.users_prefix'))
             ->group(function () {
 
-                Route::any('/', [UserController::class, 'index'])->name('user');
+                Route::any('/', [UserController::class, 'index'])->name('user')->middleware('hasPermission:user_read');
                 Route::get('create', [UserController::class, 'create'])->name('user.create')->middleware('hasPermission:user_create');
                 Route::post('store', [UserController::class, 'store'])->name('user.store')->middleware('hasPermission:user_create');
                 Route::get('edit/{id}', [UserController::class, 'edit'])->name('user.edit')->middleware('hasPermission:user_edit');
@@ -73,17 +73,15 @@ Route::middleware(['web'])
                 Route::delete('delete/{id}', [UserController::class, 'delete'])->name('user.delete')->middleware('hasPermission:user_delete');
             });
 
-        // Password und Logout
+        // Password edit
         Route::middleware(['auth'])
             ->group(function () {
-
-                // Password edit
                 Route::get('password/edit', [PasswordController::class, 'edit'])->name('password.edit');
                 Route::post('password/update', [PasswordController::class, 'update'])->name('password.update');
-
-                // Logout
-                Route::any('logout', [LoginController::class, 'logout'])->name('logout');
             });
+
+        // Logout – auch für Gäste mit offener Zwei-Faktor-Anmeldung („Abbrechen“)
+        Route::any('logout', [LoginController::class, 'logout'])->name('logout');
 
         // User Icon
         Route::middleware(['auth'])
@@ -103,14 +101,16 @@ Route::middleware(['web'])
         // Passwort vergessen
         Route::any('password/tokensend', [PasswordController::class, 'tokensend'])->name('password.tokensend');
         Route::any('password/forgotten', [PasswordController::class, 'forgotten'])->name('password.forgotten');
-        Route::post('password/sendtocken', [PasswordController::class, 'sendtocken'])->name('password.sendtocken');
-        Route::post('password/updatewithtoken', [PasswordController::class, 'updatewithtoken'])->name('password.updatewithtoken');
+        Route::post('password/sendtocken', [PasswordController::class, 'sendtocken'])->name('password.sendtocken')
+            // Mail wird per defer() nach der Antwort verschickt; auch für Hosts mit altem HTTP-Kernel ohne InvokeDeferredCallbacks
+            ->middleware(['throttle:userauth-passwort-anfordern', InvokeDeferredCallbacks::class]);
+        Route::post('password/updatewithtoken', [PasswordController::class, 'updatewithtoken'])->name('password.updatewithtoken')->middleware('throttle:userauth-passwort-zuruecksetzen');
 
-        // 2FA
-        Route::middleware(['web', 'auth'])->group(function () {
+        // 2FA: vor dem Code ist niemand angemeldet; der Controller verlangt eine offene Anmeldung in dieser Sitzung
+        Route::middleware(['guest'])->group(function () {
             Route::get('verify', [TwoFactorController::class, 'index'])->name('verify.index');
             Route::post('verify', [TwoFactorController::class, 'store'])->name('verify.store');
-            Route::get('verify/resend', [TwoFactorController::class, 'resend'])->name('verify.resend');
+            Route::post('verify/resend', [TwoFactorController::class, 'resend'])->name('verify.resend');
         });
 
         // Impersonate

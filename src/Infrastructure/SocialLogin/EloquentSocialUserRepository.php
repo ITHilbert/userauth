@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ITHilbert\UserAuth\Infrastructure\SocialLogin;
 
-use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Hash;
@@ -12,10 +11,11 @@ use Illuminate\Support\Str;
 use ITHilbert\UserAuth\Application\SocialLogin\Contracts\SocialUserRepository;
 use ITHilbert\UserAuth\Application\SocialLogin\LocalUser;
 use ITHilbert\UserAuth\Entities\Role;
+use ITHilbert\UserAuth\Infrastructure\Auth\UserModel;
 
 final class EloquentSocialUserRepository implements SocialUserRepository
 {
-    public function __construct(private readonly Config $config) {}
+    public function __construct(private readonly UserModel $userModel) {}
 
     public function findActiveById(int|string $id): ?LocalUser
     {
@@ -44,7 +44,7 @@ final class EloquentSocialUserRepository implements SocialUserRepository
         $roleId = Role::query()->where('role', $roleKey)->value('id')
             ?? throw new SocialLoginMisconfiguredException("Role '{$roleKey}' (userauth.social.default_role) does not exist.");
 
-        $user = $this->newModel();
+        $user = $this->userModel->newInstance();
         $user->forceFill([
             'name' => $name,
             'email' => $email,
@@ -62,26 +62,11 @@ final class EloquentSocialUserRepository implements SocialUserRepository
     }
 
     /**
-     * @return class-string<Model>
-     */
-    private function modelClass(): string
-    {
-        return (string) $this->config->get('auth.providers.users.model');
-    }
-
-    private function newModel(): Model
-    {
-        $class = $this->modelClass();
-
-        return new $class;
-    }
-
-    /**
      * @return Builder<Model>
      */
     private function query(): Builder
     {
-        return $this->modelClass()::query();
+        return $this->userModel->query();
     }
 
     private function toLocalUser(Model $user): LocalUser

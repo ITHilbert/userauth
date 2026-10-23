@@ -4,13 +4,20 @@ declare(strict_types=1);
 
 namespace ITHilbert\UserAuth;
 
+use BackedEnum;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Http\Kernel as HttpKernelContract;
+use Illuminate\Foundation\Http\Kernel as HttpKernel;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\View\Compilers\BladeCompiler;
@@ -18,12 +25,22 @@ use ITHilbert\UserAuth\App\Console\Commands\AssignRoleCommand;
 use ITHilbert\UserAuth\App\Console\Commands\CreatePermissionCommand;
 use ITHilbert\UserAuth\App\Console\Commands\PruneSocialLinksCommand;
 use ITHilbert\UserAuth\App\Console\Commands\UserAuthCopyFiles;
-use ITHilbert\UserAuth\Application\SocialLogin\Contracts\AuthSession;
+use ITHilbert\UserAuth\Application\Auth\Contracts\Anmeldedaten;
+use ITHilbert\UserAuth\Application\Auth\Contracts\OffeneAnmeldungen;
+use ITHilbert\UserAuth\Application\Auth\Contracts\Sitzungsanmeldung;
+use ITHilbert\UserAuth\Application\Auth\Contracts\ZweiFaktorCodeHasher;
+use ITHilbert\UserAuth\Application\Auth\Contracts\ZweiFaktorCodeVersand;
+use ITHilbert\UserAuth\Application\Auth\Events\ZweiFaktorCodeAbgelehnt;
+use ITHilbert\UserAuth\Application\Passwort\Contracts\PasswortHistorie;
+use ITHilbert\UserAuth\Application\Passwort\Contracts\PasswortKonten;
+use ITHilbert\UserAuth\Application\Passwort\Contracts\ResetLinkVersand;
 use ITHilbert\UserAuth\Application\SocialLogin\Contracts\PendingSocialLinkPruner;
 use ITHilbert\UserAuth\Application\SocialLogin\Contracts\PendingSocialLinkRepository;
 use ITHilbert\UserAuth\Application\SocialLogin\Contracts\SocialAccountRepository;
 use ITHilbert\UserAuth\Application\SocialLogin\Contracts\SocialIdentityProvider;
 use ITHilbert\UserAuth\Application\SocialLogin\Contracts\SocialUserRepository;
+use ITHilbert\UserAuth\Application\Zugriff\Contracts\RollenRepository;
+use ITHilbert\UserAuth\Application\Zugriff\Zugriffspruefung;
 use ITHilbert\UserAuth\Domain\SocialLogin\Events\SocialAccountLinked;
 use ITHilbert\UserAuth\Domain\SocialLogin\Events\SocialAccountUnlinked;
 use ITHilbert\UserAuth\Http\Middleware\EnforcePasswordPolicy;
@@ -35,14 +52,24 @@ use ITHilbert\UserAuth\Http\Middleware\isAdmin;
 use ITHilbert\UserAuth\Http\Middleware\isDev;
 use ITHilbert\UserAuth\Http\Middleware\TwoFactorMiddleware;
 use ITHilbert\UserAuth\Http\ViewComposers\AvailableSocialProvidersComposer;
+use ITHilbert\UserAuth\Infrastructure\Auth\GuardAnmeldedaten;
+use ITHilbert\UserAuth\Infrastructure\Auth\GuardSitzungsanmeldung;
+use ITHilbert\UserAuth\Infrastructure\Auth\HmacZweiFaktorCodeHasher;
+use ITHilbert\UserAuth\Infrastructure\Auth\MailZweiFaktorCodeVersand;
+use ITHilbert\UserAuth\Infrastructure\Auth\SessionOffeneAnmeldungen;
+use ITHilbert\UserAuth\Infrastructure\Passwort\DatenbankPasswortHistorie;
+use ITHilbert\UserAuth\Infrastructure\Passwort\EloquentPasswortKonten;
+use ITHilbert\UserAuth\Infrastructure\Passwort\NachAntwortResetLinkVersand;
 use ITHilbert\UserAuth\Infrastructure\SocialLogin\EloquentPendingSocialLinkRepository;
 use ITHilbert\UserAuth\Infrastructure\SocialLogin\EloquentSocialAccountRepository;
 use ITHilbert\UserAuth\Infrastructure\SocialLogin\EloquentSocialUserRepository;
-use ITHilbert\UserAuth\Infrastructure\SocialLogin\SessionAuth;
 use ITHilbert\UserAuth\Infrastructure\SocialLogin\SocialiteIdentityProvider;
+use ITHilbert\UserAuth\Infrastructure\Zugriff\EloquentRollenRepository;
 use ITHilbert\UserAuth\Listeners\LogAuthenticationAttempt;
 use ITHilbert\UserAuth\Listeners\LogSocialAccountChange;
 use ITHilbert\UserAuth\Listeners\SendSocialAccountLinkedMail;
+use ITHilbert\UserAuth\Listeners\SitzungsgebundeneAnmeldungMarkieren;
+use UnitEnum;
 
 class UserAuthServiceProvider extends ServiceProvider
 {
@@ -57,6 +84,7 @@ class UserAuthServiceProvider extends ServiceProvider
         $this->registerTranslations();
         $this->registerViews();
         $this->loadMigrationsFrom(__DIR__.'/Database/Migrations');
+        $this->registerRateLimiters();
         $this->registerRoutes();
         $this->publishAssets();
         $this->registerMiddleware();
@@ -75,9 +103,10 @@ class UserAuthServiceProvider extends ServiceProvider
 
         // Register Event Listeners
         Event::listen(
-            [Login::class, Failed::class, Logout::class],
+            [Login::class, Failed::class, Logout::class, ZweiFaktorCodeAbgelehnt::class],
             LogAuthenticationAttempt::class
         );
+        Event::listen(Login::class, SitzungsgebundeneAnmeldungMarkieren::class);
 
         Event::listen(SocialAccountLinked::class, [SendSocialAccountLinkedMail::class, 'handle']);
         Event::listen([SocialAccountLinked::class, SocialAccountUnlinked::class], LogSocialAccountChange::class);
@@ -90,22 +119,36 @@ class UserAuthServiceProvider extends ServiceProvider
         $this->registerGates();
     }
 
-    protected function registerGates()
+    /**
+     * Dev/Admin und Inhaber des gleichnamigen Rechts bestehen jede Gate-Prüfung (`@can`, `Gate::allows`).
+     * Sonst null: andere Gates/Policies entscheiden (fail-closed bei ungültiger Rolle).
+     */
+    protected function registerGates(): void
     {
-        Gate::before(function ($user, $ability) {
-            // Admin/Dev haben alle Rechte (role_id 1 = Dev, 2 = Admin)
-            if ($user->role_id <= 2) {
-                return true;
+        Gate::before(function (Authenticatable $user, mixed $ability): ?bool {
+            $recht = match (true) {
+                $ability instanceof BackedEnum => $ability->value,
+                $ability instanceof UnitEnum => $ability->name,
+                default => $ability,
+            };
+
+            if (! is_string($recht)) {
+                return null;
             }
 
-            // Prüfe, ob das Package diese Permission kennt und freigibt
-            if (method_exists($user, 'hasPermission') && $user->hasPermission($ability)) {
-                return true;
-            }
-
-            // Wenn null zurückgegeben wird, laufen andere Gates normal weiter
-            return null;
+            return $this->app->make(Zugriffspruefung::class)->hatRecht($user, $recht) ? true : null;
         });
+    }
+
+    /**
+     * Drosselung „Passwort vergessen“: Anfordern und Zurücksetzen je IP 5 Anfragen pro Minute,
+     * getrennt gezählt (benannte Limiter, sonst teilen sich alle `throttle:x,y`-Routen einen Zähler).
+     */
+    protected function registerRateLimiters(): void
+    {
+        foreach (['userauth-passwort-anfordern', 'userauth-passwort-zuruecksetzen'] as $name) {
+            RateLimiter::for($name, static fn (Request $request): Limit => Limit::perMinute(5)->by((string) $request->ip()));
+        }
     }
 
     public function registerMiddleware()
@@ -119,10 +162,26 @@ class UserAuthServiceProvider extends ServiceProvider
         $router->aliasMiddleware('isAdmin', isAdmin::class);
         $router->aliasMiddleware('isDev', isDev::class);
 
-        // Füge die EnforcePasswordPolicy Middleware zur globalen "web" Gruppe hinzu
-        // (besser: Die Applikation entscheidet selbst, ob sie es nutzen will, oder wir pushen es in den web Group)
-        $router->pushMiddlewareToGroup('web', EnforcePasswordPolicy::class);
-        $router->pushMiddlewareToGroup('web', TwoFactorMiddleware::class);
+        // Global in "web": Passwort-Ablauf erzwingen (greift erst nach bestandener 2FA, vorher ist niemand angemeldet)
+        // und Sitzungen aus der Zeit vor der sitzungsgebundenen 2FA abmelden (TwoFactorMiddleware)
+        $webMiddleware = [EnforcePasswordPolicy::class, TwoFactorMiddleware::class];
+        foreach ($webMiddleware as $middleware) {
+            $router->pushMiddlewareToGroup('web', $middleware);
+        }
+
+        // Entsteht der HTTP-Kernel erst nach dem Booten der Provider (z. B. Testbench), überschreibt sein Konstruktor
+        // die Gruppen des Routers – dann zusätzlich im Kernel eintragen. Nur in diesem Fall (afterResolving, nicht
+        // callAfterResolving): Ein bereits erzeugter Kernel würde beim Eintragen die Gruppen erneut auf den Router
+        // schreiben und dort von anderen Paketen ergänzte Middlewares verwerfen.
+        $this->app->afterResolving(HttpKernelContract::class, static function (HttpKernelContract $kernel) use ($webMiddleware): void {
+            if (! $kernel instanceof HttpKernel || ! array_key_exists('web', $kernel->getMiddlewareGroups())) {
+                return;
+            }
+
+            foreach ($webMiddleware as $middleware) {
+                $kernel->appendMiddlewareToGroup('web', $middleware);
+            }
+        });
     }
 
     public function publishAssets()
@@ -152,6 +211,39 @@ class UserAuthServiceProvider extends ServiceProvider
         /*  $this->app->register(RouteServiceProvider::class); */
         $this->registerBladeExtensions();
         $this->registerSocialLogin();
+        $this->registerZugriffspruefung();
+        $this->registerPasswort();
+        $this->registerAnmeldung();
+    }
+
+    /**
+     * Port-Bindings der Anmeldung und der sitzungsgebundenen Zwei-Faktor-Anmeldung.
+     */
+    protected function registerAnmeldung(): void
+    {
+        $this->app->bind(Anmeldedaten::class, GuardAnmeldedaten::class);
+        $this->app->bind(Sitzungsanmeldung::class, GuardSitzungsanmeldung::class);
+        $this->app->bind(OffeneAnmeldungen::class, SessionOffeneAnmeldungen::class);
+        $this->app->bind(ZweiFaktorCodeHasher::class, HmacZweiFaktorCodeHasher::class);
+        $this->app->bind(ZweiFaktorCodeVersand::class, MailZweiFaktorCodeVersand::class);
+    }
+
+    /**
+     * Port-Bindings für Passwort ändern/zurücksetzen.
+     */
+    protected function registerPasswort(): void
+    {
+        $this->app->bind(PasswortKonten::class, EloquentPasswortKonten::class);
+        $this->app->bind(PasswortHistorie::class, DatenbankPasswortHistorie::class);
+        $this->app->bind(ResetLinkVersand::class, NachAntwortResetLinkVersand::class);
+    }
+
+    /**
+     * Port-Binding der Zugriffsprüfung; scoped, damit der Rollen-Zwischenspeicher je Request/Job neu beginnt.
+     */
+    protected function registerZugriffspruefung(): void
+    {
+        $this->app->scoped(RollenRepository::class, EloquentRollenRepository::class);
     }
 
     /**
@@ -164,7 +256,6 @@ class UserAuthServiceProvider extends ServiceProvider
         $this->app->bind(PendingSocialLinkRepository::class, EloquentPendingSocialLinkRepository::class);
         $this->app->bind(PendingSocialLinkPruner::class, EloquentPendingSocialLinkRepository::class);
         $this->app->bind(SocialUserRepository::class, EloquentSocialUserRepository::class);
-        $this->app->bind(AuthSession::class, SessionAuth::class);
     }
 
     /**
@@ -227,99 +318,54 @@ class UserAuthServiceProvider extends ServiceProvider
     }
 
     /**
-     * Eigende Blade function (Directive)
-     *
-     * @return void
+     * Blade-Direktiven für Rollen und Rechte – alle über die zentrale Zugriffsprüfung.
+     * Listen (`@hasPermissionAnd`, `@hasPermissionOr`, `@hasRoleOr`) als Komma-Liste oder Array.
+     * `@hasPermission('recht', 'guard')` akzeptiert optional einen Guard.
      */
-    protected function registerBladeExtensions()
+    protected function registerBladeExtensions(): void
     {
-        $this->app->afterResolving('blade.compiler', function (BladeCompiler $bladeCompiler) {
+        $this->app->afterResolving('blade.compiler', function (BladeCompiler $bladeCompiler): void {
+            $pruefung = '\\'.Zugriffspruefung::class;
+            $bedingung = static fn (string $methode, string $argumente, string $guard = ''): string => "app({$pruefung}::class)->{$methode}(auth({$guard})->user(), {$argumente})";
+            $mitGuard = static function (string $ausdruck): array {
+                [$recht, $guard] = explode(',', $ausdruck.',');
 
-            /* hasRole */
-            $bladeCompiler->directive('hasRole', function ($role, $guard = '') {
-                return "<?php if(auth({$guard})->check() && auth({$guard})->user()->hasRole({$role})): ?>";
-            });
-            /* hasRoleNot */
-            $bladeCompiler->directive('hasRoleNot', function ($role, $guard = '') {
-                return "<?php if(auth({$guard})->check() && !auth({$guard})->user()->hasRole({$role})): ?>";
-            });
-            /* elsehasRole */
-            $bladeCompiler->directive('elsehasRole', function ($role, $guard = '') {
-                return "<?php elseif(auth({$guard})->check() && auth({$guard})->user()->hasRole({$role})): ?>";
-            });
-            /* endhasRole */
-            $bladeCompiler->directive('endhasRole', function () {
-                return '<?php endif; ?>';
-            });
+                return [$recht, $guard];
+            };
 
-            /* hasRoleOr */
-            $bladeCompiler->directive('hasRoleOr', function ($roles, $guard = '') {
-                return "<?php if(auth({$guard})->check() && auth({$guard})->user()->hasRoleOr({$roles})): ?>";
-            });
-            /* elsehasRole */
-            $bladeCompiler->directive('elsehasRoleOr', function ($roles, $guard = '') {
-                return "<?php elseif(auth({$guard})->check() && auth({$guard})->user()->hasRoleOr({$roles})): ?>";
-            });
-            /* endhasRoleOr */
-            $bladeCompiler->directive('endhasRoleOr', function () {
-                return '<?php endif; ?>';
-            });
+            $bladeCompiler->directive('hasRole', fn (string $rolle): string => '<?php if('.$bedingung('hatRolle', $rolle).'): ?>');
+            $bladeCompiler->directive('hasRoleNot', fn (string $rolle): string => '<?php if(! '.$bedingung('hatRolle', $rolle).'): ?>');
+            $bladeCompiler->directive('elsehasRole', fn (string $rolle): string => '<?php elseif('.$bedingung('hatRolle', $rolle).'): ?>');
+            $bladeCompiler->directive('endhasRole', fn (): string => '<?php endif; ?>');
 
-            /* ##################################################### */
-            /* hasPermission */
-            $bladeCompiler->directive('hasPermission', function ($arguments, $guard = '') {
-                [$permission, $guard] = explode(',', $arguments.',');
+            $bladeCompiler->directive('hasRoleOr', fn (string $rollen): string => '<?php if('.$bedingung('hatEineDerRollen', $rollen).'): ?>');
+            $bladeCompiler->directive('elsehasRoleOr', fn (string $rollen): string => '<?php elseif('.$bedingung('hatEineDerRollen', $rollen).'): ?>');
+            $bladeCompiler->directive('endhasRoleOr', fn (): string => '<?php endif; ?>');
 
-                return "<?php if(auth({$guard})->check() && auth({$guard})->user()->hasPermission({$permission})): ?>";
+            $bladeCompiler->directive('hasPermission', function (string $ausdruck) use ($bedingung, $mitGuard): string {
+                [$recht, $guard] = $mitGuard($ausdruck);
+
+                return '<?php if('.$bedingung('hatRecht', $recht, $guard).'): ?>';
             });
-            /* hasPermissionNot */
-            $bladeCompiler->directive('hasPermissionNot', function ($arguments, $guard = '') {
-                [$permission, $guard] = explode(',', $arguments.',');
+            $bladeCompiler->directive('hasPermissionNot', function (string $ausdruck) use ($bedingung, $mitGuard): string {
+                [$recht, $guard] = $mitGuard($ausdruck);
 
-                return "<?php if(auth({$guard})->check() && !auth({$guard})->user()->hasPermission({$permission})): ?>";
+                return '<?php if(! '.$bedingung('hatRecht', $recht, $guard).'): ?>';
             });
-            /* elsehasPermission */
-            $bladeCompiler->directive('elsehasPermission', function ($arguments, $guard = '') {
-                [$permission, $guard] = explode(',', $arguments.',');
+            $bladeCompiler->directive('elsehasPermission', function (string $ausdruck) use ($bedingung, $mitGuard): string {
+                [$recht, $guard] = $mitGuard($ausdruck);
 
-                return "<?php elseif(auth({$guard})->check() && auth({$guard})->user()->hasPermission({$permission})): ?>";
+                return '<?php elseif('.$bedingung('hatRecht', $recht, $guard).'): ?>';
             });
+            $bladeCompiler->directive('endhasPermission', fn (): string => '<?php endif; ?>');
 
-            /* hasPermissionOr */
-            $bladeCompiler->directive('hasPermissionOr', function ($permissions, $guard = '') {
-                return "<?php if(auth({$guard})->check() && auth({$guard})->user()->hasPermissionOr({$permissions})): ?>";
-            });
+            $bladeCompiler->directive('hasPermissionOr', fn (string $rechte): string => '<?php if('.$bedingung('hatEinesDerRechte', $rechte).'): ?>');
+            $bladeCompiler->directive('elsehasPermissionOr', fn (string $rechte): string => '<?php elseif('.$bedingung('hatEinesDerRechte', $rechte).'): ?>');
+            $bladeCompiler->directive('endhasPermissionOr', fn (): string => '<?php endif; ?>');
 
-            /* elsehasPermissionOr */
-            $bladeCompiler->directive('elsehasPermissionOr', function ($permissions, $guard = '') {
-                return "<?php elseif(auth({$guard})->check() && auth({$guard})->user()->hasPermissionOr({$permissions})): ?>";
-            });
-
-            /* hasPermissionAnd */
-            $bladeCompiler->directive('hasPermissionAnd', function ($permissions, $guard = '') {
-                return "<?php if(auth({$guard})->check() && auth({$guard})->user()->hasPermissionAnd({$permissions})): ?>";
-            });
-
-            /* elsehasPermissionAnd */
-            $bladeCompiler->directive('elsehasPermissionAnd', function ($permissions, $guard = '') {
-                return "<?php elseif(auth({$guard})->check() && auth({$guard})->user()->hasPermissionAnd({$permissions})): ?>";
-            });
-
-            /* endhasPermission */
-            $bladeCompiler->directive('endhasPermission', function () {
-                return '<?php endif; ?>';
-            });
-
-            /* endhasPermissionOr */
-            $bladeCompiler->directive('endhasPermissionOr', function () {
-                return '<?php endif; ?>';
-            });
-
-            /* endhasPermissionAnd */
-            $bladeCompiler->directive('endhasPermissionAnd', function () {
-                return '<?php endif; ?>';
-            });
-
+            $bladeCompiler->directive('hasPermissionAnd', fn (string $rechte): string => '<?php if('.$bedingung('hatAlleRechte', $rechte).'): ?>');
+            $bladeCompiler->directive('elsehasPermissionAnd', fn (string $rechte): string => '<?php elseif('.$bedingung('hatAlleRechte', $rechte).'): ?>');
+            $bladeCompiler->directive('endhasPermissionAnd', fn (): string => '<?php endif; ?>');
         });
     }
 }

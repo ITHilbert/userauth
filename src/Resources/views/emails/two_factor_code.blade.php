@@ -1,12 +1,11 @@
 @component('mail::message')
-# Ihr Sicherheitscode
+# {{ __('userauth::zwei_faktor.mail.betreff') }}
 
-Ihr Code lautet: **{{ $code }}**
+{{ __('userauth::zwei_faktor.mail.code') }} **{{ $code }}**
 
-Dieser Code verfällt in 10 Minuten.
+{{ __('userauth::zwei_faktor.mail.gueltig', ['minutes' => $gueltigMinuten]) }}
 
-Wenn Sie diesen Login nicht versucht haben, ändern Sie bitte sofort Ihr Passwort.
+{{ __('userauth::zwei_faktor.mail.nicht_angemeldet') }}
 
-Danke,<br>
 {{ config('app.name') }}
 @endcomponent

@@ -15,5 +15,5 @@ use Illuminate\Foundation\Auth\Access\Authorizable;
 
 class User extends Model implements AuthenticatableContract, AuthorizableContract, CanResetPasswordContract
 {
-    use Authenticatable, Authorizable, CanResetPassword, MustVerifyEmail, TwoFactorAuthenticatable;
+    use Authenticatable, Authorizable, CanResetPassword, MustVerifyEmail;
 }

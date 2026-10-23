@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ITHilbert\UserAuth\Tests\Feature;
 
-use Tests\TestCase;
+use ITHilbert\UserAuth\Tests\TestCase;
 
 /**
  * Die Auth-Views dürfen nicht von der CSS des Host-Projekts abhängen:

@@ -6,7 +6,7 @@ namespace ITHilbert\UserAuth\Application\SocialLogin;
 
 use Illuminate\Support\Str;
 use ITHilbert\UserAuth\Application\Auth\CompleteAuthentication;
-use ITHilbert\UserAuth\Application\SocialLogin\Contracts\AuthSession;
+use ITHilbert\UserAuth\Application\Auth\Contracts\Sitzungsanmeldung;
 use ITHilbert\UserAuth\Application\SocialLogin\Contracts\SocialAccountRepository;
 use ITHilbert\UserAuth\Application\SocialLogin\Contracts\SocialIdentityProvider;
 use ITHilbert\UserAuth\Application\SocialLogin\Contracts\SocialUserRepository;
@@ -33,7 +33,7 @@ final class HandleSocialLogin
         private readonly SocialLoginSettings $settings,
         private readonly LinkSocialAccount $linkAccount,
         private readonly IssueSocialLinkConfirmation $issueConfirmation,
-        private readonly AuthSession $session,
+        private readonly Sitzungsanmeldung $sitzung,
         private readonly CompleteAuthentication $completeAuthentication,
     ) {}
 
@@ -101,9 +101,14 @@ final class HandleSocialLogin
         return $this->login($user);
     }
 
+    /**
+     * Angemeldet wird in CompleteAuthentication – bei aktiver 2FA erst nach dem Code (AK14).
+     *
+     * @throws AccountDisabledException
+     */
     private function login(LocalUser $user): SocialLoginResult
     {
-        $authenticatable = $this->session->login($user->id);
+        $authenticatable = $this->sitzung->nutzer($user->id) ?? throw new AccountDisabledException;
 
         return SocialLoginResult::loggedIn($this->completeAuthentication->handle($authenticatable));
     }

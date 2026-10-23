@@ -36,8 +36,7 @@
                 <div class="row justify-content-center">
                     <div class="col-md-8">
                         <card title="@lang('userauth::password.header_pw_forgotten')">
-                            Wir haben Ihnen den link zum ändern des Passworts zugesandt.<br>
-                            Bitte überprüfen Sie Ihr Postfach. Sollten Sie dort nicht finden, dann schauen Sie bitte auch in Ihren <b>Spam</b> Ordner.
+                            {{ session('message', __('userauth::password.link_angefordert')) }}
                         </card>
                     </div>
                 </div>

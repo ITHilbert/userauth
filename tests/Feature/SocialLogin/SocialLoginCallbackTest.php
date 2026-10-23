@@ -9,10 +9,12 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use ITHilbert\UserAuth\Mail\SocialAccountLinked;
 use ITHilbert\UserAuth\Mail\SocialLinkConfirmation;
-use ITHilbert\UserAuth\Mail\TwoFactorCode;
+use ITHilbert\UserAuth\Tests\Support\NachrichtenAbfangen;
 
 final class SocialLoginCallbackTest extends SocialLoginTestCase
 {
+    use NachrichtenAbfangen;
+
     public function test_already_linked_account_logs_in_by_provider_id(): void
     {
         $user = $this->makeUser(['email' => 'max@firma.de']);
@@ -209,8 +211,10 @@ final class SocialLoginCallbackTest extends SocialLoginTestCase
         $this->assertGuest();
     }
 
+    // AK14, AK18
     public function test_two_factor_is_required_after_google_login_when_enabled(): void
     {
+        $this->nachrichtenAbfangen();
         config()->set('userauth.two_factor_enabled', true);
         $user = $this->makeUser(['email' => 'max@firma.de']);
         $this->linkGoogle($user, 'google-sub-1');
@@ -218,9 +222,11 @@ final class SocialLoginCallbackTest extends SocialLoginTestCase
 
         $this->socialCallback()->assertRedirect(route('verify.index'));
 
-        $this->assertAuthenticatedAs($user);
-        $this->assertNotNull($user->fresh()->two_factor_code);
-        Mail::assertSent(TwoFactorCode::class, fn ($mail) => $mail->hasTo('max@firma.de'));
+        $this->assertGuest();
+        $code = $this->zweiFaktorCode('max@firma.de');
+        $gespeichert = $user->fresh()->two_factor_code;
+        $this->assertNotSame($code, $gespeichert);
+        $this->assertStringNotContainsString($code, (string) $gespeichert);
     }
 
     public function test_linking_is_written_to_audit_log_when_enabled(): void

@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Schema;
 use ITHilbert\UserAuth\Entities\Permission;
 use ITHilbert\UserAuth\Entities\PermissionGroup;
 use ITHilbert\UserAuth\Entities\Role;
-use Tests\TestCase;
+use ITHilbert\UserAuth\Tests\TestCase;
 
 final class RolePermissionTest extends TestCase
 {

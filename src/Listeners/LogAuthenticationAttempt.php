@@ -8,6 +8,7 @@ use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Http\Request;
+use ITHilbert\UserAuth\Application\Auth\Events\ZweiFaktorCodeAbgelehnt;
 use ITHilbert\UserAuth\Entities\UserAuthAuditLog;
 
 final class LogAuthenticationAttempt
@@ -56,6 +57,11 @@ final class LogAuthenticationAttempt
             $data['event'] = 'failed';
             $data['user_id'] = null;
             $data['email'] = isset($event->credentials['email']) ? $event->credentials['email'] : null;
+        } elseif ($event instanceof ZweiFaktorCodeAbgelehnt) {
+            // Eigenes Ereignis: Passwort war richtig, nur der Code wurde abgelehnt (AK22)
+            $data['event'] = 'two_factor_failed';
+            $data['user_id'] = $event->user->id;
+            $data['email'] = $event->user->email;
         } elseif ($event instanceof Logout) {
             $data['event'] = 'logout';
             $data['user_id'] = $event->user ? $event->user->id : null;

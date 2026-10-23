@@ -4,20 +4,25 @@ declare(strict_types=1);
 
 namespace ITHilbert\UserAuth\Http\Controllers;
 
-use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Lang;
 use ITHilbert\LaravelKit\Helpers\Breadcrumb;
 use ITHilbert\LaravelKit\Helpers\HButton;
 use ITHilbert\UserAuth\Entities\Role;
+use ITHilbert\UserAuth\Http\Requests\NutzerSpeichernRequest;
+use ITHilbert\UserAuth\Infrastructure\Auth\UserModel;
 use Yajra\DataTables\Facades\DataTables;
 
 final class UserController extends Controller
 {
+    public function __construct(private readonly UserModel $userModel) {}
+
     /**
      * Display a listing of the resource.
      *
@@ -25,23 +30,19 @@ final class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $data = User::latest()->where('deleted_at', null)->with('role')->get();
-
         if ($request->ajax()) {
             $user = Auth::user();
+            $darfBearbeiten = $user->hasPermission('user_edit');
+            $darfLoeschen = $user->hasPermission('user_delete');
 
-            return DataTables::of($data)
-                ->addColumn('RoleName', function ($row) {
-                    return $row->roleDisplayname();
-                })
-                ->addColumn('action', function ($row) use ($user) {
+            return DataTables::of($this->nutzerlistenZeilen())
+                ->addColumn('action', function (array $row) use ($darfBearbeiten, $darfLoeschen) {
                     $ausgabe = '<div style="white-space: nowrap;">';
-                    // $ausgabe .= HButton::show(route('permission.show', $row->id), '');
-                    if ($user->hasPermission('user_edit')) {
-                        $ausgabe .= HButton::edit(route('user.edit', $row->id), '');
+                    if ($darfBearbeiten) {
+                        $ausgabe .= HButton::edit(route('user.edit', $row['id']), '');
                     }
-                    if ($user->hasPermission('user_delete')) {
-                        $ausgabe .= HButton::delete($row->id, '');
+                    if ($darfLoeschen) {
+                        $ausgabe .= HButton::delete($row['id'], '');
                     }
                     $ausgabe .= '</div>';
 
@@ -78,42 +79,16 @@ final class UserController extends Controller
      *
      * @return Response
      */
-    public function store(Request $request)
+    public function store(NutzerSpeichernRequest $request)
     {
-        $request->validate([
-            'email' => 'required | email | unique:users',
-            'password' => 'required',
-            'password2' => 'required | same:password',
-            'role_id' => 'required',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
-        ]);
+        $daten = $request->validated();
 
-        $user = new User;
-        $user->name = $this->getName($request);
-        $user->email = $request->email;
-        $user->role_id = $request->role_id;
-        $user->password = Hash::make($request->password);
-        $user->firstname = $request->firstname ?? '';
-        $user->lastname = $request->lastname ?? '';
-        $user->smallname = $request->smallname ?? '';
-
-        $user->anrede_id = $request->anrede_id ?? '1';
-        $user->title = $request->title ?? '';
-        $user->private_email = $request->private_email ?? '';
-        $user->street = $request->street ?? '';
-        $user->postcode = $request->postcode ?? '';
-        $user->city = $request->city ?? '';
-        $user->country = $request->country ?? '';
-        $user->signature_rule_id = $request->signature_rule_id ?? '1';
-        $user->ustid = $request->ustid ?? '';
-        $user->phone = $request->phone ?? '';
-        $user->phone2 = $request->phone2 ?? '';
-        $user->mobile = $request->mobile ?? '';
-        $user->fax = $request->fax ?? '';
-        $user->skype = $request->skype ?? '';
-        $user->hourly_rate = $request->hourly_rate ?? '';
-        $user->birthday = $request->birthday ?? '';
-        $user->comment = $request->comment ?? '';
+        $user = $this->userModel->newInstance();
+        $user->name = $this->getName($daten);
+        $user->email = $daten['email'];
+        $user->role_id = $daten['role_id'];
+        $user->password = Hash::make($daten['password']);
+        $this->profilfelderSetzen($user, $daten);
 
         // Image
         if ($request->hasFile('image')) {
@@ -125,36 +100,48 @@ final class UserController extends Controller
 
         $user->save();
 
-        if ($user) {
-            return redirect()->route('user')->with([
-                'message' => Lang::get('userauth::user.MsgAddSuccess'),
-                'alert-type' => 'success',
-            ]);
-        } else {
-            return redirect()->back();
-        }
+        return redirect()->route('user')->with([
+            'message' => Lang::get('userauth::user.MsgAddSuccess'),
+            'alert-type' => 'success',
+        ]);
     }
 
-    // Gibt den Inhalt für das Name Feld zurück
-    private function getName(Request $request)
+    /**
+     * Gibt den Inhalt für das Name Feld zurück.
+     *
+     * @param  array<string, mixed>  $daten
+     */
+    private function getName(array $daten): ?string
     {
         switch (config('userauth.name')) {
             case '1':
                 // Vorname Nachname
-                return $request->firstname.' '.$request->lastname;
+                return ($daten['firstname'] ?? '').' '.($daten['lastname'] ?? '');
             case '2':
                 // Nachname, Vorname
-                return $request->lastname.', '.$request->firstname;
+                return ($daten['lastname'] ?? '').', '.($daten['firstname'] ?? '');
             case '3':
                 // Nachname
-                return $request->lastname;
+                return $daten['lastname'] ?? null;
             case '4':
                 // Vorname
-                return $request->firstname;
+                return $daten['firstname'] ?? null;
             default:
                 // 0 Manuell
-                return $request->name;
+                return $daten['name'] ?? null;
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $daten
+     */
+    private function profilfelderSetzen(Model $user, array $daten): void
+    {
+        foreach (['firstname', 'lastname', 'smallname', 'title', 'private_email', 'street', 'postcode', 'city', 'country', 'ustid', 'phone', 'phone2', 'mobile', 'fax', 'skype', 'hourly_rate', 'birthday', 'comment'] as $feld) {
+            $user->{$feld} = $daten[$feld] ?? '';
+        }
+        $user->anrede_id = $daten['anrede_id'] ?? '1';
+        $user->signature_rule_id = $daten['signature_rule_id'] ?? '1';
     }
 
     /**
@@ -165,7 +152,7 @@ final class UserController extends Controller
      */
     public function edit($id)
     {
-        $user = User::findOrFail($id);
+        $user = $this->userModel->query()->findOrFail($id);
         $roles = Role::all();
 
         $breadcrumb = new Breadcrumb;
@@ -181,65 +168,19 @@ final class UserController extends Controller
      * @param  int  $id
      * @return Response
      */
-    public function update(Request $request, $id)
+    public function update(NutzerSpeichernRequest $request, $id)
     {
-        $editPW = false;
-
-        // Wenn ein neues Passwort gesetzt wurde
-        if ($request->password) {
-            $request->validate([
-                'email' => 'required | email',
-                'password' => 'required',
-                'password2' => 'required | same:password',
-                'role_id' => 'required',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
-            ]);
-            $editPW = true;
-        } else {
-            // Ohne Änderung des Passwortes
-            $request->validate([
-                'email' => 'required | email',
-                'role_id' => 'required',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
-            ]);
-        }
+        $daten = $request->validated();
+        $editPW = (bool) $request->input('password');
 
         // Benutzer laden
-        $user = User::findOrFail($id);
-
-        // Prüfen ob sich die E-Mail Adresse geändert hat
-        if ($user->email != $request->email) {
-            $request->validate([
-                'email' => 'required | email | unique:users',
-                'role_id' => 'required',
-            ]);
-        }
+        $user = $this->userModel->query()->findOrFail($id);
 
         // Neue Daten speichern
-        $user->name = $this->getName($request);
-        $user->email = $request->email;
-        $user->role_id = $request->role_id;
-        $user->firstname = $request->firstname ?? '';
-        $user->lastname = $request->lastname ?? '';
-        $user->smallname = $request->smallname ?? '';
-
-        $user->anrede_id = $request->anrede_id ?? '1';
-        $user->title = $request->title ?? '';
-        $user->private_email = $request->private_email ?? '';
-        $user->street = $request->street ?? '';
-        $user->postcode = $request->postcode ?? '';
-        $user->city = $request->city ?? '';
-        $user->country = $request->country ?? '';
-        $user->signature_rule_id = $request->signature_rule_id ?? '1';
-        $user->ustid = $request->ustid ?? '';
-        $user->phone = $request->phone ?? '';
-        $user->phone2 = $request->phone2 ?? '';
-        $user->mobile = $request->mobile ?? '';
-        $user->fax = $request->fax ?? '';
-        $user->skype = $request->skype ?? '';
-        $user->hourly_rate = $request->hourly_rate ?? '';
-        $user->birthday = $request->birthday ?? '';
-        $user->comment = $request->comment ?? '';
+        $user->name = $this->getName($daten);
+        $user->email = $daten['email'];
+        $user->role_id = $daten['role_id'];
+        $this->profilfelderSetzen($user, $daten);
 
         // Image
         if ($request->hasFile('image')) {
@@ -260,7 +201,7 @@ final class UserController extends Controller
 
         // Falls das Passwort geändert werden soll
         if ($editPW) {
-            $user->password = Hash::make($request->password);
+            $user->password = Hash::make($daten['password']);
         }
 
         $erg = $user->update();
@@ -283,7 +224,7 @@ final class UserController extends Controller
      */
     public function delete($id)
     {
-        $user = User::findOrFail($id);
+        $user = $this->userModel->query()->findOrFail($id);
         $user->delete();
 
         return redirect()->route('user')->with([
@@ -320,7 +261,7 @@ final class UserController extends Controller
         $userID = Auth::user()->id;
 
         // Benutzer laden
-        $user = User::findOrFail($userID);
+        $user = $this->userModel->query()->findOrFail($userID);
 
         // Image
         if ($request->hasFile('image')) {
@@ -342,5 +283,31 @@ final class UserController extends Controller
         $user->update();
 
         return redirect()->back();
+    }
+
+    /**
+     * Nur die angezeigten Felder je Zeile – nie das ganze Model (Passwort-Hash, Tokens, 2FA-Daten).
+     *
+     * @return Collection<int, array{id: int, name: string, email: string, RoleName: string}>
+     */
+    private function nutzerlistenZeilen(): Collection
+    {
+        $spalten = ['id', 'name', 'email', 'role_id', 'created_at'];
+        if (config('userauth.teams.enabled', false)) {
+            $spalten[] = 'current_team_id';
+        }
+
+        return $this->userModel->query()
+            ->select($spalten)
+            ->with('role')
+            ->latest()
+            ->get()
+            ->map(fn (Model $nutzer): array => [
+                'id' => (int) $nutzer->getKey(),
+                'name' => (string) $nutzer->getAttribute('name'),
+                'email' => (string) $nutzer->getAttribute('email'),
+                'RoleName' => (string) $nutzer->roleDisplayname(),
+            ])
+            ->values();
     }
 }

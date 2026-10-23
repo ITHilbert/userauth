@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Testing\TestResponse;
 use ITHilbert\UserAuth\Application\SocialLogin\Contracts\SocialIdentityProvider;
 use ITHilbert\UserAuth\Tests\Fakes\FakeSocialIdentityProvider;
-use Tests\TestCase;
+use ITHilbert\UserAuth\Tests\TestCase;
 
 abstract class SocialLoginTestCase extends TestCase
 {

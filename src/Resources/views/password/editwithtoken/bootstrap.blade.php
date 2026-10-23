@@ -39,7 +39,15 @@
                             <form method="POST" action="{{ route('password.updatewithtoken') }}">
                                 @csrf
 
-                                @include('include.message')
+                                @if (view()->exists('include.message'))
+                                    @include('include.message')
+                                @elseif ($errors->any())
+                                    <div class="alert alert-danger" role="alert">
+                                        @foreach ($errors->all() as $error)
+                                            <div>{{ $error }}</div>
+                                        @endforeach
+                                    </div>
+                                @endif
 
                                 <input-hidden name="pwtoken" value="{{ $token }}"></input-hidden>
                                 <input-hidden name="email" value="{{ $email }}"></input-hidden>

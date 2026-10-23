@@ -7,9 +7,12 @@ namespace ITHilbert\UserAuth\Http\Controllers;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
+use ITHilbert\UserAuth\Infrastructure\Auth\UserModel;
 
 final class ImpersonateController extends Controller
 {
+    public function __construct(private readonly UserModel $userModel) {}
+
     /**
      * Start impersonating another user.
      *
@@ -22,8 +25,7 @@ final class ImpersonateController extends Controller
             abort(403, 'Impersonation is disabled in configuration.');
         }
 
-        $userModelClass = config('auth.providers.users.model', '\\App\\Models\\User');
-        $targetUser = $userModelClass::findOrFail($id);
+        $targetUser = $this->userModel->query()->findOrFail($id);
         $currentUser = Auth::user();
 
         // Check if current user is allowed to impersonate
@@ -62,8 +64,7 @@ final class ImpersonateController extends Controller
         $impersonatorId = session()->get('impersonated_by');
         session()->forget('impersonated_by');
 
-        $userModelClass = config('auth.providers.users.model', '\\App\\Models\\User');
-        $impersonator = $userModelClass::findOrFail($impersonatorId);
+        $impersonator = $this->userModel->query()->findOrFail($impersonatorId);
 
         // Login back as the admin
         Auth::login($impersonator);

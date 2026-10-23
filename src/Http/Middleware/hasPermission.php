@@ -4,40 +4,34 @@ declare(strict_types=1);
 
 namespace ITHilbert\UserAuth\Http\Middleware;
 
-use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Redirect;
+use ITHilbert\UserAuth\Application\Zugriff\Zugriffspruefung;
+use ITHilbert\UserAuth\Http\Responses\ZugriffVerweigert;
+use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Route nur mit Recht: `hasPermission:recht` (Dev/Admin: immer).
+ */
 final class hasPermission
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @return mixed
-     */
-    public function handle(Request $request, Closure $next, $permission)
+    public function __construct(
+        private readonly Zugriffspruefung $zugriffspruefung,
+        private readonly ZugriffVerweigert $verweigert,
+    ) {}
+
+    public function handle(Request $request, Closure $next, string $permission = ''): Response
     {
-        /** @var User|null $user */
-        $user = Auth::user();
+        $user = $request->user();
 
-        if (! $user) {
-            return redirect()->guest(route('login'));
+        if ($user === null) {
+            return $this->verweigert->nichtAngemeldet();
         }
-        // Admin und Developer  haben immer das Recht
-        if ($user->role_id <= 2) {
-            return $next($request);
-        }
-        // recht prüfen
-        if ($user->hasPermission($permission)) {
+
+        if ($this->zugriffspruefung->hatRecht($user, $permission)) {
             return $next($request);
         }
 
-        if (config('userauth.redirect_on_no_permission', 'login') === 'login') {
-            return redirect()->guest(route('login'));
-        }
-
-        return Redirect::route('no-permission');
+        return $this->verweigert->fehlendesRecht();
     }
 }
