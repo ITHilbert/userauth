@@ -59,13 +59,12 @@ Route::middleware(['web'])
                 Route::delete('delete/{id}', [RoleController::class, 'delete'])->name('role.delete')->middleware('hasPermission:role_delete');
             });
 
-        // User
-        // 'hasPermission:user_read'
+        // User (Rechte an jeder Route, unabhängig von `users_middleware` einer veröffentlichten Host-Config)
         Route::middleware(config('userauth.routes.users_middleware'))
             ->prefix(config('userauth.routes.users_prefix'))
             ->group(function () {
 
-                Route::any('/', [UserController::class, 'index'])->name('user');
+                Route::any('/', [UserController::class, 'index'])->name('user')->middleware('hasPermission:user_read');
                 Route::get('create', [UserController::class, 'create'])->name('user.create')->middleware('hasPermission:user_create');
                 Route::post('store', [UserController::class, 'store'])->name('user.store')->middleware('hasPermission:user_create');
                 Route::get('edit/{id}', [UserController::class, 'edit'])->name('user.edit')->middleware('hasPermission:user_edit');

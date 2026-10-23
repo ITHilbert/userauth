@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace ITHilbert\UserAuth\Http\Controllers;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Lang;
@@ -27,23 +29,19 @@ final class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $data = $this->userModel->query()->latest()->where('deleted_at', null)->with('role')->get();
-
         if ($request->ajax()) {
             $user = Auth::user();
+            $darfBearbeiten = $user->hasPermission('user_edit');
+            $darfLoeschen = $user->hasPermission('user_delete');
 
-            return DataTables::of($data)
-                ->addColumn('RoleName', function ($row) {
-                    return $row->roleDisplayname();
-                })
-                ->addColumn('action', function ($row) use ($user) {
+            return DataTables::of($this->nutzerlistenZeilen())
+                ->addColumn('action', function (array $row) use ($darfBearbeiten, $darfLoeschen) {
                     $ausgabe = '<div style="white-space: nowrap;">';
-                    // $ausgabe .= HButton::show(route('permission.show', $row->id), '');
-                    if ($user->hasPermission('user_edit')) {
-                        $ausgabe .= HButton::edit(route('user.edit', $row->id), '');
+                    if ($darfBearbeiten) {
+                        $ausgabe .= HButton::edit(route('user.edit', $row['id']), '');
                     }
-                    if ($user->hasPermission('user_delete')) {
-                        $ausgabe .= HButton::delete($row->id, '');
+                    if ($darfLoeschen) {
+                        $ausgabe .= HButton::delete($row['id'], '');
                     }
                     $ausgabe .= '</div>';
 
@@ -344,5 +342,31 @@ final class UserController extends Controller
         $user->update();
 
         return redirect()->back();
+    }
+
+    /**
+     * Nur die angezeigten Felder je Zeile – nie das ganze Model (Passwort-Hash, Tokens, 2FA-Daten).
+     *
+     * @return Collection<int, array{id: int, name: string, email: string, RoleName: string}>
+     */
+    private function nutzerlistenZeilen(): Collection
+    {
+        $spalten = ['id', 'name', 'email', 'role_id', 'created_at'];
+        if (config('userauth.teams.enabled', false)) {
+            $spalten[] = 'current_team_id';
+        }
+
+        return $this->userModel->query()
+            ->select($spalten)
+            ->with('role')
+            ->latest()
+            ->get()
+            ->map(fn (Model $nutzer): array => [
+                'id' => (int) $nutzer->getKey(),
+                'name' => (string) $nutzer->getAttribute('name'),
+                'email' => (string) $nutzer->getAttribute('email'),
+                'RoleName' => (string) $nutzer->roleDisplayname(),
+            ])
+            ->values();
     }
 }

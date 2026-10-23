@@ -18,6 +18,16 @@ trait UserAuth
     use SoftDeletes;
     use VueComboBox;
 
+    /** Nie serialisieren (toArray/toJson): Zugangsdaten, 2FA-Code und Reset-Token. */
+    private const USERAUTH_HIDDEN = [
+        'password',
+        'remember_token',
+        'two_factor_code',
+        'two_factor_expires_at',
+        'edit_pw_token',
+        'edit_pw_token_end',
+    ];
+
     private $role_name = '';
 
     public function getCbCaptionAttribute()
@@ -54,6 +64,9 @@ trait UserAuth
             'comment',
             'image',
         ]);
+
+        // Ergänzt ein eigenes $hidden der Model-Klasse, ersetzt es nicht
+        $this->mergeHidden(self::USERAUTH_HIDDEN);
     }
 
     public function getKey()
@@ -113,7 +126,15 @@ trait UserAuth
      */
     public function currentRole()
     {
-        return Role::find($this->getActiveRoleId());
+        $rollenId = $this->getActiveRoleId();
+
+        // Vorab geladene Relation `role` nutzen (z. B. `with('role')` in Listen), solange sie zur aktiven Rolle passt
+        $geladen = $this->relationLoaded('role') ? $this->getRelation('role') : null;
+        if ($geladen instanceof Role && $rollenId !== null && (string) $geladen->getKey() === (string) $rollenId) {
+            return $geladen;
+        }
+
+        return Role::find($rollenId);
     }
 
     public function getImagePath()
