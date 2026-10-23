@@ -228,6 +228,8 @@ final class NutzerlisteTest extends TestCase
             'remember_token' => self::GEHEIME_WERTE['REMEMBER'],
             'two_factor_code' => self::GEHEIME_WERTE['ZWEIFAKTOR'],
             'two_factor_expires_at' => '2026-10-23 12:00:00',
+            'edit_pw_token' => self::GEHEIME_WERTE['RESET'],
+            'edit_pw_token_end' => '2026-10-23 13:00:00',
         ]);
     }
 
@@ -241,6 +243,8 @@ final class NutzerlisteTest extends TestCase
             'remember_token' => ['remember_token'],
             'two_factor_code' => ['two_factor_code'],
             'two_factor_expires_at' => ['two_factor_expires_at'],
+            'edit_pw_token' => ['edit_pw_token'],
+            'edit_pw_token_end' => ['edit_pw_token_end'],
         ];
     }
 
@@ -272,6 +276,38 @@ final class NutzerlisteTest extends TestCase
         $this->assertStringNotContainsString(self::GEHEIME_WERTE['HASH-ANFANG'], $json);
         $this->assertStringNotContainsString(self::GEHEIME_WERTE['REMEMBER'], $json);
         $this->assertStringNotContainsString(self::GEHEIME_WERTE['ZWEIFAKTOR'], $json);
+    }
+
+    // AK3
+    public function test_trait_serialisiert_den_reset_token_nicht_obwohl_er_gesetzt_ist(): void
+    {
+        $model = $this->nurTraitModel();
+
+        // Gegenprobe: Die Felder sind am Model gesetzt, nur die Serialisierung blendet sie aus
+        $this->assertSame(self::GEHEIME_WERTE['RESET'], $model->getAttributes()['edit_pw_token']);
+        $this->assertSame('2026-10-23 13:00:00', $model->getAttributes()['edit_pw_token_end']);
+
+        $json = $model->toJson();
+        $this->assertStringContainsString('trait@example.test', $json);
+        $this->assertStringNotContainsString(self::GEHEIME_WERTE['RESET'], $json);
+        $this->assertStringNotContainsString('2026-10-23T13:00:00', $json);
+        $this->assertStringNotContainsString('edit_pw_token', $json);
+    }
+
+    // AK3
+    public function test_gespeichertes_user_model_serialisiert_den_reset_token_nicht_obwohl_er_in_der_db_steht(): void
+    {
+        $opfer = $this->opferMitGeheimdaten();
+        $gespeichert = User::query()->findOrFail($opfer->id);
+
+        // Gegenprobe: Werte stehen in der Datenbank und am geladenen Model
+        $this->assertSame(self::GEHEIME_WERTE['RESET'], $gespeichert->getAttributes()['edit_pw_token']);
+        $this->assertNotNull($gespeichert->getAttributes()['edit_pw_token_end']);
+
+        $json = $gespeichert->toJson();
+        $this->assertStringContainsString(self::OPFER_EMAIL, $json);
+        $this->assertStringNotContainsString(self::GEHEIME_WERTE['RESET'], $json);
+        $this->assertStringNotContainsString('edit_pw_token', $json);
     }
 
     // AK3
