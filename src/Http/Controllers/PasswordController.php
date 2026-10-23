@@ -4,183 +4,124 @@ declare(strict_types=1);
 
 namespace ITHilbert\UserAuth\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Routing\Controllers\HasMiddleware;
-use Illuminate\Routing\Controllers\Middleware;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
+use Closure;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Validation\ValidationException;
 use ITHilbert\LaravelKit\Helpers\Breadcrumb;
-use ITHilbert\LaravelKit\Helpers\MyDateTime;
-use ITHilbert\UserAuth\App\Mail\ForgottenPassword;
-use ITHilbert\UserAuth\Infrastructure\Auth\UserModel;
-use ITHilbert\UserAuth\Rules\PasswordHistoryRule;
+use ITHilbert\UserAuth\Application\Passwort\PasswortSetzen;
+use ITHilbert\UserAuth\Application\Passwort\PasswortZuruecksetzen;
+use ITHilbert\UserAuth\Application\Passwort\PasswortZuruecksetzenAnfordern;
+use ITHilbert\UserAuth\Application\Passwort\PasswortZuruecksetzenErgebnis;
+use ITHilbert\UserAuth\Domain\Passwort\Exceptions\PasswortBereitsVerwendetException;
+use ITHilbert\UserAuth\Http\Requests\PasswortAendernRequest;
+use ITHilbert\UserAuth\Http\Requests\PasswortZuruecksetzenAnfordernRequest;
+use ITHilbert\UserAuth\Http\Requests\PasswortZuruecksetzenRequest;
 
-final class PasswordController implements HasMiddleware
+/**
+ * Passwort ändern (angemeldet) und Passwort vergessen. Drosselung je IP an den Routen.
+ */
+final class PasswordController
 {
-    public function __construct(private readonly UserModel $userModel) {}
-
-    public static function middleware(): array
-    {
-        return [
-            new Middleware('throttle:5,1', only: ['sendtocken']),
-        ];
-    }
-
     /**
      * Formular zum Passwort ändern öffnen.
      */
-    public function edit()
+    public function edit(): View
     {
         $breadcrumb = new Breadcrumb;
         $breadcrumb->add(trans('userauth::password.header_change'));
 
-        return view('userauth::password.edit')->with(compact('breadcrumb'));
+        return view('userauth::password.edit')->with(['breadcrumb' => $breadcrumb]);
     }
 
     /**
      * Passwort-Änderung speichern.
      */
-    public function update(Request $request)
+    public function update(PasswortAendernRequest $request, PasswortSetzen $passwortSetzen): RedirectResponse
     {
-        $user = Auth()->user();
+        $this->neuesPasswortSetzen(fn () => $passwortSetzen->handle($request->user(), (string) $request->validated('password')));
 
-        $request->validate([
-            'password' => ['required', 'min:8', 'confirmed', new PasswordHistoryRule($user)],
-            'password_confirmation' => 'required|same:password',
-        ]);
-
-        $this->savePasswordHistory($user);
-
-        $user->password = Hash::make($request->password);
-        $user->password_changed_at = now();
-        $user->update();
-
-        $redirectPath = config('userauth.redirect_after_login', '/');
-
-        return redirect($redirectPath)
-            ->with('message', 'Passwort wurde geändert');
+        return $this->nachPasswortAenderung();
     }
 
     /**
-     * Öffnet das Formular um den Passwort ändern Token anzufordern
-     *
-     * @return void
+     * Formular, um den Reset-Link anzufordern.
      */
-    public function forgotten()
+    public function forgotten(): View
     {
         return view('userauth::password.forgotten');
     }
 
     /**
-     * Sendet die Mail mit dem Änderungstoken
-     *
-     * @return void
+     * Reset-Link anfordern; gleiche Antwort für bekannte und unbekannte Adressen.
      */
-    public function sendtocken(Request $request)
+    public function sendtocken(PasswortZuruecksetzenAnfordernRequest $request, PasswortZuruecksetzenAnfordern $anfordern): RedirectResponse
     {
+        $anfordern->handle((string) $request->validated('email'));
 
-        $request->validate([
-            'email' => 'required',
-        ]);
-
-        $email = $request->email;
-
-        $user = $this->userModel->query()->where('email', $email)->where('deleted_at', null)->first();
-
-        $user->edit_pw_token = Str::random(10);
-
-        $zeit = new MyDateTime('now');
-        $zeit->addMin(30);
-        $user->edit_pw_token_end = $zeit->getDateTimeISO();
-
-        $user->update();
-
-        if (isset($user)) {
-            Mail::to($email)->send(new ForgottenPassword($user));
-
-            return redirect()->route('password.tokensend')
-                ->with('message', 'Bitte prüfen Sie Ihren Posteingang (ggf. auch den SPAM Ordner).');
-        } else {
-            redirect()->back()->withErrors('Kein Treffer');
-        }
+        return redirect()->route('password.tokensend')
+            ->with('message', trans('userauth::password.link_angefordert'));
     }
 
     /**
-     * Öffnet die View Token wurde gesendet
-     *
-     * @return void
+     * Hinweis „Link angefordert“.
      */
-    public function tokensend()
+    public function tokensend(): View
     {
         return view('userauth::password.tokensend');
     }
 
     /**
-     * Öffnet die View zum Passwort ändern mit Token
-     *
-     * @param [type] $token der Token zum ändern des Passwortes
-     * @param [type] $email die E-Mail Adresse des Users
-     * @return void
+     * Formular „Neues Passwort“ aus dem Reset-Link.
      */
-    public function editwithtoken($token, $email)
+    public function editwithtoken(string $token, string $email): View
     {
-        return view('userauth::password.editwithtoken')->with(compact('token', 'email'));
+        return view('userauth::password.editwithtoken')->with(['token' => $token, 'email' => $email]);
     }
 
     /**
-     * Ändert das Passwort mit Token
+     * Passwort mit Reset-Token setzen.
      *
-     * @return void
+     * @throws ValidationException
      */
-    public function updatewithtoken(Request $request)
+    public function updatewithtoken(PasswortZuruecksetzenRequest $request, PasswortZuruecksetzen $zuruecksetzen): RedirectResponse
     {
-        $user = $this->userModel->query()->where('email', $request->email)->where('edit_pw_token', $request->pwtoken)->where('deleted_at', null)->first();
+        $ergebnis = $this->neuesPasswortSetzen(fn (): PasswortZuruecksetzenErgebnis => $zuruecksetzen->handle(
+            (string) $request->validated('email'),
+            (string) $request->validated('pwtoken'),
+            (string) $request->validated('password'),
+        ));
 
-        $request->validate([
-            'password' => ['required', 'min:8', 'confirmed', new PasswordHistoryRule($user)],
-            'password_confirmation' => 'required|same:password',
-            'pwtoken' => 'required',
-            'email' => 'email',
-        ]);
-
-        $date1 = new MyDateTime('now');
-        $date2 = new MyDateTime($user->edit_pw_token_end);
-
-        // echo $date1->getTimestamp() . ' - ' . $date2->getTimestamp();
-
-        if ($date1->getTimestamp() > $date2->getTimestamp()) {
-            return redirect()->route('password.forgotten')->withErrors('Token ist abgelaufen.');
+        if ($ergebnis !== PasswortZuruecksetzenErgebnis::Zurueckgesetzt) {
+            throw ValidationException::withMessages(['pwtoken' => trans('userauth::password.link_ungueltig')])
+                ->redirectTo(route('password.forgotten'));
         }
 
-        if (isset($user)) {
-            $this->savePasswordHistory($user);
+        return $this->nachPasswortAenderung();
+    }
 
-            $user->password = Hash::make($request->password);
-            $user->password_changed_at = now();
-            $user->edit_pw_token = null;
-            $user->edit_pw_token_end = null;
-            $user->update();
-
-            $redirectPath = config('userauth.redirect_after_login', '/');
-
-            return redirect($redirectPath)
-                ->with('message', 'Passwort wurde geändert');
-        } else {
-            return redirect()->route('password.forgotten')->withErrors('Änderung nicht möglich.');
+    /**
+     * Bereits verwendetes Passwort → Validierungsfehler am Feld `password`.
+     *
+     * @template T
+     *
+     * @param  Closure(): T  $setzen
+     * @return T
+     *
+     * @throws ValidationException
+     */
+    private function neuesPasswortSetzen(Closure $setzen): mixed
+    {
+        try {
+            return $setzen();
+        } catch (PasswortBereitsVerwendetException) {
+            throw ValidationException::withMessages(['password' => trans('userauth::password.bereits_verwendet')]);
         }
     }
 
-    private function savePasswordHistory($user)
+    private function nachPasswortAenderung(): RedirectResponse
     {
-        if (config('userauth.password_policy.enabled', false)) {
-            DB::table('user_password_histories')->insert([
-                'user_id' => $user->id,
-                'password' => $user->password, // Altes Passwort
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
+        return redirect(config('userauth.redirect_after_login', '/'))
+            ->with('message', trans('userauth::password.geaendert'));
     }
 }

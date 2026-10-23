@@ -8,11 +8,14 @@ use BackedEnum;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\View\Compilers\BladeCompiler;
@@ -20,6 +23,9 @@ use ITHilbert\UserAuth\App\Console\Commands\AssignRoleCommand;
 use ITHilbert\UserAuth\App\Console\Commands\CreatePermissionCommand;
 use ITHilbert\UserAuth\App\Console\Commands\PruneSocialLinksCommand;
 use ITHilbert\UserAuth\App\Console\Commands\UserAuthCopyFiles;
+use ITHilbert\UserAuth\Application\Passwort\Contracts\PasswortHistorie;
+use ITHilbert\UserAuth\Application\Passwort\Contracts\PasswortKonten;
+use ITHilbert\UserAuth\Application\Passwort\Contracts\ResetLinkVersand;
 use ITHilbert\UserAuth\Application\SocialLogin\Contracts\AuthSession;
 use ITHilbert\UserAuth\Application\SocialLogin\Contracts\PendingSocialLinkPruner;
 use ITHilbert\UserAuth\Application\SocialLogin\Contracts\PendingSocialLinkRepository;
@@ -39,6 +45,9 @@ use ITHilbert\UserAuth\Http\Middleware\isAdmin;
 use ITHilbert\UserAuth\Http\Middleware\isDev;
 use ITHilbert\UserAuth\Http\Middleware\TwoFactorMiddleware;
 use ITHilbert\UserAuth\Http\ViewComposers\AvailableSocialProvidersComposer;
+use ITHilbert\UserAuth\Infrastructure\Passwort\DatenbankPasswortHistorie;
+use ITHilbert\UserAuth\Infrastructure\Passwort\EloquentPasswortKonten;
+use ITHilbert\UserAuth\Infrastructure\Passwort\NachAntwortResetLinkVersand;
 use ITHilbert\UserAuth\Infrastructure\SocialLogin\EloquentPendingSocialLinkRepository;
 use ITHilbert\UserAuth\Infrastructure\SocialLogin\EloquentSocialAccountRepository;
 use ITHilbert\UserAuth\Infrastructure\SocialLogin\EloquentSocialUserRepository;
@@ -63,6 +72,7 @@ class UserAuthServiceProvider extends ServiceProvider
         $this->registerTranslations();
         $this->registerViews();
         $this->loadMigrationsFrom(__DIR__.'/Database/Migrations');
+        $this->registerRateLimiters();
         $this->registerRoutes();
         $this->publishAssets();
         $this->registerMiddleware();
@@ -117,6 +127,17 @@ class UserAuthServiceProvider extends ServiceProvider
         });
     }
 
+    /**
+     * Drosselung „Passwort vergessen“: Anfordern und Zurücksetzen je IP 5 Anfragen pro Minute,
+     * getrennt gezählt (benannte Limiter, sonst teilen sich alle `throttle:x,y`-Routen einen Zähler).
+     */
+    protected function registerRateLimiters(): void
+    {
+        foreach (['userauth-passwort-anfordern', 'userauth-passwort-zuruecksetzen'] as $name) {
+            RateLimiter::for($name, static fn (Request $request): Limit => Limit::perMinute(5)->by((string) $request->ip()));
+        }
+    }
+
     public function registerMiddleware()
     {
         $router = $this->app['router'];
@@ -162,6 +183,17 @@ class UserAuthServiceProvider extends ServiceProvider
         $this->registerBladeExtensions();
         $this->registerSocialLogin();
         $this->registerZugriffspruefung();
+        $this->registerPasswort();
+    }
+
+    /**
+     * Port-Bindings für Passwort ändern/zurücksetzen.
+     */
+    protected function registerPasswort(): void
+    {
+        $this->app->bind(PasswortKonten::class, EloquentPasswortKonten::class);
+        $this->app->bind(PasswortHistorie::class, DatenbankPasswortHistorie::class);
+        $this->app->bind(ResetLinkVersand::class, NachAntwortResetLinkVersand::class);
     }
 
     /**

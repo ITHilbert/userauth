@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Foundation\Http\Middleware\InvokeDeferredCallbacks;
 use Illuminate\Support\Facades\Route;
 use ITHilbert\UserAuth\Http\Controllers\AuthCssController;
 use ITHilbert\UserAuth\Http\Controllers\ImpersonateController;
@@ -102,8 +103,10 @@ Route::middleware(['web'])
         // Passwort vergessen
         Route::any('password/tokensend', [PasswordController::class, 'tokensend'])->name('password.tokensend');
         Route::any('password/forgotten', [PasswordController::class, 'forgotten'])->name('password.forgotten');
-        Route::post('password/sendtocken', [PasswordController::class, 'sendtocken'])->name('password.sendtocken');
-        Route::post('password/updatewithtoken', [PasswordController::class, 'updatewithtoken'])->name('password.updatewithtoken');
+        Route::post('password/sendtocken', [PasswordController::class, 'sendtocken'])->name('password.sendtocken')
+            // Mail wird per defer() nach der Antwort verschickt; auch für Hosts mit altem HTTP-Kernel ohne InvokeDeferredCallbacks
+            ->middleware(['throttle:userauth-passwort-anfordern', InvokeDeferredCallbacks::class]);
+        Route::post('password/updatewithtoken', [PasswordController::class, 'updatewithtoken'])->name('password.updatewithtoken')->middleware('throttle:userauth-passwort-zuruecksetzen');
 
         // 2FA
         Route::middleware(['web', 'auth'])->group(function () {

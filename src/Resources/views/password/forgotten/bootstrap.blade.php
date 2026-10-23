@@ -37,6 +37,13 @@
                       </a>
                       <h4 class="text-1000">@lang('userauth::password.header_pw_forgotten')</h4>
                       <p class="text-700 mb-5">Enter your email below and we will <br class="d-md-none" />send you <br class="d-none d-xxl-block" />a reset link</p>
+                      @if ($errors->any())
+                        <div class="alert alert-danger text-start" role="alert">
+                          @foreach ($errors->all() as $error)
+                            <div>{{ $error }}</div>
+                          @endforeach
+                        </div>
+                      @endif
                       <form class="d-flex align-items-center mb-5" method="POST" action="{{ route('password.sendtocken') }}">
                         @csrf
                         <input class="form-control flex-1" id="email" type="email" placeholder="Email" name="email" required autocomplete="email" autofocus />

@@ -7,9 +7,11 @@ namespace ITHilbert\UserAuth\Rules;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
+use ITHilbert\UserAuth\Application\Passwort\PasswortWiederverwendung;
 
+/**
+ * Validierungsregel „keine Wiederverwendung“ für Hosts; die Prüfung selbst liegt in `PasswortWiederverwendung`.
+ */
 final class PasswordHistoryRule implements Rule
 {
     protected $user;
@@ -34,39 +36,16 @@ final class PasswordHistoryRule implements Rule
      */
     public function passes($attribute, $value)
     {
-        if (! config('userauth.password_policy.enabled', false)) {
+        // Ohne Nutzer oder ohne Text nichts zu vergleichen; den Typ prüft die Regel `string`
+        if (! $this->user || ! is_string($value)) {
             return true;
         }
 
-        if (! $this->user) {
-            return true;
-        }
-
-        $preventReuseCount = config('userauth.password_policy.prevent_reuse_last_passwords', 3);
-
-        if ($preventReuseCount <= 0) {
-            return true;
-        }
-
-        // Aktuelles Passwort prüfen
-        if (Hash::check($value, $this->user->password)) {
-            return false;
-        }
-
-        // Historie prüfen
-        $histories = DB::table('user_password_histories')
-            ->where('user_id', $this->user->id)
-            ->latest()
-            ->take($preventReuseCount)
-            ->pluck('password');
-
-        foreach ($histories as $oldHash) {
-            if (Hash::check($value, $oldHash)) {
-                return false;
-            }
-        }
-
-        return true;
+        return ! app(PasswortWiederverwendung::class)->istWiederverwendet(
+            $this->user->id,
+            (string) $this->user->password,
+            $value,
+        );
     }
 
     /**
@@ -76,6 +55,6 @@ final class PasswordHistoryRule implements Rule
      */
     public function message()
     {
-        return 'Das Passwort darf nicht einem der zuletzt verwendeten Passwörter entsprechen.';
+        return (string) trans('userauth::password.bereits_verwendet');
     }
 }
