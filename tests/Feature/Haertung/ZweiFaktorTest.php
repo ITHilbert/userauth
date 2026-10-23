@@ -58,7 +58,7 @@ final class ZweiFaktorTest extends SocialLoginTestCase
 
         $this->flushSession();
         $this->app['auth']->forgetGuards();
-        $this->withUnencryptedCookie((string) config('session.cookie'), $this->sitzungen[$name]);
+        $this->withCookie((string) config('session.cookie'), $this->sitzungen[$name]);
     }
 
     /**
@@ -71,7 +71,7 @@ final class ZweiFaktorTest extends SocialLoginTestCase
         $antwort = $this->{$methode}($uri, $daten);
 
         $this->sitzungen[$this->aktiv] = session()->getId();
-        $this->withUnencryptedCookie((string) config('session.cookie'), $this->sitzungen[$this->aktiv]);
+        $this->withCookie((string) config('session.cookie'), $this->sitzungen[$this->aktiv]);
 
         return $antwort;
     }
@@ -130,6 +130,27 @@ final class ZweiFaktorTest extends SocialLoginTestCase
         }
 
         return false;
+    }
+
+    /**
+     * Gegenprobe für "bleibt unangemeldet": Die Sitzung ist geladen und sieht ihre offene 2FA.
+     */
+    private function assertZweiFaktorOffen(): void
+    {
+        $this->senden('get', route('verify.index'))->assertOk();
+    }
+
+    private function assertNichtImKlartextInDatenbank(string $code): void
+    {
+        $inhalt = json_encode($this->alleTabellenInhalte(), JSON_THROW_ON_ERROR);
+        $this->assertStringContainsString(self::EMAIL, $inhalt, 'Gegenprobe: Die Datenbank wurde nicht durchsucht (Nutzerzeile fehlt).');
+        $this->assertDoesNotMatchRegularExpression('/(?<!\d)'.$code.'(?!\d)/', $inhalt);
+    }
+
+    private function assertNichtImKlartextInSession(string $code): void
+    {
+        $this->assertNotEmpty(session()->all(), 'Gegenprobe: Die Sitzung ist leer.');
+        $this->assertDoesNotMatchRegularExpression('/(?<!\d)'.$code.'(?!\d)/', json_encode(session()->all(), JSON_THROW_ON_ERROR));
     }
 
     private function assertNichtErreichbar(string $url): void
@@ -199,6 +220,7 @@ final class ZweiFaktorTest extends SocialLoginTestCase
     public function test_seiten_hinter_auth_sind_vor_bestandener_2fa_nicht_erreichbar(): void
     {
         $this->passwortAnmelden();
+        $this->assertZweiFaktorOffen();
 
         $this->assertNichtErreichbar(route('password.edit'));
         $this->assertNichtErreichbar(route('usericon.edit'));
@@ -216,8 +238,10 @@ final class ZweiFaktorTest extends SocialLoginTestCase
     // AK14 (Nur Code-Eingabe: ohne offene Anmeldung nicht verwendbar)
     public function test_code_eingabe_ohne_offene_anmeldung_meldet_niemanden_an(): void
     {
-        $this->codeEingeben('123456');
+        $antwort = $this->codeEingeben('123456');
 
+        $this->assertLessThan(500, $antwort->getStatusCode(), 'Gegenprobe: Die Anfrage wurde regulär verarbeitet.');
+        $this->assertSame([], $this->gesendeteNachrichten());
         $this->assertGuest();
     }
 
@@ -230,9 +254,16 @@ final class ZweiFaktorTest extends SocialLoginTestCase
     // AK14 (Code erneut senden ohne offene Anmeldung versendet nichts)
     public function test_code_erneut_senden_ohne_offene_anmeldung_versendet_nichts(): void
     {
-        $this->senden('post', route('verify.resend'));
+        $antwort = $this->senden('post', route('verify.resend'));
 
+        $this->assertLessThan(500, $antwort->getStatusCode(), 'Gegenprobe: Die Anfrage wurde regulär verarbeitet.');
         $this->assertSame([], $this->gesendeteNachrichten());
+
+        // Gegenprobe: dieselbe Aktion versendet mit offener Anmeldung
+        $this->offeneZweiFaktor();
+        $this->travel(61)->seconds();
+        $this->senden('post', route('verify.resend'));
+        $this->assertCount(2, $this->nachrichtenAn(self::EMAIL));
     }
 
     // AK14
@@ -241,6 +272,9 @@ final class ZweiFaktorTest extends SocialLoginTestCase
         $antwort = $this->passwortAnmelden(['remember' => 'on']);
 
         $this->assertFalse($this->hatRememberCookie($antwort), 'Remember-Cookie darf erst nach bestandener 2FA gesetzt werden: '.implode(',', $this->cookieNamen($antwort)));
+
+        // Gegenprobe: "Angemeldet bleiben" wurde angenommen und wirkt erst nach der 2FA
+        $this->assertTrue($this->hatRememberCookie($this->codeEingeben($this->zweiFaktorCode(self::EMAIL))));
     }
 
     // AK14
@@ -287,6 +321,7 @@ final class ZweiFaktorTest extends SocialLoginTestCase
     public function test_seiten_hinter_auth_sind_nach_social_login_vor_der_2fa_nicht_erreichbar(): void
     {
         $this->sozialAnmelden();
+        $this->assertZweiFaktorOffen();
 
         $this->assertNichtErreichbar(route('password.edit'));
         $this->assertNichtErreichbar(route('usericon.edit'));
@@ -364,9 +399,29 @@ final class ZweiFaktorTest extends SocialLoginTestCase
         $this->assertAuthenticatedAs($this->nutzer);
 
         $this->browser('wiederholung', $alteSitzung);
+        $this->senden('get', route('verify.index'))->assertRedirect(route('login'));
         $this->codeEingeben($code);
 
         $this->assertGuest();
+    }
+
+    // AK15 (der verbrauchte Code gilt auch in einer anderen Sitzung mit offener 2FA nicht)
+    public function test_der_verbrauchte_code_gilt_in_einer_anderen_sitzung_mit_offener_2fa_nicht(): void
+    {
+        $verbraucht = $this->offeneZweiFaktor();
+        $this->codeEingeben($verbraucht);
+        $this->assertAuthenticatedAs($this->nutzer);
+
+        $this->browser('b');
+        $codeB = $this->offeneZweiFaktor();
+        if ($verbraucht === $codeB) {
+            $this->markTestSkipped('Zufällig gleicher Code.');
+        }
+        $this->assertZweiFaktorOffen();
+        $this->codeEingeben($verbraucht);
+
+        $this->assertGuest();
+        $this->assertZweiFaktorOffen();
     }
 
     // ------------------------------------------------------------------ AK16
@@ -379,6 +434,8 @@ final class ZweiFaktorTest extends SocialLoginTestCase
         $this->codeEingeben($this->falscherCode($code))->assertRedirect()->assertSessionHasErrors();
 
         $this->assertGuest();
+        $this->codeEingeben($code);
+        $this->assertAuthenticatedAs($this->nutzer);
     }
 
     // AK16 (Hinweis bis in die Seite)
@@ -400,9 +457,15 @@ final class ZweiFaktorTest extends SocialLoginTestCase
         $code = $this->offeneZweiFaktor();
         $this->travel(11)->minutes();
 
+        $this->assertZweiFaktorOffen();
         $this->codeEingeben($code)->assertSessionHasErrors();
 
         $this->assertGuest();
+
+        // Gegenprobe: die Sitzung ist geladen, ein neuer Code meldet an
+        $this->senden('post', route('verify.resend'));
+        $this->codeEingeben($this->zweiFaktorCode(self::EMAIL));
+        $this->assertAuthenticatedAs($this->nutzer);
     }
 
     // AK16 (Hinweis bis in die Seite)
@@ -436,9 +499,11 @@ final class ZweiFaktorTest extends SocialLoginTestCase
     public function test_nach_5_fehlversuchen_ist_der_code_ungueltig(): void
     {
         $code = $this->offeneZweiFaktor();
-        for ($i = 0; $i < 5; $i++) {
+        for ($i = 0; $i < 4; $i++) {
             $this->codeEingeben($this->falscherCode($code));
         }
+        $this->assertZweiFaktorOffen();
+        $this->codeEingeben($this->falscherCode($code));
 
         $this->codeEingeben($code);
 
@@ -483,6 +548,7 @@ final class ZweiFaktorTest extends SocialLoginTestCase
         $this->assertAuthenticatedAs($this->nutzer);
 
         $this->browser('b');
+        $this->assertZweiFaktorOffen();
         $this->assertNichtErreichbar(route('password.edit'));
     }
 
@@ -497,9 +563,11 @@ final class ZweiFaktorTest extends SocialLoginTestCase
             $this->markTestSkipped('Zufällig gleicher Code in beiden Sitzungen.');
         }
 
+        $this->assertZweiFaktorOffen();
         $this->codeEingeben($codeA);
 
         $this->assertGuest();
+        $this->assertZweiFaktorOffen();
     }
 
     // AK17
@@ -525,6 +593,7 @@ final class ZweiFaktorTest extends SocialLoginTestCase
         $this->codeEingeben($codeB);
 
         $this->browser('a');
+        $this->assertZweiFaktorOffen();
 
         $this->assertNichtErreichbar(route('password.edit'));
     }
@@ -544,9 +613,7 @@ final class ZweiFaktorTest extends SocialLoginTestCase
     {
         $code = $this->offeneZweiFaktor();
 
-        foreach ($this->alleTabellenInhalte() as $tabelle => $zeilen) {
-            $this->assertDoesNotMatchRegularExpression('/(?<!\d)'.$code.'(?!\d)/', json_encode($zeilen, JSON_THROW_ON_ERROR), "Klartext-Code steht in Tabelle {$tabelle}.");
-        }
+        $this->assertNichtImKlartextInDatenbank($code);
     }
 
     // AK18
@@ -554,7 +621,7 @@ final class ZweiFaktorTest extends SocialLoginTestCase
     {
         $code = $this->offeneZweiFaktor();
 
-        $this->assertDoesNotMatchRegularExpression('/(?<!\d)'.$code.'(?!\d)/', json_encode(session()->all(), JSON_THROW_ON_ERROR));
+        $this->assertNichtImKlartextInSession($code);
     }
 
     // AK18 (nach "Code erneut senden" gilt dasselbe für den neuen Code)
@@ -565,8 +632,8 @@ final class ZweiFaktorTest extends SocialLoginTestCase
         $this->senden('post', route('verify.resend'));
         $neu = $this->zweiFaktorCode(self::EMAIL);
 
-        $this->assertDoesNotMatchRegularExpression('/(?<!\d)'.$neu.'(?!\d)/', json_encode($this->alleTabellenInhalte(), JSON_THROW_ON_ERROR));
-        $this->assertDoesNotMatchRegularExpression('/(?<!\d)'.$neu.'(?!\d)/', json_encode(session()->all(), JSON_THROW_ON_ERROR));
+        $this->assertNichtImKlartextInDatenbank($neu);
+        $this->assertNichtImKlartextInSession($neu);
     }
 
     // AK18 (nach bestandener 2FA bleibt kein Klartext zurück)
@@ -575,8 +642,9 @@ final class ZweiFaktorTest extends SocialLoginTestCase
         $code = $this->offeneZweiFaktor();
         $this->codeEingeben($code);
 
-        $this->assertDoesNotMatchRegularExpression('/(?<!\d)'.$code.'(?!\d)/', json_encode($this->alleTabellenInhalte(), JSON_THROW_ON_ERROR));
-        $this->assertDoesNotMatchRegularExpression('/(?<!\d)'.$code.'(?!\d)/', json_encode(session()->all(), JSON_THROW_ON_ERROR));
+        $this->assertAuthenticatedAs($this->nutzer);
+        $this->assertNichtImKlartextInDatenbank($code);
+        $this->assertNichtImKlartextInSession($code);
     }
 
     // ------------------------------------------------------------------ AK19
@@ -591,6 +659,10 @@ final class ZweiFaktorTest extends SocialLoginTestCase
         $this->senden('get', route('verify.resend'))->assertStatus(405);
 
         $this->assertCount($vorher, $this->gesendeteNachrichten());
+
+        // Gegenprobe: dieselbe Sitzung darf per POST einen Code anfordern
+        $this->senden('post', route('verify.resend'));
+        $this->assertCount($vorher + 1, $this->gesendeteNachrichten());
     }
 
     // AK19
@@ -610,6 +682,7 @@ final class ZweiFaktorTest extends SocialLoginTestCase
         $this->offeneZweiFaktor();
         $this->travel(61)->seconds();
         $this->senden('post', route('verify.resend'));
+        $this->assertCount(2, $this->nachrichtenAn(self::EMAIL), 'Gegenprobe: Der erste erneute Versand geht raus.');
 
         $zweite = $this->senden('post', route('verify.resend'));
 
@@ -644,6 +717,8 @@ final class ZweiFaktorTest extends SocialLoginTestCase
         $this->codeEingeben($alt);
 
         $this->assertGuest();
+        $this->codeEingeben($neu);
+        $this->assertAuthenticatedAs($this->nutzer);
     }
 
     // AK19
@@ -665,6 +740,7 @@ final class ZweiFaktorTest extends SocialLoginTestCase
     public function test_abmelden_bei_offener_2fa_leitet_weiter_ohne_fehler(): void
     {
         $this->offeneZweiFaktor();
+        $this->assertZweiFaktorOffen();
 
         $antwort = $this->senden('post', route('logout'));
 
@@ -676,6 +752,7 @@ final class ZweiFaktorTest extends SocialLoginTestCase
     public function test_nach_dem_abmelden_ist_die_code_seite_nicht_mehr_offen(): void
     {
         $this->offeneZweiFaktor();
+        $this->assertZweiFaktorOffen();
         $this->senden('post', route('logout'));
 
         $this->senden('get', route('verify.index'))->assertRedirect(route('login'));
@@ -685,6 +762,7 @@ final class ZweiFaktorTest extends SocialLoginTestCase
     public function test_nach_dem_abmelden_meldet_der_alte_code_nicht_mehr_an(): void
     {
         $code = $this->offeneZweiFaktor();
+        $this->assertZweiFaktorOffen();
         $this->senden('post', route('logout'));
 
         $this->codeEingeben($code);
@@ -697,9 +775,12 @@ final class ZweiFaktorTest extends SocialLoginTestCase
     {
         $code = $this->offeneZweiFaktor();
         $alteSitzung = session()->getId();
+        $this->browser('alt', $alteSitzung);
+        $this->assertZweiFaktorOffen();
         $this->senden('post', route('logout'));
 
         $this->browser('alt', $alteSitzung);
+        $this->senden('get', route('verify.index'))->assertRedirect(route('login'));
         $this->codeEingeben($code);
 
         $this->assertGuest();
@@ -827,6 +908,7 @@ final class ZweiFaktorTest extends SocialLoginTestCase
 
         $this->codeEingeben($this->falscherCode($code));
 
+        $this->assertGreaterThan(0, DB::table('user_auth_audit_logs')->count(), 'Gegenprobe: Das Audit-Log ist aktiv und hat den Versuch erfasst.');
         $this->assertSame(0, $this->auditAnzahl('login'));
     }
 
@@ -837,6 +919,112 @@ final class ZweiFaktorTest extends SocialLoginTestCase
         $this->codeEingeben($this->falscherCode($code));
         $this->codeEingeben($code);
 
+        $this->assertAuthenticatedAs($this->nutzer);
         $this->assertSame(0, DB::table('user_auth_audit_logs')->count());
+    }
+
+    // ------------------------------------------------------- Randfall: Altsitzungen
+
+    /**
+     * Sitzung aus der Zeit vor dem Update: Der Nutzer gilt über den Guard-Schlüssel bereits als angemeldet
+     * (der alte Ablauf meldete nach dem Passwort an), "2FA offen" stand nur in `users.two_factor_code`.
+     */
+    private function altsitzungAnlegen(string $name): string
+    {
+        $sitzung = $this->app['session']->driver();
+        $sitzung->setId($id = Str::random(40));
+        $sitzung->put($this->app['auth']->guard()->getName(), $this->nutzer->getKey());
+        $sitzung->save();
+
+        $this->browser($name, $id);
+
+        return $id;
+    }
+
+    private function alterCodeInDatenbank(?string $code): void
+    {
+        DB::table('users')->where('id', $this->nutzer->getKey())->update([
+            'two_factor_code' => $code,
+            'two_factor_expires_at' => $code === null ? null : now()->addMinutes(5),
+        ]);
+    }
+
+    // Randfall (offene 2FA-Codes aus der Zeit vor dem Update sind danach ungültig; Betroffene melden sich neu an)
+    public function test_eine_altsitzung_mit_altem_offenem_code_erreicht_keine_geschuetzte_seite_mehr(): void
+    {
+        $this->alterCodeInDatenbank(null);
+        $this->altsitzungAnlegen('alt');
+        $this->senden('get', route('password.edit'))->assertOk();
+        $this->assertAuthenticatedAs($this->nutzer);
+
+        $this->alterCodeInDatenbank('123456');
+        $this->app['auth']->forgetGuards();
+        $this->senden('get', route('password.edit'))->assertRedirect(route('login'));
+
+        $this->assertGuest();
+    }
+
+    // Randfall (Betroffene melden sich neu an)
+    public function test_nach_dem_abmelden_der_altsitzung_bleibt_der_neue_login_nur_per_2fa_moeglich(): void
+    {
+        $alteSitzung = $this->altsitzungAnlegen('alt');
+        $this->alterCodeInDatenbank('123456');
+        $this->senden('get', route('password.edit'))->assertRedirect(route('login'));
+        $this->assertGuest();
+
+        $this->browser('alt', $alteSitzung);
+        $this->senden('get', route('password.edit'))->assertRedirect(route('login'));
+        $this->assertGuest();
+
+        $this->browser('neu');
+        $this->passwortAnmelden()->assertRedirect(route('verify.index'));
+        $this->assertGuest();
+        $this->codeEingeben($this->zweiFaktorCode(self::EMAIL));
+        $this->assertAuthenticatedAs($this->nutzer);
+        $this->senden('get', route('password.edit'))->assertOk();
+    }
+
+    // Randfall (Gegenprobe: ein Nutzer ohne alten Code bleibt mit seiner bestehenden Sitzung angemeldet)
+    public function test_eine_bestehende_sitzung_ohne_alten_code_bleibt_angemeldet(): void
+    {
+        $this->alterCodeInDatenbank(null);
+        $this->altsitzungAnlegen('alt');
+
+        $this->senden('get', route('password.edit'))->assertOk();
+        $this->senden('get', route('usericon.edit'))->assertOk();
+
+        $this->assertAuthenticatedAs($this->nutzer);
+    }
+
+    // Randfall (der alte Code aus der Datenbank löst nichts ein, auch nicht in einer neuen Anmeldung)
+    public function test_der_alte_code_aus_der_datenbank_loest_nichts_ein(): void
+    {
+        $this->alterCodeInDatenbank('123456');
+
+        $this->passwortAnmelden()->assertRedirect(route('verify.index'));
+        $neu = $this->zweiFaktorCode(self::EMAIL);
+        $this->assertZweiFaktorOffen();
+        if ($neu === '123456') {
+            $this->markTestSkipped('Zufällig gleicher Code.');
+        }
+
+        $this->codeEingeben('123456');
+        $this->assertGuest();
+
+        $this->codeEingeben($neu);
+        $this->assertAuthenticatedAs($this->nutzer);
+    }
+
+    // Randfall (Gegenprobe: ein neu angemeldeter Nutzer bleibt trotz altem Code in der Datenbank angemeldet)
+    public function test_ein_nach_dem_update_angemeldeter_nutzer_bleibt_trotz_altem_code_in_der_datenbank_angemeldet(): void
+    {
+        $code = $this->offeneZweiFaktor();
+        $this->codeEingeben($code);
+        $this->assertAuthenticatedAs($this->nutzer);
+
+        $this->alterCodeInDatenbank('123456');
+
+        $this->senden('get', route('password.edit'))->assertOk();
+        $this->assertAuthenticatedAs($this->nutzer);
     }
 }
