@@ -8,12 +8,13 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
 use ITHilbert\LaravelKit\Helpers\Breadcrumb;
 use ITHilbert\LaravelKit\Helpers\HButton;
-use ITHilbert\UserAuth\Entities\Permission;
 use ITHilbert\UserAuth\Entities\PermissionGroup;
 use ITHilbert\UserAuth\Entities\Role;
+use ITHilbert\UserAuth\Http\Requests\RolleSpeichernRequest;
 use ITHilbert\UserAuth\Traits\Format;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -85,27 +86,18 @@ final class RoleController extends Controller
      *
      * @return Response
      */
-    public function store(Request $request)
+    public function store(RolleSpeichernRequest $request)
     {
-        $request->validate([
-            'role_display' => 'required | unique:roles',
-            'role' => 'required | unique:roles',
-        ]);
+        $daten = $request->validated();
 
-        $role = new Role;
-        $role->role_display = $request->role_display;
-        $role->role = $this->formatDisplayToIntern($request->role);
-        $role->save();
+        DB::transaction(function () use ($daten): void {
+            $role = new Role;
+            $role->role_display = $daten['role_display'];
+            $role->role = $this->formatDisplayToIntern($daten['role']);
+            $role->save();
 
-        // Rechte speichern
-        if (isset($request->permission)) {
-            foreach ($request->permission as $permID) {
-                $perm = Permission::find($permID);
-                if ($perm !== null) {
-                    $role->permissions()->save($perm);
-                }
-            }
-        }
+            $role->permissions()->sync(array_values($daten['permission'] ?? []));
+        });
 
         return redirect()->route('role')->with([
             'message' => Lang::get('userauth::role.MsgAddSuccess'),
@@ -137,35 +129,18 @@ final class RoleController extends Controller
      * @param  int  $id
      * @return Response
      */
-    public function update(Request $request, $id)
+    public function update(RolleSpeichernRequest $request, $id)
     {
-        // Rolle finden
         $role = Role::findOrFail($id);
+        $daten = $request->validated();
 
-        // Prüfen ob Eingaben korrekt sind
-        if ($role->role_display != $request->role_display || $request->role_display == '') {
-            $request->validate([
-                'role_display' => 'required | unique:roles',
-                'role' => 'required | unique:roles',
-            ]);
-        }
+        DB::transaction(function () use ($role, $daten): void {
+            $role->role_display = $daten['role_display'] ?? null;
+            $role->role = $this->formatDisplayToIntern($daten['role'] ?? null);
+            $role->update();
 
-        // Rolenname setzen
-        $role->role_display = $request->role_display;
-        $role->role = $this->formatDisplayToIntern($request->role);
-        $erg = $role->update();
-
-        // Rechte speichern
-        $role->permissions()->detach(); // Bestehende Rechte löschen
-        // Rechte neu setzen
-        if (isset($request->permission)) {
-            foreach ($request->permission as $permID) {
-                $perm = Permission::find($permID);
-                if ($perm !== null) {
-                    $role->permissions()->save($perm);
-                }
-            }
-        }
+            $role->permissions()->sync(array_values($daten['permission'] ?? []));
+        });
 
         return redirect()->route('role')->with(['message' => Lang::get('userauth::role.MsgEditSuccess')]);
     }
