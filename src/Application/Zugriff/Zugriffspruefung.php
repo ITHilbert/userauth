@@ -38,23 +38,27 @@ final class Zugriffspruefung
         return $this->aktiveRolle($nutzer)?->istDev() ?? false;
     }
 
-    public function hatRecht(?Authenticatable $nutzer, string $recht): bool
+    public function hatRecht(?Authenticatable $nutzer, ?string $recht): bool
     {
+        if ($recht === null) {
+            return false;
+        }
+
         return $this->aktiveRolle($nutzer)?->hatRecht($recht) ?? false;
     }
 
     /**
-     * @param  string|int|array<array-key, mixed>  ...$rechte  einzeln, Komma-Liste oder Array
+     * @param  mixed  ...$rechte  einzeln, Komma-Liste oder Array; null gilt als nicht vorhandenes Recht
      */
-    public function hatAlleRechte(?Authenticatable $nutzer, string|int|array ...$rechte): bool
+    public function hatAlleRechte(?Authenticatable $nutzer, mixed ...$rechte): bool
     {
         return $this->aktiveRolle($nutzer)?->hatAlleRechte(Namensliste::aus(...$rechte)) ?? false;
     }
 
     /**
-     * @param  string|int|array<array-key, mixed>  ...$rechte  einzeln, Komma-Liste oder Array
+     * @param  mixed  ...$rechte  einzeln, Komma-Liste oder Array; null gilt als nicht vorhandenes Recht
      */
-    public function hatEinesDerRechte(?Authenticatable $nutzer, string|int|array ...$rechte): bool
+    public function hatEinesDerRechte(?Authenticatable $nutzer, mixed ...$rechte): bool
     {
         return $this->aktiveRolle($nutzer)?->hatEinesDerRechte(Namensliste::aus(...$rechte)) ?? false;
     }
@@ -62,17 +66,21 @@ final class Zugriffspruefung
     /**
      * Dev erfüllt jede Rolle, Admin jede außer `dev`, sonst nur der eigene Rollenname.
      */
-    public function hatRolle(?Authenticatable $nutzer, string $rolle): bool
+    public function hatRolle(?Authenticatable $nutzer, ?string $rolle): bool
     {
+        if ($rolle === null) {
+            return false;
+        }
+
         return $this->aktiveRolle($nutzer)?->erfuelltRolle($rolle) ?? false;
     }
 
     /**
      * Rollenname ist einer der genannten (ohne Sonderstellung für Dev/Admin).
      *
-     * @param  string|int|array<array-key, mixed>  ...$rollen  einzeln, Komma-Liste oder Array
+     * @param  mixed  ...$rollen  einzeln, Komma-Liste oder Array
      */
-    public function hatEineDerRollen(?Authenticatable $nutzer, string|int|array ...$rollen): bool
+    public function hatEineDerRollen(?Authenticatable $nutzer, mixed ...$rollen): bool
     {
         return $this->aktiveRolle($nutzer)?->traegtEinenDerNamen(Namensliste::aus(...$rollen)) ?? false;
     }

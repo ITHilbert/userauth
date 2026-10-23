@@ -20,7 +20,7 @@ final class hasPermission
         private readonly ZugriffVerweigert $verweigert,
     ) {}
 
-    public function handle(Request $request, Closure $next, string $permission): Response
+    public function handle(Request $request, Closure $next, string $permission = ''): Response
     {
         $user = $request->user();
 

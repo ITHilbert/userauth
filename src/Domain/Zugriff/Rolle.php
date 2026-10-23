@@ -85,7 +85,7 @@ final readonly class Rolle
             return true;
         }
 
-        if ($rechte->istLeer()) {
+        if ($rechte->istLeer() || $rechte->hatFehlendenEintrag) {
             return false;
         }
 

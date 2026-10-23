@@ -15,19 +15,27 @@ final readonly class Namensliste
 {
     /**
      * @param  list<string>  $namen
+     * @param  bool  $hatFehlendenEintrag  mindestens ein Eintrag war null (gilt als nicht vorhandenes Recht)
      */
-    private function __construct(public array $namen) {}
+    private function __construct(public array $namen, public bool $hatFehlendenEintrag = false) {}
 
     /**
-     * @param  string|int|array<array-key, mixed>  ...$eintraege
+     * @param  mixed  ...$eintraege  Text, Zahl, Array oder null (null = fehlender Eintrag)
      *
-     * @throws InvalidArgumentException wenn ein Eintrag weder Text noch Zahl ist
+     * @throws InvalidArgumentException wenn ein Eintrag weder Text, Zahl noch null ist
      */
-    public static function aus(string|int|array ...$eintraege): self
+    public static function aus(mixed ...$eintraege): self
     {
         $namen = [];
+        $fehlend = false;
 
-        array_walk_recursive($eintraege, static function (mixed $eintrag) use (&$namen): void {
+        array_walk_recursive($eintraege, static function (mixed $eintrag) use (&$namen, &$fehlend): void {
+            if ($eintrag === null) {
+                $fehlend = true;
+
+                return;
+            }
+
             if (! is_string($eintrag) && ! is_int($eintrag)) {
                 throw new InvalidArgumentException('Rechte- und Rollennamen müssen Text sein, erhalten: '.get_debug_type($eintrag));
             }
@@ -40,7 +48,7 @@ final readonly class Namensliste
             }
         });
 
-        return new self(array_values(array_unique($namen)));
+        return new self(array_values(array_unique($namen)), $fehlend);
     }
 
     public function istLeer(): bool
