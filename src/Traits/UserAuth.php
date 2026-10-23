@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Session;
 use ITHilbert\LaravelKit\Traits\VueComboBox;
 use ITHilbert\UserAuth\Entities\Role;
 use ITHilbert\UserAuth\Entities\Team;
+use ITHilbert\UserAuth\Infrastructure\Auth\UserModel;
 
 trait UserAuth
 {
@@ -342,9 +343,7 @@ trait UserAuth
     public function getImpersonator()
     {
         if ($this->isImpersonated()) {
-            $modelClass = config('auth.providers.users.model', '\\App\\Models\\User');
-
-            return $modelClass::find(session()->get('impersonated_by'));
+            return app(UserModel::class)->query()->find(session()->get('impersonated_by'));
         }
 
         return null;
