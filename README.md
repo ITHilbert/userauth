@@ -21,7 +21,7 @@ composer require ithilbert/userauth
 |---|---|---|
 | PHP | 8.5 | Paket-Code |
 | Laravel (`illuminate/*`) | 12 oder 13 | Framework |
-| `ithilbert/laravel-kit` | `dev-main` | Trait `VueComboBox`, das `UserAuth` verwendet |
+| `ithilbert/laravel-kit` | `^1.2` | Trait `VueComboBox`, das `UserAuth` verwendet |
 | `laravel/socialite` | `^5.0` (automatisch installiert) | Social Login (Google) |
 | `yajra/laravel-datatables-oracle` | `^12.0` oder `^13.0` (automatisch installiert) | Nutzerliste (AJAX) |
 | `nesbot/carbon` | `^2.0` oder `^3.0` (automatisch installiert) | Datumsberechnungen |
@@ -29,11 +29,7 @@ composer require ithilbert/userauth
 | Cache-Store | nicht `array` (z. B. `file`, `database`, `redis`) | Zähler der 2FA-Fehlversuche, Sperre „Code erneut senden“, Drosselungen |
 | Session-Treiber | speichert zwischen Requests (nicht `array`) | Offene Zwei-Faktor-Anmeldung liegt in der Session |
 
-**`ithilbert/laravel-kit` als `dev-main`:** Das Repo hat keine Releases. Ist `minimum-stability` in der `composer.json` des Hosts `stable`, verlangt der Host das Paket selbst als `dev-main`:
-
-```bash
-composer require ithilbert/laravel-kit:dev-main
-```
+Ein `dev-main` des Pakets ist nicht mehr nötig: `ithilbert/laravel-kit` ist ab Version `1.2` als Release verfügbar.
 
 ### Eigene Testumgebung (Paket-Entwicklung)
 
@@ -84,7 +80,7 @@ Diese Punkte muss der Host erfüllen, sonst schlagen Login, Passwort-Reset oder 
 6. **Eigene Routen auf den Passwort-Reset:** Die Route `password.sendtocken` trägt die Middleware `InvokeDeferredCallbacks` selbst. Eigene Routen, die den Reset-UseCase aufrufen, brauchen sie ebenfalls, sonst wird die Reset-Mail nie verschickt.
 7. **Rechte vergeben:** `user_read` für die Nutzerliste, `user_create`/`user_edit`/`role_create`/`role_edit` nur an Vertrauenspersonen (siehe [Rollen und Rechte](#rollen-und-rechte)).
 8. **APP_KEY:** Der Schlüssel für die 2FA-Codes ist `app.key`. Ein Wechsel des `APP_KEY` macht alle offenen Zwei-Faktor-Anmeldungen ungültig.
-9. **Veröffentlichte Views und Sprachdateien:** Hosts mit veröffentlichten Dateien übernehmen die Änderungen (siehe [Upgrade-Hinweise](#upgrade-hinweise-nächstes-major-release)).
+9. **Veröffentlichte Views und Sprachdateien:** Hosts mit veröffentlichten Dateien übernehmen die Änderungen (siehe [Upgrade-Hinweise](#upgrade-hinweise-300)).
 10. **Migrationen:** `php artisan migrate` ausführen.
 
 ### Auth-View-Theme (Login & Passwort-Reset)
@@ -294,9 +290,11 @@ Siehe [Voraussetzungen und Abhängigkeiten](#voraussetzungen-und-abhängigkeiten
 | `phpunit/phpunit` `^11.5` oder `^12.0` | Dev | Tests |
 | Google OAuth | extern, nur bei `USERAUTH_SOCIAL_ENABLED=true` | Social Login |
 
-## Upgrade-Hinweise (nächstes Major-Release)
+## Upgrade-Hinweise (3.0.0)
 
-Diese Punkte gelten für Hosts, die auf das nächste Major-Release aktualisieren. Sie sind nach dem Code geprüft.
+Diese Punkte gelten für Hosts, die auf 3.0.0 aktualisieren. Sie sind nach dem Code geprüft.
+
+Unterstützt werden Laravel 12 und 13. `ithilbert/laravel-kit` wird ab `^1.2` benötigt.
 
 **Berechtigungen und Daten**
 1. `/users` verlangt `user_read` (an der Route). Rollen ohne dieses Recht verlieren den Zugriff auf die Nutzerliste.
