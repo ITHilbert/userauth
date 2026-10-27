@@ -49,6 +49,9 @@ final class GueltigeWerteTest extends TestCase
         return [
             'stundensatz text' => ['hourly_rate', 'abc'],
             'stundensatz negativ' => ['hourly_rate', '-5'],
+            'stundensatz eine Million' => ['hourly_rate', '1000000'],
+            'stundensatz knapp über Obergrenze' => ['hourly_rate', '999999.991'],
+            'stundensatz sehr groß' => ['hourly_rate', '99999999999'],
             'geburtstag 31. Februar' => ['birthday', '2020-02-31'],
             'geburtstag text' => ['birthday', 'abc'],
         ];
@@ -61,6 +64,8 @@ final class GueltigeWerteTest extends TestCase
     {
         return [
             'stundensatz' => ['hourly_rate', '12.50'],
+            'stundensatz Obergrenze' => ['hourly_rate', '999999.99'],
+            'stundensatz null' => ['hourly_rate', '0'],
             'geburtstag' => ['birthday', '1985-03-09'],
         ];
     }
