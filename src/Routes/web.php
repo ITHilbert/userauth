@@ -80,8 +80,8 @@ Route::middleware(['web'])
                 Route::post('password/update', [PasswordController::class, 'update'])->name('password.update');
             });
 
-        // Logout – auch für Gäste mit offener Zwei-Faktor-Anmeldung („Abbrechen“)
-        Route::any('logout', [LoginController::class, 'logout'])->name('logout');
+        // Logout nur per POST mit CSRF-Token – auch für Gäste mit offener Zwei-Faktor-Anmeldung („Abbrechen“)
+        Route::post('logout', [LoginController::class, 'logout'])->name('logout');
 
         // User Icon
         Route::middleware(['auth'])
@@ -113,10 +113,10 @@ Route::middleware(['web'])
             Route::post('verify/resend', [TwoFactorController::class, 'resend'])->name('verify.resend');
         });
 
-        // Impersonate
+        // Impersonate: ändert die Sitzung, daher nur per POST mit CSRF-Token
         Route::middleware(['web', 'auth'])->group(function () {
-            Route::get('impersonate/{id}', [ImpersonateController::class, 'impersonate'])->name('userauth.impersonate');
-            Route::get('impersonate-leave', [ImpersonateController::class, 'leave'])->name('userauth.impersonate.leave');
+            Route::post('impersonate/{id}', [ImpersonateController::class, 'impersonate'])->name('userauth.impersonate');
+            Route::post('impersonate-leave', [ImpersonateController::class, 'leave'])->name('userauth.impersonate.leave');
         });
 
         // Social Login (404, solange userauth.social.enabled = false)
