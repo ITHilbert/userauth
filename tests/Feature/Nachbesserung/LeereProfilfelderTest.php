@@ -44,7 +44,7 @@ final class LeereProfilfelderTest extends TestCase
     }
 
     /**
-     * Leer (''), explizit null und fehlend.
+     * Leer gesendet ('' oder null). Fehlende Felder regelt Randfall 4.
      *
      * @return array<string, array{0: array<string, mixed>}>
      */
@@ -53,7 +53,6 @@ final class LeereProfilfelderTest extends TestCase
         return [
             'leer' => [['hourly_rate' => '']],
             'null' => [['hourly_rate' => null]],
-            'fehlt' => [[]],
         ];
     }
 
@@ -65,7 +64,6 @@ final class LeereProfilfelderTest extends TestCase
         return [
             'leer' => [['birthday' => '']],
             'null' => [['birthday' => null]],
-            'fehlt' => [[]],
         ];
     }
 
@@ -113,7 +111,7 @@ final class LeereProfilfelderTest extends TestCase
 
     // AK1
     #[DataProvider('leereWerteFuerStundensatz')]
-    public function test_ak1_store_mit_leerem_oder_fehlendem_stundensatz_speichert_null_euro(array $feld): void
+    public function test_ak1_store_mit_leerem_stundensatz_speichert_null_euro(array $feld): void
     {
         $this->actingAs($this->admin())
             ->post('/users/store', $this->formularDaten($feld))
@@ -125,7 +123,7 @@ final class LeereProfilfelderTest extends TestCase
 
     // AK1
     #[DataProvider('leereWerteFuerStundensatz')]
-    public function test_ak1_update_mit_leerem_oder_fehlendem_stundensatz_setzt_null_euro(array $feld): void
+    public function test_ak1_update_mit_leerem_stundensatz_setzt_null_euro(array $feld): void
     {
         $ziel = $this->bestehenderNutzer();
         $this->assertSame(45.5, $this->gespeicherterStundensatz('alt@example.test'), 'Vorbedingung: Stundensatz ist gesetzt');
@@ -212,10 +210,8 @@ final class LeereProfilfelderTest extends TestCase
     }
 
     // Randfall 4
-    public function test_randfall4_store_ohne_feld_bei_ausgeschaltetem_stundensatz_speichert_null_euro(): void
+    public function test_randfall4_store_ohne_stundensatz_feld_speichert_vorgabe_null_euro(): void
     {
-        config()->set('userauth.user.hourly_rate', false);
-
         $this->actingAs($this->admin())
             ->post('/users/store', $this->formularDaten())
             ->assertRedirect(route('user'));
@@ -224,15 +220,41 @@ final class LeereProfilfelderTest extends TestCase
     }
 
     // Randfall 4
-    public function test_randfall4_update_ohne_feld_bei_ausgeschaltetem_stundensatz_setzt_null_euro(): void
+    public function test_randfall4_store_ohne_geburtstag_feld_speichert_vorgabe_null(): void
     {
-        config()->set('userauth.user.hourly_rate', false);
+        $this->actingAs($this->admin())
+            ->post('/users/store', $this->formularDaten())
+            ->assertRedirect(route('user'));
+
+        $this->assertDatabaseHas('users', ['email' => 'neu@example.test']);
+        $this->assertNull(DB::table('users')->where('email', 'neu@example.test')->value('birthday'));
+    }
+
+    // Randfall 4
+    public function test_randfall4_update_ohne_stundensatz_feld_laesst_gespeicherten_wert_unveraendert(): void
+    {
         $ziel = $this->bestehenderNutzer();
+        $this->assertSame(45.5, $this->gespeicherterStundensatz('alt@example.test'), 'Vorbedingung: Stundensatz ist gesetzt');
 
         $this->actingAs($this->admin())
-            ->post('/users/update/'.$ziel->id, $this->formularDaten(['email' => 'alt@example.test', 'password' => '', 'password2' => '']))
+            ->post('/users/update/'.$ziel->id, $this->formularDaten(['email' => 'alt@example.test', 'password' => '', 'password2' => '', 'name' => 'Geändert']))
             ->assertRedirect();
 
-        $this->assertSame(0.0, $this->gespeicherterStundensatz('alt@example.test'));
+        $this->assertSame('Geändert', DB::table('users')->where('id', $ziel->id)->value('name'), 'Gegenprobe: Update wurde angewendet');
+        $this->assertSame(45.5, $this->gespeicherterStundensatz('alt@example.test'));
+    }
+
+    // Randfall 4
+    public function test_randfall4_update_ohne_geburtstag_feld_laesst_gespeicherten_wert_unveraendert(): void
+    {
+        $ziel = $this->bestehenderNutzer();
+        $this->assertNotNull(DB::table('users')->where('id', $ziel->id)->value('birthday'), 'Vorbedingung: Geburtstag ist gesetzt');
+
+        $this->actingAs($this->admin())
+            ->post('/users/update/'.$ziel->id, $this->formularDaten(['email' => 'alt@example.test', 'password' => '', 'password2' => '', 'name' => 'Geändert']))
+            ->assertRedirect();
+
+        $this->assertSame('Geändert', DB::table('users')->where('id', $ziel->id)->value('name'), 'Gegenprobe: Update wurde angewendet');
+        $this->assertStringStartsWith('1990-05-17', (string) DB::table('users')->where('id', $ziel->id)->value('birthday'));
     }
 }
