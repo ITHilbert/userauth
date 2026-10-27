@@ -137,9 +137,14 @@ final class UserController extends Controller
      */
     private function profilfelderSetzen(Model $user, array $daten): void
     {
-        foreach (['firstname', 'lastname', 'smallname', 'title', 'private_email', 'street', 'postcode', 'city', 'country', 'ustid', 'phone', 'phone2', 'mobile', 'fax', 'skype', 'hourly_rate', 'birthday', 'comment'] as $feld) {
+        foreach (['firstname', 'lastname', 'smallname', 'title', 'private_email', 'street', 'postcode', 'city', 'country', 'ustid', 'phone', 'phone2', 'mobile', 'fax', 'skype', 'comment'] as $feld) {
             $user->{$feld} = $daten[$feld] ?? '';
         }
+        // Spalten decimal NOT NULL bzw. date nullable: leer darf nicht als '' geschrieben werden
+        $stundensatz = $daten['hourly_rate'] ?? null;
+        $user->hourly_rate = ($stundensatz === null || $stundensatz === '') ? 0 : $stundensatz;
+        $geburtstag = $daten['birthday'] ?? null;
+        $user->birthday = ($geburtstag === null || $geburtstag === '') ? null : $geburtstag;
         $user->anrede_id = $daten['anrede_id'] ?? '1';
         $user->signature_rule_id = $daten['signature_rule_id'] ?? '1';
     }
