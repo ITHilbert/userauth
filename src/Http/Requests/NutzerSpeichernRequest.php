@@ -53,7 +53,7 @@ final class NutzerSpeichernRequest extends FormRequest
             $regeln[$feld] = ['nullable'];
         }
 
-        $regeln['hourly_rate'] = ['nullable', 'numeric', 'min:0'];
+        $regeln['hourly_rate'] = ['nullable', 'numeric', 'min:0', 'max:999999.99'];
         $regeln['birthday'] = ['nullable', 'date_format:Y-m-d'];
 
         return $regeln;
