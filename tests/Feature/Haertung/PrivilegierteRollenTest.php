@@ -143,7 +143,7 @@ final class PrivilegierteRollenTest extends TestCase
     {
         $this->flushSession();
 
-        $status = $this->actingAs($handelnder)->get(route('userauth.impersonate', $ziel->id))->getStatusCode();
+        $status = $this->actingAs($handelnder)->post(route('userauth.impersonate', $ziel->id))->getStatusCode();
         $this->assertLessThan(500, $status, 'Impersonation darf keinen Serverfehler liefern');
 
         return $status;

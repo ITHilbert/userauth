@@ -35,7 +35,7 @@
     </card-main>
 
 
-    <dialog-delete title="Benutzer löschen" body="Wollen Sie wirklich diesen Benutzer löschen?" route="{{ route('user.delete',0) }}" ></dialog-delete>
+    <dialog-delete titel="Benutzer löschen" body="Wollen Sie wirklich diesen Benutzer löschen?" route="{{ route('user.delete',0) }}" ></dialog-delete>
 
 @stop
 

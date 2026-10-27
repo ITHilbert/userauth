@@ -36,7 +36,7 @@
 </card-main>
 
 
-<dialog-delete title="Recht löschen" body="Wollen Sie wirklich dieses Recht löschen?" route="{{ route('permission.delete',0) }}" ></dialog-delete>
+<dialog-delete titel="Recht löschen" body="Wollen Sie wirklich dieses Recht löschen?" route="{{ route('permission.delete',0) }}" ></dialog-delete>
 
 @stop
 

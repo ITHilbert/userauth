@@ -33,7 +33,7 @@
     </card-body>
 </card-main>
 
-<dialog-delete title="Rolle löschen" body="Wollen Sie wirklich diese Rolle löschen?" route="{{ route('role.delete',0) }}" ></dialog-delete>
+<dialog-delete titel="Rolle löschen" body="Wollen Sie wirklich diese Rolle löschen?" route="{{ route('role.delete',0) }}" ></dialog-delete>
 
 @stop
 

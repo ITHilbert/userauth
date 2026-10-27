@@ -49,9 +49,12 @@ final class NutzerSpeichernRequest extends FormRequest
             $regeln['password2'] = ['required', 'same:password'];
         }
 
-        foreach (['name', 'firstname', 'lastname', 'smallname', 'title', 'private_email', 'street', 'postcode', 'city', 'country', 'ustid', 'phone', 'phone2', 'mobile', 'fax', 'skype', 'birthday', 'comment', 'anrede_id', 'signature_rule_id', 'hourly_rate'] as $feld) {
+        foreach (['name', 'firstname', 'lastname', 'smallname', 'title', 'private_email', 'street', 'postcode', 'city', 'country', 'ustid', 'phone', 'phone2', 'mobile', 'fax', 'skype', 'comment', 'anrede_id', 'signature_rule_id'] as $feld) {
             $regeln[$feld] = ['nullable'];
         }
+
+        $regeln['hourly_rate'] = ['nullable', 'numeric', 'min:0', 'max:999999.99'];
+        $regeln['birthday'] = ['nullable', 'date_format:Y-m-d'];
 
         return $regeln;
     }
