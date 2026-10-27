@@ -82,6 +82,28 @@ Diese Punkte muss der Host erfüllen, sonst schlagen Login, Passwort-Reset oder 
 8. **APP_KEY:** Der Schlüssel für die 2FA-Codes ist `app.key`. Ein Wechsel des `APP_KEY` macht alle offenen Zwei-Faktor-Anmeldungen ungültig.
 9. **Veröffentlichte Views und Sprachdateien:** Hosts mit veröffentlichten Dateien übernehmen die Änderungen (siehe [Upgrade-Hinweise](#upgrade-hinweise-300)).
 10. **Migrationen:** `php artisan migrate` ausführen.
+11. **Layout und Assets der Verwaltungsseiten:** siehe [Verwaltungsseiten](#verwaltungsseiten-benutzer-rollen-rechte-passwort-benutzerbild).
+
+#### Verwaltungsseiten (Benutzer, Rollen, Rechte, Passwort, Benutzerbild)
+
+Die Verwaltungsseiten erweitern `userauth::layouts.afterLogin`. Dieses Layout enthält selbst keine Sections, es erweitert `layouts.app` des Hosts. Der Host muss `layouts.app` bereitstellen und diese Sections ausgeben:
+
+| Section | Ausgabe im Host-Layout | Genutzt von |
+|---|---|---|
+| `title` | im `<title>` | alle Verwaltungsseiten |
+| `content` | Seiteninhalt | alle Verwaltungsseiten |
+| `css` | im `<head>` | aktuell von keiner aktiven Verwaltungsseite |
+| `js` | nach den Skripten für jQuery und DataTables, am Ende von `<body>` | Listen (Benutzer, Rollen, Rechte), Rollen- und Rechteformulare |
+
+`content_header` wird von keiner aktiven View genutzt (nur auskommentiert) und ist nicht nötig.
+
+Weitere Anforderungen an den Host:
+- **jQuery und DataTables** müssen vor der Section `js` geladen sein. Die Listen rufen `$('.data-table').DataTable(…)` auf. Fehlen beide, bleiben die Listen leer.
+- **Sprachdatei der Listen:** Die Listen laden `vendor/laravelkit/DataTable_DE.json`. Die Datei kommt aus `ithilbert/laravel-kit`.
+- **Vue-Komponenten:** Die Views nutzen `card-main`, `card-main-header`, `card-body`, `dialog-delete`, `button-create`, `input-text`, `input-email`, `input-euro`, `input-date`, `input-file-img`, `text-area` und `combobox`. Der Host muss sie registrieren. `ithilbert/laravel-kit` liefert Komponenten dieser Namen in den Varianten `bootstrap4`, `bootstrap5` und `tailwind`; eine Variante deckt nicht zwingend alle ab.
+- **`OpenDeleteForm(id)`:** Die Lösch-Buttons der Listen (`HButton::delete` aus laravel-kit) rufen `OpenDeleteForm(id)` per `onclick` auf. Die Funktion muss global im Browser verfügbar sein. laravel-kit definiert sie nicht global. Im Host `packages_dev` steht sie in `resources/js/forms.js`.
+- **Assets:** `php artisan vendor:publish --provider="ITHilbert\UserAuth\UserAuthServiceProvider"` kopiert `Resources/assets` nach `public/vendor/userauth`, u. a. `js/role.js`, `js/permission.js` und `img/default-user.jpg`. Der Befehl veröffentlicht auch Views, Config und Sprachdateien. Vorhandene Dateien überschreibt er nur mit `--force`.
+- **Validierungsfehler:** Die Verwaltungsformulare zeigen `$errors` nicht selbst. Der Host muss sie ausgeben (z. B. Alert mit `$errors->all()` im Layout). Ohne Anzeige kehrt ein abgelehnter Wert kommentarlos ins Formular zurück.
 
 ### Auth-View-Theme (Login & Passwort-Reset)
 
@@ -149,7 +171,7 @@ Zwingender Wechsel von Passwörtern bei Bedarf aktivieren. Verhindert auch, dass
 ```
 
 #### Impersonate
-System-Admins können temporär ("Impersonate") die Perspektive eines beliebigen Endnutzers einnehmen. Ein Button kann mit `@if(auth()->user()->isImpersonated()) ... @endif` überwacht oder ein "Zurück"-Button mit Link auf `/impersonate/leave` gebaut werden. Impersonation durchläuft keine Zwei-Faktor-Anmeldung. Die Rechte prüft das Paket mit der Rolle des Handelnden (siehe [Rollen und Rechte](#rollen-und-rechte)).
+System-Admins können temporär ("Impersonate") die Perspektive eines beliebigen Endnutzers einnehmen. Ein Button kann mit `@if(auth()->user()->isImpersonated()) ... @endif` überwacht werden. Der "Zurück"-Button ist ein POST-Formular mit `@csrf` auf `userauth.impersonate.leave` (Pfad `impersonate-leave`); ein GET-Link funktioniert nicht (siehe [Upgrade-Hinweise](#upgrade-hinweise-nach-300-unveröffentlicht)). Impersonation durchläuft keine Zwei-Faktor-Anmeldung. Die Rechte prüft das Paket mit der Rolle des Handelnden (siehe [Rollen und Rechte](#rollen-und-rechte)).
 ```php
     'impersonate_enabled' => true,
 ```
@@ -289,6 +311,38 @@ Siehe [Voraussetzungen und Abhängigkeiten](#voraussetzungen-und-abhängigkeiten
 | `orchestra/testbench` `^10.0` oder `^11.0` | Dev | eigene Testumgebung |
 | `phpunit/phpunit` `^11.5` oder `^12.0` | Dev | Tests |
 | Google OAuth | extern, nur bei `USERAUTH_SOCIAL_ENABLED=true` | Social Login |
+
+## Upgrade-Hinweise (nach 3.0.0, unveröffentlicht)
+
+Diese Punkte gelten für Hosts, die den aktuellen Stand des Pakets nutzen. Eine Version nach 3.0.0 gibt es noch nicht.
+
+**Logout und Impersonate nur per POST**
+1. `logout`, `userauth.impersonate` und `userauth.impersonate.leave` nehmen nur `POST` mit gültigem CSRF-Token an. Die Routennamen sind unverändert. Ein GET ergibt 405, in Hosts mit einer Catch-all-Fallback-Route (z. B. Paket `pages`) 404. Ohne gültiges Token antwortet die Anwendung mit 419 und ändert nichts.
+2. GET-Links auf diese Routen schlagen damit fehl. Umstellen auf Formulare:
+
+```blade
+<form method="POST" action="{{ route('logout') }}">
+    @csrf
+    <button type="submit">Abmelden</button>
+</form>
+
+<form method="POST" action="{{ route('userauth.impersonate.leave') }}">
+    @csrf
+    <button type="submit">Zurück zum eigenen Account</button>
+</form>
+```
+
+Übernahme starten: `<form method="POST" action="{{ route('userauth.impersonate', $user->id) }}">` mit `@csrf`.
+
+**Stundensatz und Geburtstag**
+3. Ein leer gesendetes `hourly_rate` speichert `0`, ein leer gesendetes `birthday` speichert `null`. Gilt für Anlegen (`user.store`) und Bearbeiten (`user.update`).
+4. Ist das Feld per Config ausgeschaltet (`userauth.user.hourly_rate` bzw. `userauth.user.birthday`, Default `false`), sendet das Formular es nicht. Beim Bearbeiten bleibt dann der gespeicherte Wert erhalten. Beim Anlegen gilt `0` bzw. `null`.
+
+**Validierung**
+5. `hourly_rate` muss eine Zahl ≥ 0 sein, `birthday` das Format `Y-m-d` haben. Sonst gibt es einen Validierungsfehler für das Feld, und der Benutzer wird nicht gespeichert. Der Host muss die Fehler anzeigen (siehe [Verwaltungsseiten](#verwaltungsseiten-benutzer-rollen-rechte-passwort-benutzerbild)).
+
+**Lösch-Dialog**
+6. Die Listen übergeben `dialog-delete` das Prop `titel` statt `title`. Veröffentlichte Views unter `resources/views/vendor/userauth/` müssen angepasst werden, wenn sie `title=` am Dialog setzen.
 
 ## Upgrade-Hinweise (3.0.0)
 
@@ -533,7 +587,7 @@ Zusätzlich für Anmeldung und Passwort:
 | GET | `verify` | `verify.index` | Code-Eingabe (nur Gäste mit offener Anmeldung) |
 | POST | `verify` | `verify.store` | Code prüfen |
 | POST | `verify/resend` | `verify.resend` | Code erneut senden (1× je 60 Sekunden) |
-| ANY | `logout` | `logout` | Abmelden bzw. offene 2FA abbrechen |
+| POST | `logout` | `logout` | Abmelden bzw. offene 2FA abbrechen (Formular mit `@csrf`) |
 | POST | `password/sendtocken` | `password.sendtocken` | Reset-Link anfordern (5/Min. je IP) |
 | POST | `password/updatewithtoken` | `password.updatewithtoken` | Passwort mit Token setzen (5/Min. je IP) |
 
