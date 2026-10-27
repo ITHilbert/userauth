@@ -140,11 +140,16 @@ final class UserController extends Controller
         foreach (['firstname', 'lastname', 'smallname', 'title', 'private_email', 'street', 'postcode', 'city', 'country', 'ustid', 'phone', 'phone2', 'mobile', 'fax', 'skype', 'comment'] as $feld) {
             $user->{$feld} = $daten[$feld] ?? '';
         }
-        // Spalten decimal NOT NULL bzw. date nullable: leer darf nicht als '' geschrieben werden
-        $stundensatz = $daten['hourly_rate'] ?? null;
-        $user->hourly_rate = ($stundensatz === null || $stundensatz === '') ? 0 : $stundensatz;
-        $geburtstag = $daten['birthday'] ?? null;
-        $user->birthday = ($geburtstag === null || $geburtstag === '') ? null : $geburtstag;
+        // Spalten decimal NOT NULL bzw. date nullable: leer darf nicht als '' geschrieben werden.
+        // Fehlt das Feld im Request, bleibt der Wert beim Bearbeiten unverändert (beim Anlegen gilt der Vorgabewert).
+        if (array_key_exists('hourly_rate', $daten) || ! $user->exists) {
+            $stundensatz = $daten['hourly_rate'] ?? null;
+            $user->hourly_rate = ($stundensatz === null || $stundensatz === '') ? 0 : $stundensatz;
+        }
+        if (array_key_exists('birthday', $daten) || ! $user->exists) {
+            $geburtstag = $daten['birthday'] ?? null;
+            $user->birthday = ($geburtstag === null || $geburtstag === '') ? null : $geburtstag;
+        }
         $user->anrede_id = $daten['anrede_id'] ?? '1';
         $user->signature_rule_id = $daten['signature_rule_id'] ?? '1';
     }
