@@ -103,7 +103,10 @@ Weitere Anforderungen an den Host:
 - **Vue-Komponenten:** Die Views nutzen `card-main`, `card-main-header`, `card-body`, `dialog-delete`, `button-create`, `input-text`, `input-email`, `input-euro`, `input-date`, `input-file-img`, `text-area` und `combobox`. Der Host muss sie registrieren. `ithilbert/laravel-kit` liefert Komponenten dieser Namen in den Varianten `bootstrap4`, `bootstrap5` und `tailwind`; eine Variante deckt nicht zwingend alle ab.
 - **`OpenDeleteForm(id)`:** Die Lösch-Buttons der Listen (`HButton::delete` aus laravel-kit) rufen `OpenDeleteForm(id)` per `onclick` auf. Die Funktion muss global im Browser verfügbar sein. laravel-kit definiert sie nicht global. Im Host `packages_dev` steht sie in `resources/js/forms.js`.
 - **Assets:** `php artisan vendor:publish --provider="ITHilbert\UserAuth\UserAuthServiceProvider"` kopiert `Resources/assets` nach `public/vendor/userauth`, u. a. `js/role.js`, `js/permission.js` und `img/default-user.jpg`. Der Befehl veröffentlicht auch Views, Config und Sprachdateien. Vorhandene Dateien überschreibt er nur mit `--force`.
-- **Validierungsfehler:** Die Verwaltungsformulare zeigen `$errors` nicht selbst. Der Host muss sie ausgeben (z. B. Alert mit `$errors->all()` im Layout). Ohne Anzeige kehrt ein abgelehnter Wert kommentarlos ins Formular zurück.
+- **Views `include.message` und `include.breadcrumb`:** Die Verwaltungsviews binden beide selbst per `@include` ein. Das Paket liefert sie nicht, der Host muss sie bereitstellen.
+  - `include.message` zeigt die Erfolgsmeldung aus `session('message')` und alle Validierungsmeldungen aus `$errors`. Ohne diese View kehrt ein abgelehnter Wert kommentarlos ins Formular zurück.
+  - `include.breadcrumb` rendert die Variable `$breadcrumb` (Klasse `ITHilbert\LaravelKit\Helpers\Breadcrumb`). Ist sie nicht gesetzt, gibt die View nichts aus.
+  - Das Layout darf `$errors` nicht zusätzlich ausgeben, sonst erscheinen Meldungen doppelt.
 
 ### Auth-View-Theme (Login & Passwort-Reset)
 
