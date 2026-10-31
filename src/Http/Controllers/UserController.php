@@ -7,11 +7,13 @@ namespace ITHilbert\UserAuth\Http\Controllers;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
+use Illuminate\Support\Facades\Storage;
 use ITHilbert\LaravelKit\Helpers\Breadcrumb;
 use ITHilbert\LaravelKit\Helpers\HButton;
 use ITHilbert\UserAuth\Application\Passwort\PasswortSetzen;
@@ -201,30 +203,25 @@ final class UserController extends Controller
         $this->profilfelderSetzen($user, $daten);
 
         // Image
-        if ($request->hasFile('image')) {
-            $pfadAlt = str_replace('storage/', '', $user->image);
-
-            $file = $request->file('image');
-            $pathImage = $file->store('public/users'); // Specify the storage path
-            // Altes Bild Löschen
-            if ($pfadAlt !== '') {
-                $pfadAlt = storage_path('app/public/'.$pfadAlt);
-                if (file_exists($pfadAlt)) {
-                    unlink($pfadAlt);
-                }
-            }
-            // Neuer Bildpfad speichern
-            $user->image = str_replace('public/', 'storage/', $pathImage);
+        $bildAlt = $user->image;
+        $bildNeu = $request->hasFile('image') ? $this->bildAblegen($request->file('image')) : null;
+        if ($bildNeu !== null) {
+            $user->image = $bildNeu;
         }
 
         // Felder und Passwort atomar: lehnt PasswortSetzen ab, wird nichts gespeichert.
-        $erg = PasswortAblehnung::alsValidierungsfehler(fn (): bool => DB::transaction(function () use ($user, $passwortSetzen, $daten, $editPW): bool {
-            if ($editPW) {
-                $passwortSetzen->handle($user, (string) $daten['password']);
-            }
+        $erg = false;
+        try {
+            $erg = PasswortAblehnung::alsValidierungsfehler(fn (): bool => DB::transaction(function () use ($user, $passwortSetzen, $daten, $editPW): bool {
+                if ($editPW) {
+                    $passwortSetzen->handle($user, (string) $daten['password']);
+                }
 
-            return $user->save();
-        }));
+                return $user->save();
+            }));
+        } finally {
+            $this->bildAbschliessen($erg, $bildNeu, $bildAlt);
+        }
 
         if ($erg) {
             return redirect()->route('user')->with([
@@ -284,25 +281,57 @@ final class UserController extends Controller
         $user = $this->userModel->query()->findOrFail($userID);
 
         // Image
-        if ($request->hasFile('image')) {
-            $pfadAlt = str_replace('storage/', '', $user->image);
-
-            $file = $request->file('image');
-            $pathImage = $file->store('public/users'); // Specify the storage path
-            // Altes Bild Löschen
-            if ($pfadAlt !== '') {
-                $pfadAlt = storage_path('app/public/'.$pfadAlt);
-                if (file_exists($pfadAlt)) {
-                    unlink($pfadAlt);
-                }
-            }
-            // Neuer Bildpfad speichern
-            $user->image = str_replace('public/', 'storage/', $pathImage);
+        $bildAlt = $user->image;
+        $bildNeu = $request->hasFile('image') ? $this->bildAblegen($request->file('image')) : null;
+        if ($bildNeu !== null) {
+            $user->image = $bildNeu;
         }
 
-        $user->update();
+        $erg = false;
+        try {
+            $erg = $user->update();
+        } finally {
+            $this->bildAbschliessen($erg, $bildNeu, $bildAlt);
+        }
 
         return redirect()->back();
+    }
+
+    /**
+     * Legt das hochgeladene Bild ab und liefert den Pfad für die Spalte `image`.
+     */
+    private function bildAblegen(?UploadedFile $file): ?string
+    {
+        if ($file === null) {
+            return null;
+        }
+
+        return str_replace('public/', 'storage/', (string) $file->store('public/users'));
+    }
+
+    /**
+     * Nach dem Speichern: bei Erfolg das alte Bild löschen, sonst das neue wieder entfernen.
+     */
+    private function bildAbschliessen(bool $gespeichert, ?string $bildNeu, ?string $bildAlt): void
+    {
+        if ($bildNeu === null) {
+            return;
+        }
+
+        if (! $gespeichert) {
+            Storage::delete(str_replace('storage/', 'public/', $bildNeu));
+
+            return;
+        }
+
+        if ($bildAlt === null || $bildAlt === '') {
+            return;
+        }
+
+        $pfad = storage_path('app/public/'.str_replace('storage/', '', $bildAlt));
+        if (file_exists($pfad)) {
+            unlink($pfad);
+        }
     }
 
     /**
