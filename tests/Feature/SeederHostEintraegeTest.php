@@ -434,4 +434,100 @@ final class SeederHostEintraegeTest extends TestCase
         $this->assertSame(1, DB::table('permissions_groups')->where('group_name', 'user')->count());
         $this->assertSame(1, DB::table('permissions')->where('permission', 'user_create')->count());
     }
+
+    // Randfall 4
+    public function test_permissions_seeder_allein_legt_bei_leerer_gruppentabelle_die_paket_gruppen_an(): void
+    {
+        $this->assertSame(0, DB::table('permissions_groups')->count());
+
+        $this->seed(PermissionsTableSeeder::class);
+
+        $this->assertSame(8, DB::table('permissions')->count(), 'Seeder hat die Rechte nicht angelegt');
+        $gruppen = DB::table('permissions_groups')->orderBy('id')->get()->map(fn ($r) => [
+            'id' => (int) $r->id, 'group_name' => $r->group_name, 'group_display' => $r->group_display,
+            'created_at' => $r->created_at, 'updated_at' => $r->updated_at,
+        ])->all();
+        $this->assertSame(self::GRUPPEN, $gruppen);
+    }
+
+    // Randfall 4
+    public function test_permissions_seeder_allein_ordnet_die_rechte_bei_leerer_gruppentabelle_den_neuen_gruppen_zu(): void
+    {
+        $this->seed(PermissionsTableSeeder::class);
+
+        $this->assertSame(8, DB::table('permissions')->count(), 'Seeder hat die Rechte nicht angelegt');
+        $userGruppe = (int) $this->zeile('permissions_groups', 'group_name', 'user')['id'];
+        $roleGruppe = (int) $this->zeile('permissions_groups', 'group_name', 'role')['id'];
+        foreach (['user_create', 'user_read', 'user_edit', 'user_delete'] as $recht) {
+            $this->assertSame($userGruppe, (int) $this->zeile('permissions', 'permission', $recht)['group_id'], $recht);
+        }
+        foreach (['role_create', 'role_read', 'role_edit', 'role_delete'] as $recht) {
+            $this->assertSame($roleGruppe, (int) $this->zeile('permissions', 'permission', $recht)['group_id'], $recht);
+        }
+    }
+
+    // Randfall 4
+    public function test_permissions_seeder_allein_mit_nur_host_gruppen_laesst_diese_unveraendert_und_legt_paket_gruppen_an(): void
+    {
+        $this->hostEintraegeAnlegen();
+        $this->assertSame($this->hostGruppe(), $this->zeile('permissions_groups', 'group_name', 'projekt'));
+
+        $this->seed(PermissionsTableSeeder::class);
+
+        $this->assertNotNull($this->zeile('permissions', 'permission', 'user_create'), 'Seeder hat die Rechte nicht angelegt');
+        $this->assertSame($this->hostGruppe(), $this->zeile('permissions_groups', 'group_name', 'projekt'));
+        $this->assertNotNull($this->zeile('permissions_groups', 'group_name', 'user'), 'Paket-Gruppe user fehlt');
+        $this->assertNotNull($this->zeile('permissions_groups', 'group_name', 'role'), 'Paket-Gruppe role fehlt');
+        $this->assertSame(3, DB::table('permissions_groups')->count());
+        $this->assertSame($this->hostRecht(), $this->zeile('permissions', 'permission', 'projekt_read'));
+        $this->assertSame(9, DB::table('permissions')->count());
+        $this->assertSame(1, DB::table('role_permission')->where(['role_id' => 10, 'permission_id' => 10])->count());
+    }
+
+    // Randfall 4
+    public function test_permissions_seeder_allein_ordnet_rechte_den_paket_gruppen_zu_wenn_nur_host_gruppen_da_sind(): void
+    {
+        DB::table('permissions_groups')->insert(['id' => 1, 'group_name' => 'kunden', 'group_display' => 'Kunden', 'is_group' => 0, 'created_at' => null, 'updated_at' => null, 'deleted_at' => null]);
+
+        $this->seed(PermissionsTableSeeder::class);
+
+        $this->assertNotNull($this->zeile('permissions', 'permission', 'user_create'), 'Seeder hat die Rechte nicht angelegt');
+        $host = $this->zeile('permissions_groups', 'group_name', 'kunden');
+        $this->assertSame(1, (int) $host['id']);
+        $this->assertSame('Kunden', $host['group_display']);
+        $userGruppe = (int) $this->zeile('permissions_groups', 'group_name', 'user')['id'];
+        $roleGruppe = (int) $this->zeile('permissions_groups', 'group_name', 'role')['id'];
+        $this->assertNotSame(1, $userGruppe);
+        $this->assertNotSame(1, $roleGruppe);
+        $this->assertSame($userGruppe, (int) $this->zeile('permissions', 'permission', 'user_read')['group_id']);
+        $this->assertSame($roleGruppe, (int) $this->zeile('permissions', 'permission', 'role_read')['group_id']);
+    }
+
+    // Randfall 4
+    public function test_permissions_seeder_allein_ueberschreibt_vorhandene_paket_gruppe_nicht_und_ergaenzt_die_fehlende(): void
+    {
+        DB::table('permissions_groups')->insert(['id' => 9, 'group_name' => 'user', 'group_display' => 'Mitarbeiter', 'is_group' => 0, 'created_at' => '2024-05-05 05:05:05', 'updated_at' => '2024-05-05 05:05:05', 'deleted_at' => null]);
+        $vorher = $this->zeile('permissions_groups', 'group_name', 'user');
+
+        $this->seed(PermissionsTableSeeder::class);
+
+        $this->assertNotNull($this->zeile('permissions', 'permission', 'role_create'), 'Seeder hat die Rechte nicht angelegt');
+        $this->assertNotNull($this->zeile('permissions_groups', 'group_name', 'role'), 'Fehlende Paket-Gruppe role wurde nicht angelegt');
+        $this->assertSame($vorher, $this->zeile('permissions_groups', 'group_name', 'user'));
+        $this->assertSame(1, DB::table('permissions_groups')->where('group_name', 'user')->count());
+        $this->assertSame(9, (int) $this->zeile('permissions', 'permission', 'user_create')['group_id']);
+    }
+
+    // Randfall 4
+    public function test_permissions_seeder_allein_zweimal_erzeugt_keine_doppelten_gruppen_oder_rechte(): void
+    {
+        $this->seed(PermissionsTableSeeder::class);
+        $erster = $this->schnappschuss();
+        $this->assertCount(2, $erster['groups']);
+        $this->assertCount(8, $erster['permissions']);
+
+        $this->seed(PermissionsTableSeeder::class);
+
+        $this->assertSame($erster, $this->schnappschuss());
+    }
 }
