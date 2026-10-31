@@ -36,7 +36,7 @@
                         <div class="form-group row mb-2">
                             <label for="ckPermissionGroup" class="col-md-4 col-form-label text-md-right">@lang('userauth::permission.ck-permission-group')</label>
                             <div class="col-md-6 pt-2">
-                                <input type="checkbox" class="checkbox form-check-input" name="ckPermissionGroup" id="ckPermissionGroup" value="1" onclick="showSinglePermissions()" @checked($einzelrechte)>
+                                <x-kit::checkbox name="ckPermissionGroup" value="1" onclick="showSinglePermissions()" :checked="$einzelrechte" />
                             </div>
                         </div>
 
