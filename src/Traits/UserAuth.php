@@ -139,7 +139,7 @@ trait UserAuth
 
     public function getImagePath()
     {
-        if ($this->image !== '') {
+        if (is_string($this->image) && trim($this->image) !== '') {
             return asset($this->image);
         }
 
