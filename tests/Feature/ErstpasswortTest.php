@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ITHilbert\UserAuth\Tests\Feature;
 
+use Illuminate\Contracts\Hashing\Hasher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\View;
 use ITHilbert\UserAuth\Application\Passwort\PasswortSetzen;
 use ITHilbert\UserAuth\Tests\Fixtures\User;
 use ITHilbert\UserAuth\Tests\Fixtures\UserMitHashCast;
+use ITHilbert\UserAuth\Tests\Support\NachrichtenAbfangen;
 use ITHilbert\UserAuth\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -19,6 +21,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
  */
 final class ErstpasswortTest extends TestCase
 {
+    use NachrichtenAbfangen;
     use RefreshDatabase;
 
     private const ROLLE_NORMAL = 3;
@@ -302,6 +305,122 @@ final class ErstpasswortTest extends TestCase
 
         app(PasswortSetzen::class)->handle($nutzer, self::NEUES_PASSWORT);
 
+        $this->assertTrue(Hash::check(self::NEUES_PASSWORT, (string) DB::table('users')->where('id', $nutzer->id)->value('password')), 'Gegenprobe: Passwort gesetzt');
+        $this->assertSame(0, $this->historienAnzahl($nutzer->id));
+    }
+
+    // ---------------------------------------------------------------- AK4
+
+    /**
+     * Policy aus, Verifikation auf Bcrypt erzwungen, Nutzer mit Argon2id-Hash.
+     */
+    private function nutzerMitFremdemHash(): User
+    {
+        config()->set('userauth.password_policy.enabled', false);
+        config()->set('hashing.bcrypt.verify', true);
+        $this->modellSetzen(User::class);
+
+        $nutzer = $this->bestehenderNutzer(User::class);
+        DB::table('users')->where('id', $nutzer->id)->update(['password' => Hash::driver('argon2id')->make(self::ALTES_PASSWORT)]);
+
+        return $nutzer->fresh();
+    }
+
+    private function assertAufbauFremderHashWirftBeiPruefung(User $nutzer): void
+    {
+        $hash = (string) DB::table('users')->where('id', $nutzer->id)->value('password');
+        $this->assertStringStartsWith('$argon2id$', $hash, 'Aufbau: Hash ist Argon2id');
+        try {
+            Hash::check(self::ALTES_PASSWORT, $hash);
+            $this->fail('Aufbau: Hash::check muss bei fremdem Hash mit verify=true werfen');
+        } catch (\RuntimeException) {
+            $this->addToAssertionCount(1);
+        }
+    }
+
+    // AK4
+    public function test_ak4_admin_setzt_passwort_bei_fremdem_hash_und_policy_aus_ohne_serverfehler(): void
+    {
+        $ziel = $this->nutzerMitFremdemHash();
+        $this->assertAufbauFremderHashWirftBeiPruefung($ziel);
+        $admin = $this->admin(User::class);
+
+        $antwort = $this->actingAs($admin)->post('/users/update/'.$ziel->id, [
+            'name' => 'Neuer Name', 'email' => 'alt@example.test',
+            'password' => self::NEUES_PASSWORT, 'password2' => self::NEUES_PASSWORT,
+            'role_id' => self::ROLLE_NORMAL,
+        ]);
+
+        $this->assertLessThan(500, $antwort->getStatusCode(), "Serverfehler {$antwort->getStatusCode()} statt Passwort setzen");
+        $antwort->assertSessionHasNoErrors();
+        $this->assertTrue(Hash::check(self::NEUES_PASSWORT, (string) DB::table('users')->where('id', $ziel->id)->value('password')));
+    }
+
+    // AK4
+    public function test_ak4_zuruecksetzen_bei_fremdem_hash_und_policy_aus_ohne_serverfehler(): void
+    {
+        $nutzer = $this->nutzerMitFremdemHash();
+        $this->assertAufbauFremderHashWirftBeiPruefung($nutzer);
+        $this->nachrichtenAbfangen();
+        config()->set('userauth.redirect_after_login', '/');
+
+        $this->post(route('password.sendtocken'), ['email' => $nutzer->email])->assertRedirect();
+        $nachrichten = $this->nachrichtenAn($nutzer->email);
+        $this->assertNotEmpty($nachrichten, 'Gegenprobe: Reset-Mail wurde versendet');
+        $link = (string) $this->linkAusNachricht(end($nachrichten));
+        $this->assertSame(1, preg_match('~password/editwithtoken/([^/?]+)~', (string) parse_url($link, PHP_URL_PATH), $treffer));
+
+        $antwort = $this->from(route('password.editwithtoken', ['token' => 'x', 'email' => $nutzer->email]))
+            ->post(route('password.updatewithtoken'), [
+                'email' => $nutzer->email, 'pwtoken' => urldecode($treffer[1]),
+                'password' => self::NEUES_PASSWORT, 'password_confirmation' => self::NEUES_PASSWORT,
+            ]);
+
+        $this->assertLessThan(500, $antwort->getStatusCode(), "Serverfehler {$antwort->getStatusCode()} statt Passwort setzen");
+        $this->assertTrue(Hash::check(self::NEUES_PASSWORT, (string) DB::table('users')->where('id', $nutzer->id)->value('password')));
+    }
+
+    // AK4 (der alte Hash wird nicht geprüft)
+    public function test_ak4_passwort_setzen_prueft_den_alten_hash_nicht_wenn_historie_aus(): void
+    {
+        $nutzer = $this->nutzerMitFremdemHash();
+        $this->assertAufbauFremderHashWirftBeiPruefung($nutzer);
+
+        $hasher = new class(app('hash')->driver()) implements Hasher
+        {
+            /** @var list<string> */
+            public array $geprueft = [];
+
+            public function __construct(private Hasher $innen) {}
+
+            public function info($hashedValue): array
+            {
+                return $this->innen->info($hashedValue);
+            }
+
+            public function make($value, array $options = []): string
+            {
+                return $this->innen->make($value, $options);
+            }
+
+            public function check($value, $hashedValue, array $options = []): bool
+            {
+                $this->geprueft[] = (string) $hashedValue;
+
+                return $this->innen->check($value, $hashedValue, $options);
+            }
+
+            public function needsRehash($hashedValue, array $options = []): bool
+            {
+                return $this->innen->needsRehash($hashedValue, $options);
+            }
+        };
+        $this->app->instance(Hasher::class, $hasher);
+        $alterHash = (string) DB::table('users')->where('id', $nutzer->id)->value('password');
+
+        app(PasswortSetzen::class)->handle($nutzer, self::NEUES_PASSWORT);
+
+        $this->assertNotContains($alterHash, $hasher->geprueft, 'Der alte Hash darf nicht geprüft werden');
         $this->assertTrue(Hash::check(self::NEUES_PASSWORT, (string) DB::table('users')->where('id', $nutzer->id)->value('password')), 'Gegenprobe: Passwort gesetzt');
         $this->assertSame(0, $this->historienAnzahl($nutzer->id));
     }
