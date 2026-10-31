@@ -63,33 +63,41 @@ final class DialogDeleteTitelTest extends TestCase
     }
 
     /**
-     * Das öffnende Tag von <dialog-delete …>.
+     * Die Props der Insel `data-vue="dialog-delete"` als Array.
+     *
+     * @return array<string, mixed>
      */
-    private function dialogTag(string $html): string
+    private function inselProps(string $html): array
     {
-        $this->assertSame(1, preg_match('/<dialog-delete\b[^>]*>/', $html, $treffer), 'Die Seite enthält genau ein <dialog-delete>');
+        $dom = new \DOMDocument;
+        @$dom->loadHTML('<?xml encoding="utf-8"?>'.$html);
+        $inseln = (new \DOMXPath($dom))->query('//*[@data-vue="dialog-delete"]');
+        $this->assertSame(1, $inseln->length, 'Die Seite enthält genau eine Insel dialog-delete');
+        $props = json_decode($inseln->item(0)->getAttribute('data-props'), true);
+        $this->assertIsArray($props);
 
-        return $treffer[0];
+        return $props;
     }
 
-    // AK5
+    // AK5 (userauth-nachbesserung), Randfall „Titel steht in data-props“ (userauth-admin-views)
     #[DataProvider('listen')]
-    public function test_ak5_dialog_delete_bekommt_den_titel_im_attribut_titel(string $uri, string $erwarteterTitel): void
+    public function test_ak5_dialog_delete_bekommt_den_titel_als_titel_in_data_props(string $uri, string $erwarteterTitel): void
     {
-        $tag = $this->dialogTag($this->seiteAbrufen($uri));
+        $props = $this->inselProps($this->seiteAbrufen($uri));
 
-        $this->assertStringContainsString('titel="'.$erwarteterTitel.'"', $tag);
+        $this->assertSame($erwarteterTitel, $props['titel'] ?? null);
     }
 
-    // AK5
+    // AK5 (userauth-nachbesserung)
     #[DataProvider('listen')]
     public function test_ak5_dialog_delete_hat_kein_attribut_title_mehr(string $uri, string $erwarteterTitel): void
     {
         $html = $this->seiteAbrufen($uri);
-        $tag = $this->dialogTag($html);
 
-        // Gegenprobe: der Dialog mit seinem Text ist vorhanden, nur das alte Attribut fehlt
-        $this->assertStringContainsString('body="', $tag);
-        $this->assertDoesNotMatchRegularExpression('/\stitle\s*=/', $tag);
+        // Gegenprobe: die Insel mit ihrem Text ist vorhanden, nur das alte Attribut fehlt
+        $this->assertIsString($this->inselProps($html)['body'] ?? null);
+        $this->assertSame(1, preg_match('/<[^>]*data-vue="dialog-delete"[^>]*>/', $html, $treffer));
+        $this->assertDoesNotMatchRegularExpression('/\stitle\s*=/', $treffer[0]);
+        $this->assertStringNotContainsString('<dialog-delete', $html);
     }
 }

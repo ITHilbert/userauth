@@ -778,6 +778,23 @@ final class AdminViewsKitTest extends TestCase
         $this->assertEquals($erwartet, $ids, 'angehakte Rechte bleiben erhalten');
     }
 
+    // Randfall „CRUD-Recht fehlt“
+    #[DataProvider('themesMitRollenSeiten')]
+    public function test_randfall_fehlendes_crud_recht_rendert_ohne_fehler_und_laesst_das_kaestchen_entfallen(string $theme, string $seite): void
+    {
+        DB::table('permissions')->where('id', $this->rechte['user_edit'])->update(['deleted_at' => now()]);
+
+        $html = $this->seite($seite, $theme);
+        $aktion = $seite === 'role.edit' ? route('role.update', self::ROLLE_EDITOR) : route('role.store');
+        $this->assertNotSame([], $this->feldnamen($html, $aktion), 'Formular ist da');
+
+        $this->assertStringNotContainsString('id="permission_'.$this->rechte['user_edit'].'"', $html);
+        // Gegenprobe: die übrigen Kästchen der Gruppe sind da
+        foreach (['user_create', 'user_read', 'user_delete', 'role_create', 'role_edit'] as $recht) {
+            $this->assertStringContainsString('id="permission_'.$this->rechte[$recht].'"', $html, $recht);
+        }
+    }
+
     // AK3
     #[DataProvider('themesMitRollenSeiten')]
     public function test_ak3_rolle_bearbeiten_hakt_genau_die_rechte_der_rolle_an(string $theme, string $seite): void
