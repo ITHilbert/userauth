@@ -35,6 +35,7 @@ return [
     'ck-permission-group' => 'new permission group',
 
     // Meldungen
+    'NameVergeben' => 'This internal name is already taken or used more than once.',
     'MsgAddSuccess' => 'Permission add successful.',
     'MsgEditSuccess' => 'Permission edit successful',
     'MsgDeleteSuccess' => 'Permission delte successful',

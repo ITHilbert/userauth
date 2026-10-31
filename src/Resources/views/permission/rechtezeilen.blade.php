@@ -32,7 +32,8 @@
             <tr id="perm-{{ $permission->id }}" nummer="{{ $permission->id }}" @class(['d-none' => $entfernt])>
                 <td scope="row" class="d-none">{{ $permission->id }}</td>
                 <td><x-kit::input-text id="display_{{ $permission->id }}" name="{{ $prefixAnzeige.$permission->id }}" onchange="editIntern('perm-{{ $permission->id }}')" :value="AlteEingabe::text($prefixAnzeige.$permission->id, AlteEingabe::text('permission_display_'.$permission->id, $permission->permission_display))" /></td>
-                <td><x-kit::input-text id="intern_{{ $permission->id }}" name="{{ $prefixIntern.$permission->id }}" :value="AlteEingabe::text($prefixIntern.$permission->id, AlteEingabe::text('permission_'.$permission->id, $permission->permission))" /></td>
+                <td><x-kit::input-text id="intern_{{ $permission->id }}" name="{{ $prefixIntern.$permission->id }}" :value="AlteEingabe::text($prefixIntern.$permission->id, AlteEingabe::text('permission_'.$permission->id, $permission->permission))" />
+                    @error('permission_'.$permission->id)<div class="text-danger small">{{ $message }}</div>@enderror</td>
                 <td><x-kit::button-delete onclick="deletePermission('perm-{{ $permission->id }}')" tooltip="Löschen" /></td>
             </tr>
         @endforeach
@@ -40,7 +41,8 @@
             <tr id="new-row-{{ $n }}" nummer="{{ $n }}">
                 <td scope="row" class="d-none">new_{{ $n }}</td>
                 <td><x-kit::input-text id="display_new_{{ $n }}" name="permission_display_new_{{ $n }}" onchange="editIntern('new-row-{{ $n }}')" :value="AlteEingabe::text('permission_display_new_'.$n)" /></td>
-                <td><x-kit::input-text id="intern_new_{{ $n }}" name="permission_new_{{ $n }}" :value="AlteEingabe::text('permission_new_'.$n)" /></td>
+                <td><x-kit::input-text id="intern_new_{{ $n }}" name="permission_new_{{ $n }}" :value="AlteEingabe::text('permission_new_'.$n)" />
+                    @error('permission_new_'.$n)<div class="text-danger small">{{ $message }}</div>@enderror</td>
                 <td><x-kit::button-delete onclick="deletePermission('new-row-{{ $n }}')" tooltip="Löschen" /></td>
             </tr>
         @endforeach

@@ -35,6 +35,7 @@ return [
     'ck-permission-group' => 'Rechtgroupe anlegen',
 
     // Meldungen
+    'NameVergeben' => 'Dieser interne Name ist bereits vergeben oder kommt mehrfach vor.',
     'MsgAddSuccess' => 'Das Recht wurde erfolgreich angelegt.',
     'MsgEditSuccess' => 'Das Recht wurde erfolgreich angepasst',
     'MsgDeleteSuccess' => 'Das Recht wurde erfolgreich gelöscht',
