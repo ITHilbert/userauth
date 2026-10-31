@@ -147,6 +147,35 @@ final class UsersTableSeederTest extends TestCase
     }
 
     // AK2
+    #[DataProvider('lokaleUrls')]
+    public function test_genau_ein_benutzer_entsteht_bei_lokalem_host(string $url): void
+    {
+        $this->rollenAnlegen();
+        config(['app.url' => $url]);
+
+        [$exit, $ausgabe] = $this->seederLaufen();
+
+        $this->assertSame(0, $exit);
+        $this->assertSame(1, DB::table('users')->count(), $ausgabe);
+    }
+
+    // AK2
+    #[DataProvider('lokaleUrls')]
+    public function test_lokales_konto_hat_email_name_und_rolle_dev(string $url): void
+    {
+        $this->rollenAnlegen();
+        config(['app.url' => $url]);
+
+        $this->seederLaufen();
+
+        $benutzer = DB::table('users')->first();
+        $this->assertNotNull($benutzer);
+        $this->assertSame('admin@admin.com', $benutzer->email);
+        $this->assertSame('admin', $benutzer->name);
+        $this->assertSame(self::DEV_ID, (int) $benutzer->role_id);
+    }
+
+    // AK2
     public function test_admin_konto_hat_email_und_name(): void
     {
         $this->rollenAnlegen();
@@ -194,9 +223,21 @@ final class UsersTableSeederTest extends TestCase
         ];
     }
 
+    /** @return array<string, array{string}> */
+    public static function lokaleUrls(): array
+    {
+        return [
+            'localhost mit Port' => ['http://localhost:8004'],
+            'localhost ohne Port' => ['http://localhost'],
+            '127.0.0.1 mit Port' => ['http://127.0.0.1:8000'],
+            'IPv6 Loopback mit Port' => ['http://[::1]:8000'],
+            'IPv6 Loopback ohne Port' => ['http://[::1]'],
+        ];
+    }
+
     // ------------------------------------------------------------------ AK3
 
-    // AK3
+    // AK3, Randfall 3
     #[DataProvider('fremdeUrls')]
     public function test_kein_benutzer_ausserhalb_des_heimnetzes(string $url): void
     {
@@ -212,7 +253,7 @@ final class UsersTableSeederTest extends TestCase
 
     // AK3
     #[DataProvider('fremdeUrls')]
-    public function test_ausgabe_nennt_den_grund_keine_lan_domain(string $url): void
+    public function test_ausgabe_nennt_den_grund_keine_lan_domain_und_nicht_lokal(string $url): void
     {
         $this->rollenAnlegen();
         config(['app.url' => $url]);
@@ -221,6 +262,7 @@ final class UsersTableSeederTest extends TestCase
 
         $this->assertStringContainsStringIgnoringCase('Kein Admin-Konto angelegt', $ausgabe);
         $this->assertStringContainsString('.lan', $ausgabe);
+        $this->assertStringContainsStringIgnoringCase('lokal', $ausgabe);
     }
 
     /** @return array<string, array{string}> */
@@ -228,8 +270,11 @@ final class UsersTableSeederTest extends TestCase
     {
         return [
             'Internet' => ['https://www.example.de'],
-            'localhost mit Port' => ['http://localhost:8004'],
+            'IP im Heimnetz ohne .lan' => ['http://192.168.1.10'],
             'lan nur im Teilstring' => ['https://lan.example.de'],
+            'localhost als Präfix' => ['http://localhost.example.de'],
+            'localhost im Namen' => ['http://foo.localhost.de'],
+            '127.0.0.2 nicht Loopback-Name' => ['http://127.0.0.2:8000'],
         ];
     }
 
@@ -259,7 +304,30 @@ final class UsersTableSeederTest extends TestCase
         $this->assertSame('admin@admin.com', DB::table('users')->value('email'));
     }
 
-    // Randfall 3
+    // Randfall 2
+    #[DataProvider('grossgeschriebeneLokaleUrls')]
+    public function test_grossschreibung_localhost_gilt_als_lokal(string $url): void
+    {
+        $this->rollenAnlegen();
+        config(['app.url' => $url]);
+
+        [$exit, $ausgabe] = $this->seederLaufen();
+
+        $this->assertSame(0, $exit);
+        $this->assertSame(1, DB::table('users')->count(), $ausgabe);
+        $this->assertSame('admin@admin.com', DB::table('users')->value('email'));
+    }
+
+    /** @return array<string, array{string}> */
+    public static function grossgeschriebeneLokaleUrls(): array
+    {
+        return [
+            'LOCALHOST' => ['http://LOCALHOST'],
+            'LocalHost mit Port' => ['http://LocalHost:8004'],
+        ];
+    }
+
+    // Randfall 4
     #[DataProvider('urlsOhneHost')]
     public function test_app_url_leer_oder_ohne_host_kein_konto(?string $url): void
     {
@@ -273,7 +341,7 @@ final class UsersTableSeederTest extends TestCase
         $this->assertStringContainsStringIgnoringCase('Kein Admin-Konto angelegt', $ausgabe);
     }
 
-    // Randfall 3
+    // Randfall 4
     #[DataProvider('urlsOhneHost')]
     public function test_app_url_leer_oder_ohne_host_nennt_grund_auf_der_konsole(?string $url): void
     {
@@ -363,7 +431,7 @@ final class UsersTableSeederTest extends TestCase
         $this->assertTrue(Hash::check($passwort, $benutzer->password));
     }
 
-    // AK5
+    // AK5, Randfall 8
     public function test_leer_gesetztes_passwort_zaehlt_als_nicht_konfiguriert(): void
     {
         $this->rollenAnlegen();
@@ -431,7 +499,7 @@ final class UsersTableSeederTest extends TestCase
 
     // ------------------------------------------------------------ Randfälle
 
-    // Randfall 4
+    // Randfall 5
     public function test_nur_soft_geloeschte_benutzer_gelten_als_nicht_leer_kein_neues_konto(): void
     {
         $this->rollenAnlegen();
@@ -446,7 +514,7 @@ final class UsersTableSeederTest extends TestCase
         $this->assertFalse(DB::table('users')->where('email', 'admin@admin.com')->exists());
     }
 
-    // Randfall 5
+    // Randfall 6
     public function test_fehlende_rolle_dev_legt_kein_konto_an_ohne_fehler(): void
     {
         DB::table('roles')->insert([['id' => 1, 'role' => 'admin', 'role_display' => 'Admin']]);
@@ -458,7 +526,7 @@ final class UsersTableSeederTest extends TestCase
         $this->assertStringContainsStringIgnoringCase('Kein Admin-Konto angelegt', $ausgabe);
     }
 
-    // Randfall 5
+    // Randfall 6
     public function test_fehlende_rolle_dev_gibt_hinweis_auf_der_konsole(): void
     {
         DB::table('roles')->insert([['id' => 1, 'role' => 'admin', 'role_display' => 'Admin']]);
@@ -469,7 +537,7 @@ final class UsersTableSeederTest extends TestCase
         $this->assertStringContainsString('dev', $ausgabe);
     }
 
-    // Randfall 6
+    // Randfall 7
     public function test_zweiter_lauf_legt_kein_zweites_konto_an(): void
     {
         $this->rollenAnlegen();
@@ -484,7 +552,7 @@ final class UsersTableSeederTest extends TestCase
         $this->assertSame(1, DB::table('users')->count());
     }
 
-    // Randfall 6
+    // Randfall 7
     public function test_zweiter_lauf_laesst_das_passwort_unveraendert(): void
     {
         $this->rollenAnlegen();
