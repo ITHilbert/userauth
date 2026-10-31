@@ -331,31 +331,17 @@ final class AdminPasswortTest extends TestCase
 
     // ---------------------------------------------------------------- AK3 mit Bild-Upload
 
-    private string $altesBildPfad = '';
-
-    protected function tearDown(): void
-    {
-        if ($this->altesBildPfad !== '' && file_exists($this->altesBildPfad)) {
-            unlink($this->altesBildPfad);
-        }
-
-        parent::tearDown();
-    }
+    private const ALTES_BILD = 'users/test-admin-passwort-alt.jpg';
 
     /**
-     * Nutzer mit vorhandenem Bild (Datei real unter storage/app/public/users, wie update() sie sucht).
+     * Nutzer mit vorhandenem Bild (Datei auf der Disk `public`, wie update() sie sucht).
      */
     private function nutzerMitBild(): User
     {
-        $name = 'test-admin-passwort-'.uniqid().'.jpg';
-        $this->altesBildPfad = storage_path('app/public/users/'.$name);
-        if (! is_dir(dirname($this->altesBildPfad))) {
-            mkdir(dirname($this->altesBildPfad), 0777, true);
-        }
-        file_put_contents($this->altesBildPfad, 'altes-bild');
+        Storage::disk('public')->put(self::ALTES_BILD, 'altes-bild');
 
         $nutzer = $this->bestehenderNutzer();
-        DB::table('users')->where('id', $nutzer->id)->update(['image' => 'storage/users/'.$name]);
+        DB::table('users')->where('id', $nutzer->id)->update(['image' => 'storage/'.self::ALTES_BILD]);
 
         return $nutzer->fresh();
     }
@@ -363,12 +349,12 @@ final class AdminPasswortTest extends TestCase
     // AK3
     public function test_ak3_abgelehntes_passwort_mit_bild_laesst_bild_in_db_und_auf_disk_unveraendert_und_speichert_kein_neues(): void
     {
-        Storage::fake();
+        Storage::fake('public');
         $this->policyAn();
         $ziel = $this->nutzerMitBild();
         $bildVorher = $ziel->image;
-        $this->assertFileExists($this->altesBildPfad, 'Ausgangslage: altes Bild liegt auf der Disk');
-        $this->assertSame([], Storage::allFiles('public/users'), 'Ausgangslage: keine neue Datei');
+        $this->assertTrue(Storage::disk('public')->exists(self::ALTES_BILD), 'Ausgangslage: altes Bild liegt auf der Disk');
+        $this->assertSame([self::ALTES_BILD], Storage::disk('public')->allFiles('users'), 'Ausgangslage: keine neue Datei');
 
         $antwort = $this->actingAs($this->admin())->post('/users/update/'.$ziel->id, $this->updateDaten([
             'password' => self::AKTUELLES_PASSWORT,
@@ -381,14 +367,14 @@ final class AdminPasswortTest extends TestCase
         $antwort->assertSessionHasErrors(['password' => trans('userauth::password.bereits_verwendet')]);
 
         $this->assertSame($bildVorher, DB::table('users')->where('id', $ziel->id)->value('image'), 'users.image unverändert');
-        $this->assertFileExists($this->altesBildPfad, 'altes Bild darf nicht gelöscht sein');
-        $this->assertSame([], Storage::allFiles('public/users'), 'neues Bild darf nicht verwaist auf der Disk liegen');
+        $this->assertTrue(Storage::disk('public')->exists(self::ALTES_BILD), 'altes Bild darf nicht gelöscht sein');
+        $this->assertSame([self::ALTES_BILD], Storage::disk('public')->allFiles('users'), 'neues Bild darf nicht verwaist auf der Disk liegen');
     }
 
     // AK3
     public function test_ak3_gueltiges_passwort_mit_bild_speichert_neues_bild_und_entfernt_das_alte(): void
     {
-        Storage::fake();
+        Storage::fake('public');
         $ziel = $this->nutzerMitBild();
         $bildVorher = $ziel->image;
 
@@ -398,9 +384,9 @@ final class AdminPasswortTest extends TestCase
 
         $bildNachher = (string) DB::table('users')->where('id', $ziel->id)->value('image');
         $this->assertNotSame($bildVorher, $bildNachher, 'users.image zeigt auf das neue Bild');
-        $this->assertCount(1, Storage::allFiles('public/users'), 'neues Bild liegt auf der Disk');
-        $this->assertTrue(Storage::exists(str_replace('storage/', 'public/', $bildNachher)), 'users.image verweist auf die gespeicherte Datei');
-        $this->assertFileDoesNotExist($this->altesBildPfad, 'altes Bild entfernt');
+        $this->assertCount(1, Storage::disk('public')->allFiles('users'), 'neues Bild liegt auf der Disk');
+        $this->assertTrue(Storage::disk('public')->exists(substr($bildNachher, strlen('storage/'))), 'users.image verweist auf die gespeicherte Datei');
+        $this->assertFalse(Storage::disk('public')->exists(self::ALTES_BILD), 'altes Bild entfernt');
         $this->assertTrue(Hash::check(self::NEUES_PASSWORT, $this->zeile($ziel)['password']), 'Passwort gesetzt');
     }
 
