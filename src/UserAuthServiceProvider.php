@@ -31,6 +31,7 @@ use ITHilbert\UserAuth\Application\Auth\Contracts\Sitzungsanmeldung;
 use ITHilbert\UserAuth\Application\Auth\Contracts\ZweiFaktorCodeHasher;
 use ITHilbert\UserAuth\Application\Auth\Contracts\ZweiFaktorCodeVersand;
 use ITHilbert\UserAuth\Application\Auth\Events\ZweiFaktorCodeAbgelehnt;
+use ITHilbert\UserAuth\Application\Contracts\MailLinks;
 use ITHilbert\UserAuth\Application\Passwort\Contracts\PasswortHistorie;
 use ITHilbert\UserAuth\Application\Passwort\Contracts\PasswortKonten;
 use ITHilbert\UserAuth\Application\Passwort\Contracts\ResetLinkVersand;
@@ -57,6 +58,7 @@ use ITHilbert\UserAuth\Infrastructure\Auth\GuardSitzungsanmeldung;
 use ITHilbert\UserAuth\Infrastructure\Auth\HmacZweiFaktorCodeHasher;
 use ITHilbert\UserAuth\Infrastructure\Auth\MailZweiFaktorCodeVersand;
 use ITHilbert\UserAuth\Infrastructure\Auth\SessionOffeneAnmeldungen;
+use ITHilbert\UserAuth\Infrastructure\Mail\AppUrlMailLinks;
 use ITHilbert\UserAuth\Infrastructure\Passwort\DatenbankPasswortHistorie;
 use ITHilbert\UserAuth\Infrastructure\Passwort\EloquentPasswortKonten;
 use ITHilbert\UserAuth\Infrastructure\Passwort\NachAntwortResetLinkVersand;
@@ -236,6 +238,7 @@ class UserAuthServiceProvider extends ServiceProvider
         $this->app->bind(PasswortKonten::class, EloquentPasswortKonten::class);
         $this->app->bind(PasswortHistorie::class, DatenbankPasswortHistorie::class);
         $this->app->bind(ResetLinkVersand::class, NachAntwortResetLinkVersand::class);
+        $this->app->bind(MailLinks::class, AppUrlMailLinks::class);
     }
 
     /**

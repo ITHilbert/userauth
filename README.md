@@ -258,6 +258,8 @@ Entscheidung 0008 (Projekt `packages_dev`, Ordner `.project/doku/decisions/`). D
 
 **Mail:** `ITHilbert\UserAuth\Mail\PasswortZuruecksetzenLink`, Absender aus `mail.from`.
 
+**Links in Mails:** Der Reset-Link und der Bestätigungslink der Kontoverknüpfung (Social Login) entstehen aus `APP_URL` (`app.url`), nicht aus Host und Schema der Anfrage. So kann ein gefälschter `X-Forwarded-Host` den Token nicht auf einen fremden Host lenken. `APP_URL` muss deshalb auf die öffentliche Adresse zeigen (auch mit Unterpfad, z. B. `https://example.com/app`). Ist `APP_URL` leer, entsteht der Link wie bisher aus der Anfrage und das Paket schreibt eine Warnung ins Log.
+
 ## Zwei-Faktor-Anmeldung
 
 Entscheidung 0009 (Projekt `packages_dev`, Ordner `.project/doku/decisions/`). Aktivierung: `USERAUTH_2FA_ENABLED=true`. Die Zwei-Faktor-Anmeldung gilt für Passwort-Login und Social Login gleichermaßen.
