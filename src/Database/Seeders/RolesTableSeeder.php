@@ -24,8 +24,6 @@ class RolesTableSeeder extends Seeder
             ['id' => 3, 'role' => 'user', 'role_display' => 'Anwender'],
         ];
 
-        foreach ($rollen as $rolle) {
-            $this->legeAnWennNameFehlt('roles', 'role', $rolle);
-        }
+        $this->legeFehlendeAn('roles', 'role', $rollen);
     }
 }
