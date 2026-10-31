@@ -68,6 +68,9 @@ USERAUTH_TEAMS_ENABLED=true
 USERAUTH_THEME=bootstrap
 ```
 
+### Admin-Konto per Seeder
+Der `UsersTableSeeder` löscht keine Benutzer. Er legt `admin@admin.com` (Rolle `dev`) nur an, wenn die Tabelle `users` komplett leer ist (auch ohne soft-gelöschte Zeilen) und der Host von `APP_URL` auf `.lan` endet oder `localhost`, `127.0.0.1` oder `::1` ist (lokale Hosts zählen wie eine `.lan`-Domain). Sonst gibt er `Kein Admin-Konto angelegt` mit Grund aus. Das Passwort kommt aus `USERAUTH_ADMIN_PASSWORT`; ist es leer oder nicht gesetzt, erzeugt der Seeder ein Zufallspasswort und gibt es einmal auf der Konsole aus.
+
 ### Pflichten des Hosts
 
 Diese Punkte muss der Host erfüllen, sonst schlagen Login, Passwort-Reset oder Rechteprüfung fehl:

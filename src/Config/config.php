@@ -37,6 +37,10 @@ return [
     // (z. B. Favicon, Meta-Tags). Leer/null = nichts. Fehlt die View, wird sie ignoriert.
     'head_view' => env('USERAUTH_HEAD_VIEW') ?: null,
 
+    // Passwort des Admin-Kontos, das der UsersTableSeeder bei leerer Tabelle unter einer .lan-Domain oder einem lokalen Host anlegt.
+    // Leer oder nicht gesetzt: Der Seeder erzeugt ein Zufallspasswort und gibt es einmal auf der Konsole aus.
+    'admin_passwort' => env('USERAUTH_ADMIN_PASSWORT'),
+
     // Aktiviert das Audit Log
     'audit_log_enabled' => env('USERAUTH_AUDIT_LOG_ENABLED', false),
     // Aktiviert 2-Faktor-Authentifizierung

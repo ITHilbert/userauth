@@ -6,31 +6,72 @@ namespace ITHilbert\UserAuth\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
+/**
+ * Legt ein Admin-Konto nur an, wenn die Tabelle users komplett leer ist (auch ohne soft-gelöschte
+ * Zeilen) und die App unter einer .lan-Domain oder einem lokalen Host (localhost, 127.0.0.1, ::1) läuft. Vorhandene Benutzer werden nie angetastet.
+ */
 class UsersTableSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     *
-     * @return void
-     */
-    public function run()
+    public function run(): void
     {
+        if (DB::table('users')->exists()) {
+            return;
+        }
 
-        DB::table('users')->delete();
+        if (! $this->istHeimnetz()) {
+            $this->meldeKeinKonto('kein lokaler Host in app.url');
+
+            return;
+        }
+
+        $rolleId = DB::table('roles')->where('role', 'dev')->value('id');
+
+        if ($rolleId === null) {
+            $this->meldeKeinKonto('Rolle dev fehlt');
+
+            return;
+        }
+
+        $konfiguriert = config('userauth.admin_passwort');
+        $zufaellig = ! is_string($konfiguriert) || $konfiguriert === '';
+        $passwort = $zufaellig ? Str::password(24, symbols: false) : $konfiguriert;
 
         DB::table('users')->insert([
-            0 => [
-                'id' => 1,
-                'role_id' => 1,
-                'name' => 'admin',
-                'email' => 'admin@admin.com',
-                'email_verified_at' => null,
-                'password' => '$2y$10$EhxU5PZ6BfYLXzjZz83hXOq3hiYGkzuTNge5CjPXMbgN8k63C/U9u',
-                'created_at' => '2020-02-14 14:01:04',
-                'updated_at' => '2020-02-14 14:01:04',
-                'deleted_at' => null,
-            ],
+            'role_id' => $rolleId,
+            'name' => 'admin',
+            'email' => 'admin@admin.com',
+            'email_verified_at' => null,
+            'password' => Hash::make($passwort),
+            'created_at' => now(),
+            'updated_at' => now(),
+            'deleted_at' => null,
         ]);
+
+        $this->command?->info('Admin-Konto admin@admin.com angelegt.');
+
+        if ($zufaellig) {
+            $this->command?->line('Passwort: '.$passwort);
+        }
+    }
+
+    private function istHeimnetz(): bool
+    {
+        $host = parse_url((string) config('app.url'), PHP_URL_HOST);
+
+        if (! is_string($host)) {
+            return false;
+        }
+
+        $host = strtolower($host);
+
+        return str_ends_with($host, '.lan') || in_array($host, ['localhost', '127.0.0.1', '[::1]', '::1'], true);
+    }
+
+    private function meldeKeinKonto(string $grund): void
+    {
+        $this->command?->warn('Kein Admin-Konto angelegt: '.$grund.' (Konto nur unter einer .lan-Domain oder einem lokalen Host, Rolle dev vorausgesetzt).');
     }
 }
