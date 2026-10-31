@@ -48,8 +48,8 @@ final class RolleSpeichernRequest extends FormRequest
 
         $ignorieren = $this->route('id');
 
-        $regeln['role_display'] = ['required', 'string', Rule::unique('roles')->ignore($ignorieren)];
-        $regeln['role'] = ['required', 'string', Rule::unique('roles')->ignore($ignorieren)];
+        $regeln['role_display'] = ['required', 'string', 'max:255', Rule::unique('roles')->ignore($ignorieren)];
+        $regeln['role'] = ['required', 'string', 'max:255', Rule::unique('roles')->ignore($ignorieren)];
 
         return $regeln;
     }
