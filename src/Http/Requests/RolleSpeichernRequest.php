@@ -7,7 +7,7 @@ namespace ITHilbert\UserAuth\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use ITHilbert\UserAuth\Entities\Permission;
-use ITHilbert\UserAuth\Entities\Role;
+use ITHilbert\UserAuth\Traits\Format;
 
 /**
  * Validierung für Anlegen (ohne Route-Parameter `id`) und Bearbeiten einer Rolle samt Rechte-Liste.
@@ -16,6 +16,17 @@ use ITHilbert\UserAuth\Entities\Role;
  */
 final class RolleSpeichernRequest extends FormRequest
 {
+    use Format;
+
+    protected function prepareForValidation(): void
+    {
+        $role = $this->input('role');
+
+        if (is_string($role)) {
+            $this->merge(['role' => $this->formatDisplayToIntern($role)]);
+        }
+    }
+
     public function authorize(): bool
     {
         return true;
@@ -35,19 +46,10 @@ final class RolleSpeichernRequest extends FormRequest
             ],
         ];
 
-        $rolleId = $this->route('id');
-        $unveraendert = $rolleId !== null
-            && $this->input('role_display') !== null
-            && $this->input('role_display') !== ''
-            && Role::query()->findOrFail($rolleId)->role_display === $this->input('role_display');
+        $ignorieren = $this->route('id');
 
-        if ($unveraendert) {
-            $regeln['role_display'] = ['nullable'];
-            $regeln['role'] = ['nullable'];
-        } else {
-            $regeln['role_display'] = ['required', 'unique:roles'];
-            $regeln['role'] = ['required', 'unique:roles'];
-        }
+        $regeln['role_display'] = ['required', 'string', Rule::unique('roles')->ignore($ignorieren)];
+        $regeln['role'] = ['required', 'string', Rule::unique('roles')->ignore($ignorieren)];
 
         return $regeln;
     }
