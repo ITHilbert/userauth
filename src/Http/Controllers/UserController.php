@@ -95,20 +95,23 @@ final class UserController extends Controller
         $user->password = '';
         $this->profilfelderSetzen($user, $daten);
 
-        // Image
-        if ($request->hasFile('image')) {
-            $file = $request->file('image');
-            $pathImage = $file->store('public/users'); // Specify the storage path
-            // Neuer Bildpfad speichern
-            $user->image = str_replace('public/', 'storage/', $pathImage);
+        $bildNeu = $request->hasFile('image') ? $this->bildAblegen($request->file('image')) : null;
+        if ($bildNeu !== null) {
+            $user->image = $bildNeu;
         }
 
-        PasswortAblehnung::alsValidierungsfehler(function () use ($user, $passwortSetzen, $daten): void {
-            DB::transaction(function () use ($user, $passwortSetzen, $daten): void {
-                $user->save();
-                $passwortSetzen->handle($user, (string) $daten['password']);
+        $gespeichert = false;
+        try {
+            PasswortAblehnung::alsValidierungsfehler(function () use ($user, $passwortSetzen, $daten): void {
+                DB::transaction(function () use ($user, $passwortSetzen, $daten): void {
+                    $user->save();
+                    $passwortSetzen->handle($user, (string) $daten['password']);
+                });
             });
-        });
+            $gespeichert = true;
+        } finally {
+            $this->bildAbschliessen($gespeichert, $bildNeu, null);
+        }
 
         return redirect()->route('user')->with([
             'message' => Lang::get('userauth::user.MsgAddSuccess'),
@@ -306,7 +309,9 @@ final class UserController extends Controller
             return null;
         }
 
-        return str_replace('public/', 'storage/', (string) $file->store('public/users'));
+        $pfad = Storage::disk('public')->putFile('users', $file);
+
+        return $pfad === false ? null : 'storage/'.$pfad;
     }
 
     /**
@@ -319,7 +324,7 @@ final class UserController extends Controller
         }
 
         if (! $gespeichert) {
-            Storage::delete(str_replace('storage/', 'public/', $bildNeu));
+            Storage::disk('public')->delete($this->diskPfad($bildNeu));
 
             return;
         }
@@ -328,10 +333,18 @@ final class UserController extends Controller
             return;
         }
 
-        $pfad = storage_path('app/public/'.str_replace('storage/', '', $bildAlt));
-        if (file_exists($pfad)) {
-            unlink($pfad);
+        $pfad = $this->diskPfad($bildAlt);
+        if (! str_contains($pfad, '..') && Storage::disk('public')->exists($pfad)) {
+            Storage::disk('public')->delete($pfad);
         }
+    }
+
+    /**
+     * Wert der Spalte `image` als Pfad auf der Disk `public` (Altdaten ohne Präfix `storage/` gelten relativ zur Disk).
+     */
+    private function diskPfad(string $bild): string
+    {
+        return str_starts_with($bild, 'storage/') ? substr($bild, strlen('storage/')) : $bild;
     }
 
     /**
