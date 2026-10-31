@@ -8,7 +8,7 @@ use Illuminate\Cache\RateLimiter;
 use Illuminate\Contracts\Auth\CanResetPassword;
 use Illuminate\Contracts\Auth\PasswordBroker;
 use Illuminate\Contracts\Config\Repository;
-use Illuminate\Contracts\Routing\UrlGenerator;
+use ITHilbert\UserAuth\Application\Contracts\MailLinks;
 use ITHilbert\UserAuth\Application\Passwort\Contracts\PasswortKonten;
 use ITHilbert\UserAuth\Application\Passwort\Contracts\ResetLinkVersand;
 
@@ -26,7 +26,7 @@ final class PasswortZuruecksetzenAnfordern
         private readonly PasswortKonten $konten,
         private readonly PasswordBroker $broker,
         private readonly ResetLinkVersand $versand,
-        private readonly UrlGenerator $urls,
+        private readonly MailLinks $links,
         private readonly Repository $config,
         private readonly RateLimiter $limiter,
     ) {}
@@ -46,7 +46,7 @@ final class PasswortZuruecksetzenAnfordern
 
                 $this->versand->senden(
                     $adresse,
-                    $this->urls->route('password.editwithtoken', ['token' => $token, 'email' => $adresse]),
+                    $this->links->fuerRoute('password.editwithtoken', ['token' => $token, 'email' => $adresse]),
                     $this->gueltigMinuten(),
                 );
             },
