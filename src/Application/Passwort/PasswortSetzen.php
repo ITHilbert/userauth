@@ -43,7 +43,7 @@ final class PasswortSetzen
 
         $this->db->transaction(function () use ($nutzer, $nutzerId, $alterHash, $neuerHash, $jetzt): void {
             // Ein neu angelegter Nutzer hat noch kein Passwort (leer oder Hash des leeren Strings) – nichts für die Historie.
-            if (! $this->istPlatzhalter($alterHash) && $this->wiederverwendung->historieAktiv()) {
+            if ($this->wiederverwendung->historieAktiv() && ! $this->istPlatzhalter($alterHash)) {
                 $this->historie->merken($nutzerId, $alterHash, $jetzt);
             }
 
