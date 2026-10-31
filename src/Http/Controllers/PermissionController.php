@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ITHilbert\UserAuth\Http\Controllers;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -148,17 +149,7 @@ final class PermissionController extends Controller
 
                     // Neues Recht
                 } elseif (strpos($param, 'permission_display_new') === 0) {
-                    $pos = strrpos($param, '_');
-                    $nr = substr($param, $pos + 1);
-
-                    $permission = new Permission;
-                    $permission->group_id = $group->id;
-                    $permission->crud = 'single';
-                    $permission->permission_display = $value;
-
-                    $intern = $input['permission_new_'.$nr];
-                    $permission->permission = $this->formatDisplayToIntern($intern);
-                    $permission->save();
+                    $this->neuesEinzelrecht($group->id, $input, $param, $value);
                 }
             }
         }
@@ -168,6 +159,30 @@ final class PermissionController extends Controller
             'alert-type' => 'success',
         ]);
 
+    }
+
+    /**
+     * Legt ein neues Einzelrecht aus den Formularfeldern an.
+     * Ohne gesendeten internen Namen wird er aus der Anzeige gebildet.
+     *
+     * @param  array<string, mixed>  $input
+     */
+    private function neuesEinzelrecht(int|string $gruppenId, array $input, string $param, mixed $anzeige): void
+    {
+        if (! is_string($anzeige) || $anzeige === '') {
+            return;
+        }
+
+        $nr = substr($param, (int) strrpos($param, '_') + 1);
+        $intern = $input['permission_new_'.$nr] ?? null;
+        $quelle = is_string($intern) && $intern !== '' ? $intern : $anzeige;
+
+        $permission = new Permission;
+        $permission->group_id = $gruppenId;
+        $permission->crud = 'single';
+        $permission->permission_display = $anzeige;
+        $permission->permission = $this->formatDisplayToIntern($quelle);
+        $permission->save();
     }
 
     /**
@@ -239,17 +254,7 @@ final class PermissionController extends Controller
 
                     // Neues Recht
                 } elseif (strpos($param, 'permission_display_new') === 0) {
-                    $pos = strrpos($param, '_');
-                    $nr = substr($param, $pos + 1);
-
-                    $permission = new Permission;
-                    $permission->group_id = $id;
-                    $permission->crud = 'single';
-                    $permission->permission_display = $value;
-
-                    $intern = $input['permission_new_'.$nr];
-                    $permission->permission = $this->formatDisplayToIntern($intern);
-                    $permission->save();
+                    $this->neuesEinzelrecht($id, $input, $param, $value);
 
                     // Bestehendes Recht ändern
                 } elseif (strpos($param, 'permission_display_') === 0) {
@@ -257,14 +262,16 @@ final class PermissionController extends Controller
                     $pos = strrpos($param, '_');
                     $nr = substr($param, $pos + 1);
 
-                    $permission = Permission::find($nr);
+                    $permission = $this->gruppenRechte((int) $id)->find($nr);
                     if ($permission === null) {
                         continue;
                     }
                     $permission->permission_display = $value;
 
-                    $intern = $input['permission_'.$nr];
-                    $permission->permission = $this->formatDisplayToIntern($intern);
+                    $intern = $input['permission_'.$nr] ?? null;
+                    if (is_string($intern) && $intern !== '') {
+                        $permission->permission = $this->formatDisplayToIntern($intern);
+                    }
                     $permission->update();
                     // Bestehendes Recht löschen
                 } elseif (strpos($param, 'delete_intern_') === 0) {
@@ -272,7 +279,7 @@ final class PermissionController extends Controller
                     $pos = strrpos($param, '_');
                     $nr = substr($param, $pos + 1);
 
-                    Permission::where('id', $nr)->delete();
+                    $this->gruppenRechte((int) $id)->where('id', $nr)->delete();
                 }
             }
         }
@@ -305,6 +312,14 @@ final class PermissionController extends Controller
             'message' => Lang::get('userauth::permission.MsgDeleteSuccess'),
             'alert-type' => 'success',
         ]);
+    }
+
+    /**
+     * @return Builder<Permission>
+     */
+    private function gruppenRechte(int $groupId)
+    {
+        return Permission::where('group_id', $groupId);
     }
 
     public function noPermission(Request $request, $id)

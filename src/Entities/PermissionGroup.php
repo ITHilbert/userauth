@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ITHilbert\UserAuth\Entities;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use ITHilbert\LaravelKit\Traits\VueComboBox;
@@ -20,6 +21,16 @@ class PermissionGroup extends Model
         'group_display',
         'is_group',
     ];
+
+    /**
+     * Gruppen für die Rollenformulare: die Entwickler-Gruppe `permission` bleibt verborgen.
+     *
+     * @param  Builder<PermissionGroup>  $query
+     */
+    public function scopeFuerRollenformular(Builder $query): void
+    {
+        $query->where($query->qualifyColumn('group_name'), '!=', 'permission');
+    }
 
     // Variablen
     private $permission = [];

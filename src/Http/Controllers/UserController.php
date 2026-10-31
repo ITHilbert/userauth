@@ -7,14 +7,18 @@ namespace ITHilbert\UserAuth\Http\Controllers;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
+use Illuminate\Support\Facades\Storage;
 use ITHilbert\LaravelKit\Helpers\Breadcrumb;
 use ITHilbert\LaravelKit\Helpers\HButton;
+use ITHilbert\UserAuth\Application\Passwort\PasswortSetzen;
 use ITHilbert\UserAuth\Entities\Role;
+use ITHilbert\UserAuth\Http\PasswortAblehnung;
 use ITHilbert\UserAuth\Http\Requests\NutzerSpeichernRequest;
 use ITHilbert\UserAuth\Infrastructure\Auth\UserModel;
 use Yajra\DataTables\Facades\DataTables;
@@ -79,7 +83,7 @@ final class UserController extends Controller
      *
      * @return Response
      */
-    public function store(NutzerSpeichernRequest $request)
+    public function store(NutzerSpeichernRequest $request, PasswortSetzen $passwortSetzen)
     {
         $daten = $request->validated();
 
@@ -87,18 +91,27 @@ final class UserController extends Controller
         $user->name = $this->getName($daten);
         $user->email = $daten['email'];
         $user->role_id = $daten['role_id'];
-        $user->password = Hash::make($daten['password']);
+        // Platzhalter bis PasswortSetzen den Hash speichert (kein gültiger Hash).
+        $user->password = '';
         $this->profilfelderSetzen($user, $daten);
 
-        // Image
-        if ($request->hasFile('image')) {
-            $file = $request->file('image');
-            $pathImage = $file->store('public/users'); // Specify the storage path
-            // Neuer Bildpfad speichern
-            $user->image = str_replace('public/', 'storage/', $pathImage);
+        $bildNeu = $request->hasFile('image') ? $this->bildAblegen($request->file('image')) : null;
+        if ($bildNeu !== null) {
+            $user->image = $bildNeu;
         }
 
-        $user->save();
+        $gespeichert = false;
+        try {
+            PasswortAblehnung::alsValidierungsfehler(function () use ($user, $passwortSetzen, $daten): void {
+                DB::transaction(function () use ($user, $passwortSetzen, $daten): void {
+                    $user->save();
+                    $passwortSetzen->handle($user, (string) $daten['password']);
+                });
+            });
+            $gespeichert = true;
+        } finally {
+            $this->bildAbschliessen($gespeichert, $bildNeu, null);
+        }
 
         return redirect()->route('user')->with([
             'message' => Lang::get('userauth::user.MsgAddSuccess'),
@@ -163,7 +176,7 @@ final class UserController extends Controller
     public function edit($id)
     {
         $user = $this->userModel->query()->findOrFail($id);
-        $roles = Role::all();
+        $roles = Role::getComboBoxData();
 
         $breadcrumb = new Breadcrumb;
         $breadcrumb->add(trans('userauth::user.header_list'), route('user'));
@@ -178,7 +191,7 @@ final class UserController extends Controller
      * @param  int  $id
      * @return Response
      */
-    public function update(NutzerSpeichernRequest $request, $id)
+    public function update(NutzerSpeichernRequest $request, PasswortSetzen $passwortSetzen, $id)
     {
         $daten = $request->validated();
         $editPW = (bool) $request->input('password');
@@ -193,28 +206,25 @@ final class UserController extends Controller
         $this->profilfelderSetzen($user, $daten);
 
         // Image
-        if ($request->hasFile('image')) {
-            $pfadAlt = str_replace('storage/', '', $user->image);
+        $bildAlt = $user->image;
+        $bildNeu = $request->hasFile('image') ? $this->bildAblegen($request->file('image')) : null;
+        if ($bildNeu !== null) {
+            $user->image = $bildNeu;
+        }
 
-            $file = $request->file('image');
-            $pathImage = $file->store('public/users'); // Specify the storage path
-            // Altes Bild Löschen
-            if ($pfadAlt !== '') {
-                $pfadAlt = storage_path('app/public/'.$pfadAlt);
-                if (file_exists($pfadAlt)) {
-                    unlink($pfadAlt);
+        // Felder und Passwort atomar: lehnt PasswortSetzen ab, wird nichts gespeichert.
+        $erg = false;
+        try {
+            $erg = PasswortAblehnung::alsValidierungsfehler(fn (): bool => DB::transaction(function () use ($user, $passwortSetzen, $daten, $editPW): bool {
+                if ($editPW) {
+                    $passwortSetzen->handle($user, (string) $daten['password']);
                 }
-            }
-            // Neuer Bildpfad speichern
-            $user->image = str_replace('public/', 'storage/', $pathImage);
-        }
 
-        // Falls das Passwort geändert werden soll
-        if ($editPW) {
-            $user->password = Hash::make($daten['password']);
+                return $user->save();
+            }));
+        } finally {
+            $this->bildAbschliessen($erg, $bildNeu, $bildAlt);
         }
-
-        $erg = $user->update();
 
         if ($erg) {
             return redirect()->route('user')->with([
@@ -274,25 +284,67 @@ final class UserController extends Controller
         $user = $this->userModel->query()->findOrFail($userID);
 
         // Image
-        if ($request->hasFile('image')) {
-            $pfadAlt = str_replace('storage/', '', $user->image);
-
-            $file = $request->file('image');
-            $pathImage = $file->store('public/users'); // Specify the storage path
-            // Altes Bild Löschen
-            if ($pfadAlt !== '') {
-                $pfadAlt = storage_path('app/public/'.$pfadAlt);
-                if (file_exists($pfadAlt)) {
-                    unlink($pfadAlt);
-                }
-            }
-            // Neuer Bildpfad speichern
-            $user->image = str_replace('public/', 'storage/', $pathImage);
+        $bildAlt = $user->image;
+        $bildNeu = $request->hasFile('image') ? $this->bildAblegen($request->file('image')) : null;
+        if ($bildNeu !== null) {
+            $user->image = $bildNeu;
         }
 
-        $user->update();
+        $erg = false;
+        try {
+            $erg = $user->update();
+        } finally {
+            $this->bildAbschliessen($erg, $bildNeu, $bildAlt);
+        }
 
         return redirect()->back();
+    }
+
+    /**
+     * Legt das hochgeladene Bild ab und liefert den Pfad für die Spalte `image`.
+     */
+    private function bildAblegen(?UploadedFile $file): ?string
+    {
+        if ($file === null) {
+            return null;
+        }
+
+        $pfad = Storage::disk('public')->putFile('users', $file);
+
+        return $pfad === false ? null : 'storage/'.$pfad;
+    }
+
+    /**
+     * Nach dem Speichern: bei Erfolg das alte Bild löschen, sonst das neue wieder entfernen.
+     */
+    private function bildAbschliessen(bool $gespeichert, ?string $bildNeu, ?string $bildAlt): void
+    {
+        if ($bildNeu === null) {
+            return;
+        }
+
+        if (! $gespeichert) {
+            Storage::disk('public')->delete($this->diskPfad($bildNeu));
+
+            return;
+        }
+
+        if ($bildAlt === null || $bildAlt === '') {
+            return;
+        }
+
+        $pfad = $this->diskPfad($bildAlt);
+        if (! str_contains($pfad, '..') && Storage::disk('public')->exists($pfad)) {
+            Storage::disk('public')->delete($pfad);
+        }
+    }
+
+    /**
+     * Wert der Spalte `image` als Pfad auf der Disk `public` (Altdaten ohne Präfix `storage/` gelten relativ zur Disk).
+     */
+    private function diskPfad(string $bild): string
+    {
+        return str_starts_with($bild, 'storage/') ? substr($bild, strlen('storage/')) : $bild;
     }
 
     /**

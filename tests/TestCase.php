@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ITHilbert\UserAuth\Tests;
 
 use Illuminate\Foundation\Application;
+use ITHilbert\LaravelKit\LaravelKitServiceProvider;
 use ITHilbert\UserAuth\Tests\Fixtures\User;
 use ITHilbert\UserAuth\UserAuthServiceProvider;
 use Laravel\Socialite\SocialiteServiceProvider;
@@ -24,6 +25,7 @@ abstract class TestCase extends Orchestra
     {
         return [
             UserAuthServiceProvider::class,
+            LaravelKitServiceProvider::class,
             SocialiteServiceProvider::class,
             DataTablesServiceProvider::class,
         ];

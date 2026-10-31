@@ -28,6 +28,7 @@
         }
     </style>
 
+    @include('userauth::partials.head-host')
 </head>
 <body>
     <div id="vue-app" class="w-100">

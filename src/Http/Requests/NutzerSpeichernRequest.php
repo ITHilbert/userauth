@@ -18,6 +18,13 @@ final class NutzerSpeichernRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('password2')) {
+            $this->merge(['password_confirmation' => $this->input('password2')]);
+        }
+    }
+
     /**
      * @return array<string, array<int, mixed>>
      */
@@ -45,7 +52,8 @@ final class NutzerSpeichernRequest extends FormRequest
         ];
 
         if ($neuesPasswort) {
-            $regeln['password'] = ['required'];
+            // Gleiche Regeln wie beim eigenen Ändern; die Bestätigung kommt im Admin-Formular als `password2`.
+            $regeln['password'] = NeuesPasswortRegeln::regeln()['password'];
             $regeln['password2'] = ['required', 'same:password'];
         }
 

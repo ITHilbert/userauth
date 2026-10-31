@@ -23,47 +23,60 @@ function showSinglePermissions() {
 
 
 
-var newID = 1;
+// Startwert: höchste Nummer der vorhandenen neuen Zeilen im DOM (nach einem Validierungsfehler können es mehrere sein)
+function hoechsteNeueNummer(tbody) {
+    var hoechste = 1;
+    tbody.find('tr[id^="new-row-"]').each(function () {
+        var nr = parseInt($(this).attr('nummer'), 10);
+        if (!isNaN(nr) && nr > hoechste) {
+            hoechste = nr;
+        }
+    });
+    return hoechste;
+}
+
+var newID = hoechsteNeueNummer($('#tbody'));
 
 function newPermission() {
     var vorlage = $('#vorlage').clone()
 
     newID++;
+    var zeilenNummer = newID;
     vorlage.removeClass('d-none');
-    vorlage.attr('id', 'new-row-' + newID)
-    vorlage.attr('nummer', newID);
+    vorlage.attr('id', 'new-row-' + zeilenNummer)
+    vorlage.attr('nummer', zeilenNummer);
 
     //ID anpassen
     var rowid = vorlage.find('#new-id');
-    rowid.attr('id', 'new-id-' + newID);
-    rowid.append('new_' + newID);
+    rowid.attr('id', 'new-id-' + zeilenNummer);
+    rowid.append('new_' + zeilenNummer);
 
     //Recht anpassen
     var rowid = vorlage.find('#vorlage_display');
-    rowid.attr('id', 'display_new_' + newID);
-    rowid.attr('name', 'permission_display_new_' + newID);
+    rowid.attr('id', 'display_new_' + zeilenNummer);
+    rowid.attr('name', 'permission_display_new_' + zeilenNummer);
 
     //Recht anpassen
     var tb1 = vorlage.find('#vorlage_display');
-    tb1.attr('id', 'display_new_' + newID);
-    tb1.attr('name', 'permission_display_new_' + newID);
+    tb1.attr('id', 'display_new_' + zeilenNummer);
+    tb1.attr('name', 'permission_display_new_' + zeilenNummer);
 
     //Recht intern anpassen
     var tb2 = vorlage.find('#vorlage_intern');
-    tb2.attr('id', 'intern_new_' + newID);
-    tb2.attr('name', 'permission_new_' + newID);
+    tb2.attr('id', 'intern_new_' + zeilenNummer);
+    tb2.attr('name', 'permission_new_' + zeilenNummer);
 
     //Löschen Button
     var btn = vorlage.find('#btnVorlage');
     btn.removeAttr('id');
-    btn.attr('onclick', "deletePermission('new-row-" + newID + "')");
+    btn.attr('onclick', "deletePermission('new-row-" + zeilenNummer + "')");
 
     //Angepasste Vorlage einfügen
     $('#tbody').append(vorlage);
 
-    var tb = document.getElementById('display_new_' + newID)
+    var tb = document.getElementById('display_new_' + zeilenNummer)
     tb.addEventListener("change", function() {
-        editIntern('new-row-' + newID);
+        editIntern('new-row-' + zeilenNummer);
     });
 }
 

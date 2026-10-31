@@ -8,6 +8,8 @@ use Illuminate\Database\Seeder;
 
 class PermissionsGroupsTableSeeder extends Seeder
 {
+    use LegtNachNamenAn;
+
     /**
      * Auto generated seed file
      *
@@ -16,9 +18,7 @@ class PermissionsGroupsTableSeeder extends Seeder
     public function run()
     {
 
-        \DB::table('permissions_groups')->delete();
-
-        \DB::table('permissions_groups')->insert([
+        $gruppen = [
             0 => [
                 'id' => 1,
                 'group_name' => 'user',
@@ -35,7 +35,8 @@ class PermissionsGroupsTableSeeder extends Seeder
                 'updated_at' => '2020-08-12 12:31:35',
                 'deleted_at' => null,
             ],
-        ]);
+        ];
 
+        $this->legeFehlendeAn('permissions_groups', 'group_name', array_values($gruppen));
     }
 }

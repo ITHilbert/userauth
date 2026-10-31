@@ -6,14 +6,27 @@ namespace ITHilbert\UserAuth\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use ITHilbert\UserAuth\Entities\Role;
+use ITHilbert\UserAuth\Entities\Permission;
+use ITHilbert\UserAuth\Traits\Format;
 
 /**
  * Validierung für Anlegen (ohne Route-Parameter `id`) und Bearbeiten einer Rolle samt Rechte-Liste.
+ * Zuweisbar sind nur Rechte, die `Permission::fuerRollenformular()` liefert.
  * Die Berechtigung prüft die Route-Middleware.
  */
 final class RolleSpeichernRequest extends FormRequest
 {
+    use Format;
+
+    protected function prepareForValidation(): void
+    {
+        $role = $this->input('role');
+
+        if (is_string($role)) {
+            $this->merge(['role' => $this->formatDisplayToIntern($role)]);
+        }
+    }
+
     public function authorize(): bool
     {
         return true;
@@ -28,23 +41,15 @@ final class RolleSpeichernRequest extends FormRequest
             'permission' => ['nullable', 'array'],
             'permission.*' => [
                 'integer',
-                Rule::exists('permissions', 'id')->whereNull('deleted_at'),
+                // nur nicht gelöschte Rechte außerhalb der im Rollenformular verborgenen Gruppen
+                Rule::in(Permission::query()->fuerRollenformular()->pluck('id')->all()),
             ],
         ];
 
-        $rolleId = $this->route('id');
-        $unveraendert = $rolleId !== null
-            && $this->input('role_display') !== null
-            && $this->input('role_display') !== ''
-            && Role::query()->findOrFail($rolleId)->role_display === $this->input('role_display');
+        $ignorieren = $this->route('id');
 
-        if ($unveraendert) {
-            $regeln['role_display'] = ['nullable'];
-            $regeln['role'] = ['nullable'];
-        } else {
-            $regeln['role_display'] = ['required', 'unique:roles'];
-            $regeln['role'] = ['required', 'unique:roles'];
-        }
+        $regeln['role_display'] = ['required', 'string', 'max:255', Rule::unique('roles')->ignore($ignorieren)];
+        $regeln['role'] = ['required', 'string', 'max:255', Rule::unique('roles')->ignore($ignorieren)];
 
         return $regeln;
     }

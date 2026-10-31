@@ -15,13 +15,10 @@ use ITHilbert\LaravelKit\Helpers\HButton;
 use ITHilbert\UserAuth\Entities\PermissionGroup;
 use ITHilbert\UserAuth\Entities\Role;
 use ITHilbert\UserAuth\Http\Requests\RolleSpeichernRequest;
-use ITHilbert\UserAuth\Traits\Format;
 use Yajra\DataTables\Facades\DataTables;
 
 final class RoleController extends Controller
 {
-    use Format;
-
     /**
      * Display a listing of the resource.
      *
@@ -71,7 +68,7 @@ final class RoleController extends Controller
     public function create()
     {
 
-        $permissionsgroups = PermissionGroup::where('id', '!=', 3)->get();
+        $permissionsgroups = PermissionGroup::fuerRollenformular()->get();
 
         $breadcrumb = new Breadcrumb;
         $breadcrumb->add(trans('userauth::role.header_list'), route('role'));
@@ -92,7 +89,7 @@ final class RoleController extends Controller
         DB::transaction(function () use ($daten): void {
             $role = new Role;
             $role->role_display = $daten['role_display'];
-            $role->role = $this->formatDisplayToIntern($daten['role']);
+            $role->role = $daten['role'];
             $role->save();
 
             $role->permissions()->sync(array_values($daten['permission'] ?? []));
@@ -113,7 +110,7 @@ final class RoleController extends Controller
     public function edit($id)
     {
         $role = Role::findOrFail($id);
-        $permissionsgroups = PermissionGroup::where('id', '!=', 3)->get();
+        $permissionsgroups = PermissionGroup::fuerRollenformular()->get();
 
         $breadcrumb = new Breadcrumb;
         $breadcrumb->add(trans('userauth::role.header_list'), route('role'));
@@ -134,14 +131,35 @@ final class RoleController extends Controller
         $daten = $request->validated();
 
         DB::transaction(function () use ($role, $daten): void {
-            $role->role_display = $daten['role_display'] ?? null;
-            $role->role = $this->formatDisplayToIntern($daten['role'] ?? null);
+            $role->role_display = $daten['role_display'];
+            $role->role = $daten['role'];
             $role->update();
 
-            $role->permissions()->sync(array_values($daten['permission'] ?? []));
+            $this->sichtbareRechteSetzen($role, array_values($daten['permission'] ?? []));
         });
 
         return redirect()->route('role')->with(['message' => Lang::get('userauth::role.MsgEditSuccess')]);
+    }
+
+    /**
+     * Setzt die im Rollenformular sichtbaren Rechte auf die gesendete Auswahl. Rechte
+     * außerhalb von `Permission::fuerRollenformular()` (verborgene Gruppen) bleiben unberührt.
+     *
+     * @param  list<int|string>  $gesendet  bereits validiert, nur sichtbare Rechte
+     */
+    private function sichtbareRechteSetzen(Role $role, array $gesendet): void
+    {
+        $gesendet = array_map(intval(...), $gesendet);
+
+        $entfernen = $role->permissions()->fuerRollenformular()
+            ->pluck('permissions.id')
+            ->map(intval(...))
+            ->diff($gesendet)
+            ->values()
+            ->all();
+
+        $role->permissions()->detach($entfernen);
+        $role->permissions()->syncWithoutDetaching($gesendet);
     }
 
     /**
