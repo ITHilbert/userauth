@@ -42,7 +42,8 @@ final class PasswortSetzen
         $neuerHash = $this->hasher->make($neuesPasswort);
 
         $this->db->transaction(function () use ($nutzer, $nutzerId, $alterHash, $neuerHash, $jetzt): void {
-            if ($this->wiederverwendung->historieAktiv()) {
+            // Ein neu angelegter Nutzer hat noch keinen Hash – nichts für die Historie.
+            if ($alterHash !== '' && $this->wiederverwendung->historieAktiv()) {
                 $this->historie->merken($nutzerId, $alterHash, $jetzt);
             }
 
