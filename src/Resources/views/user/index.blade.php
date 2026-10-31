@@ -2,16 +2,13 @@
 
 @section('title', Lang::get('userauth::user.header_list'))
 
-{{-- @section('content_header')
-@stop --}}
-
 @section('content')
-    <card-main>
-        <card-main-header>
+    <x-kit::card-main>
+        <x-kit::card-main-header>
             <h1>@lang('userauth::user.header_list')</h1>
             @include('include.breadcrumb')
-        </card-main-header>
-        <card-body>
+        </x-kit::card-main-header>
+        <x-kit::card-body>
             @include('include.message')
 
             <table class="table table-bordered data-table table-sm table-hover">
@@ -23,7 +20,7 @@
                     <th>@lang('userauth::user.role')</th>
                     <th width="165px">
                         @hasPermission('user_create')
-                            <button-create route="{{ route('user.create') }}">@lang('userauth::button.addUser')</button-create>
+                            <x-kit::button-create :route="route('user.create')">@lang('userauth::button.addUser')</x-kit::button-create>
                         @endhasPermission()
                     </th>
                 </tr>
@@ -31,12 +28,14 @@
                 <tbody>
                 </tbody>
             </table>
-        </card-body>
-    </card-main>
+        </x-kit::card-body>
+    </x-kit::card-main>
 
-
-    <dialog-delete titel="Benutzer löschen" body="Wollen Sie wirklich diesen Benutzer löschen?" route="{{ route('user.delete',0) }}" ></dialog-delete>
-
+    @include('userauth::partials.loeschen', [
+        'titel' => 'Benutzer löschen',
+        'body' => 'Wollen Sie wirklich diesen Benutzer löschen?',
+        'route' => route('user.delete', 0),
+    ])
 @stop
 
 @section('js')

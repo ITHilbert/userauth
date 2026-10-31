@@ -173,7 +173,7 @@ final class UserController extends Controller
     public function edit($id)
     {
         $user = $this->userModel->query()->findOrFail($id);
-        $roles = Role::all();
+        $roles = Role::getComboBoxData();
 
         $breadcrumb = new Breadcrumb;
         $breadcrumb->add(trans('userauth::user.header_list'), route('user'));
