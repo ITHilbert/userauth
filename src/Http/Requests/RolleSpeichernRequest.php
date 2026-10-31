@@ -6,10 +6,12 @@ namespace ITHilbert\UserAuth\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use ITHilbert\UserAuth\Entities\Permission;
 use ITHilbert\UserAuth\Entities\Role;
 
 /**
  * Validierung für Anlegen (ohne Route-Parameter `id`) und Bearbeiten einer Rolle samt Rechte-Liste.
+ * Zuweisbar sind nur Rechte, die `Permission::fuerRollenformular()` liefert.
  * Die Berechtigung prüft die Route-Middleware.
  */
 final class RolleSpeichernRequest extends FormRequest
@@ -28,7 +30,8 @@ final class RolleSpeichernRequest extends FormRequest
             'permission' => ['nullable', 'array'],
             'permission.*' => [
                 'integer',
-                Rule::exists('permissions', 'id')->whereNull('deleted_at'),
+                // nur nicht gelöschte Rechte außerhalb der im Rollenformular verborgenen Gruppen
+                Rule::in(Permission::query()->fuerRollenformular()->pluck('id')->all()),
             ],
         ];
 

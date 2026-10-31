@@ -29,7 +29,7 @@ class PermissionGroup extends Model
      */
     public function scopeFuerRollenformular(Builder $query): void
     {
-        $query->where('group_name', '!=', 'permission');
+        $query->where($query->qualifyColumn('group_name'), '!=', 'permission');
     }
 
     // Variablen

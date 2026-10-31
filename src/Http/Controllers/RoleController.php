@@ -138,10 +138,31 @@ final class RoleController extends Controller
             $role->role = $this->formatDisplayToIntern($daten['role'] ?? null);
             $role->update();
 
-            $role->permissions()->sync(array_values($daten['permission'] ?? []));
+            $this->sichtbareRechteSetzen($role, array_values($daten['permission'] ?? []));
         });
 
         return redirect()->route('role')->with(['message' => Lang::get('userauth::role.MsgEditSuccess')]);
+    }
+
+    /**
+     * Setzt die im Rollenformular sichtbaren Rechte auf die gesendete Auswahl. Rechte
+     * außerhalb von `Permission::fuerRollenformular()` (verborgene Gruppen) bleiben unberührt.
+     *
+     * @param  list<int|string>  $gesendet  bereits validiert, nur sichtbare Rechte
+     */
+    private function sichtbareRechteSetzen(Role $role, array $gesendet): void
+    {
+        $gesendet = array_map(intval(...), $gesendet);
+
+        $entfernen = $role->permissions()->fuerRollenformular()
+            ->pluck('permissions.id')
+            ->map(intval(...))
+            ->diff($gesendet)
+            ->values()
+            ->all();
+
+        $role->permissions()->detach($entfernen);
+        $role->permissions()->syncWithoutDetaching($gesendet);
     }
 
     /**
