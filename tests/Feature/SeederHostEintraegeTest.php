@@ -369,7 +369,10 @@ final class SeederHostEintraegeTest extends TestCase
         $this->assertSame(1, (int) $recht['group_id']);
         $this->assertNotNull($this->zeile('permissions_groups', 'group_name', 'user'), 'Paket-Gruppe user fehlt');
         $this->assertNotNull($this->zeile('permissions', 'permission', 'user_create'), 'Paket-Recht user_create fehlt');
-        $this->assertSame(10, DB::table('permissions')->count());
+        foreach (['user_create', 'user_read', 'user_edit', 'user_delete', 'role_create', 'role_read', 'role_edit', 'role_delete'] as $name) {
+            $this->assertNotNull($this->zeile('permissions', 'permission', $name), "Paket-Recht {$name} fehlt");
+        }
+        $this->assertSame(9, DB::table('permissions')->count());
     }
 
     // Randfall 2
