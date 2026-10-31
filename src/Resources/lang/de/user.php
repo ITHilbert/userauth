@@ -16,7 +16,6 @@ return [
 
     // Views Header
     'header_list' => 'Benutzer',
-    'header_show' => 'Benutzer',
     'header_create' => 'Neuer Benutzer',
     'header_edit' => 'Benutzer anpassen',
 

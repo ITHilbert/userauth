@@ -16,7 +16,6 @@ return [
 
     // Views Header
     'header_list' => 'Rollen',
-    'header_show' => 'Rolle',
     'header_create' => 'Neue Rolle',
     'header_edit' => 'Rolle anpassen',
 

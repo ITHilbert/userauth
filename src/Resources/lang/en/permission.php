@@ -16,7 +16,6 @@ return [
 
     // Views Header
     'header_list' => 'Permissions',
-    'header_show' => 'Permission',
     'header_create' => 'new permission',
     'header_edit' => 'edit permission',
     'header_no' => 'no permission',

@@ -40,7 +40,6 @@ final class PermissionController extends Controller
                 ->addColumn('action', function ($row) use ($user) {
                     $ausgabe = '<div style="white-space: nowrap;">';
                     if ($row->id > 3) {
-                        // $ausgabe .= HButton::show(route('permission.show', $row->id), '');
                         if ($user->hasPermission('permission_edit')) {
                             $ausgabe .= HButton::edit(route('permission.edit', $row->id), '');
                         }
