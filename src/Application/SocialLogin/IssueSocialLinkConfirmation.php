@@ -6,8 +6,8 @@ namespace ITHilbert\UserAuth\Application\SocialLogin;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Mail\Mailer;
-use Illuminate\Contracts\Routing\UrlGenerator;
 use Illuminate\Support\Str;
+use ITHilbert\UserAuth\Application\Contracts\MailLinks;
 use ITHilbert\UserAuth\Application\SocialLogin\Contracts\PendingSocialLinkRepository;
 use ITHilbert\UserAuth\Domain\SocialLogin\SocialIdentity;
 use ITHilbert\UserAuth\Mail\SocialLinkConfirmation;
@@ -21,7 +21,7 @@ final class IssueSocialLinkConfirmation
         private readonly PendingSocialLinkRepository $pendingLinks,
         private readonly SocialLoginSettings $settings,
         private readonly Mailer $mailer,
-        private readonly UrlGenerator $urls,
+        private readonly MailLinks $links,
     ) {}
 
     public function handle(LocalUser $user, SocialIdentity $identity): void
@@ -37,7 +37,7 @@ final class IssueSocialLinkConfirmation
         );
 
         $this->mailer->to($user->email)->send(new SocialLinkConfirmation(
-            confirmUrl: $this->urls->route('userauth.social.confirm', $token),
+            confirmUrl: $this->links->fuerRoute('userauth.social.confirm', $token),
             providerLabel: $identity->provider->label(),
             ttlMinutes: $ttl,
         ));

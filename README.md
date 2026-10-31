@@ -115,6 +115,19 @@ Die Auth-Views (Login, Passwort-vergessen/-zurücksetzen) liegen in zwei Theme-V
 - **`tailwind`** (Default) — Tailwind CSS. Das Package liefert eine vorkompilierte CSS mit (Route `userauth.assets.css`, erreichbar unter `/userauth/assets/userauth.css?v=<hash>`). Der Host-Browser cached diese mit `Cache-Control: immutable`. Neue Projekte brauchen **nichts** zu konfigurieren — weder Tailwind, noch `@source`, noch `vendor:publish`.
 - **`bootstrap`** — das ältere Phoenix/Bootstrap-Markup. In bestehenden Bootstrap-Projekten per `USERAUTH_THEME=bootstrap` in der `.env` aktivieren. **Wichtig:** Das Package liefert kein Bootstrap oder Phoenix mit. Daher ist eine Konfiguration erforderlich (siehe unten unter *Auth-Assets-Konfiguration*).
 
+### Head-Erweiterung des Hosts (Favicon, Meta-Tags)
+
+Die Auth-Seiten (Login, Passwort-Reset) haben einen eigenen `<head>` und nutzen das Root-Layout des Hosts nicht. Mit `head_view` / `USERAUTH_HEAD_VIEW` nennst du eine View des Hosts, deren Inhalt in diesen `<head>` eingebunden wird – ohne dass Package-Views veröffentlicht werden müssen. Standard: nicht gesetzt (nichts wird ergänzt). Eine nicht vorhandene View wird ignoriert.
+
+```
+USERAUTH_HEAD_VIEW=partials.auth-head
+```
+
+`resources/views/partials/auth-head.blade.php`:
+```html
+<link rel="icon" href="/favicon.svg">
+```
+
 ### Auth-Assets-Konfiguration
 
 Beide Layouts (Tailwind und Bootstrap) laden zusätzliche CSS und JavaScript über die Config `auth_assets`. Dies wird v.a. beim Bootstrap-Theme relevant, da das Package selbst kein Bootstrap oder Phoenix mitbringt.
@@ -257,6 +270,8 @@ Entscheidung 0008 (Projekt `packages_dev`, Ordner `.project/doku/decisions/`). D
 | Zurücksetzen je IP | 5 pro Minute | Limiter `userauth-passwort-zuruecksetzen` |
 
 **Mail:** `ITHilbert\UserAuth\Mail\PasswortZuruecksetzenLink`, Absender aus `mail.from`.
+
+**Links in Mails:** Der Reset-Link und der Bestätigungslink der Kontoverknüpfung (Social Login) entstehen aus `APP_URL` (`app.url`), nicht aus Host und Schema der Anfrage. So kann ein gefälschter `X-Forwarded-Host` den Token nicht auf einen fremden Host lenken. `APP_URL` muss deshalb auf die öffentliche Adresse zeigen (auch mit Unterpfad, z. B. `https://example.com/app`). Ist `APP_URL` leer, entsteht der Link wie bisher aus der Anfrage und das Paket schreibt eine Warnung ins Log.
 
 ## Zwei-Faktor-Anmeldung
 

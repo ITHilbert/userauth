@@ -71,7 +71,7 @@ final class RoleController extends Controller
     public function create()
     {
 
-        $permissionsgroups = PermissionGroup::where('id', '!=', 3)->get();
+        $permissionsgroups = PermissionGroup::fuerRollenformular()->get();
 
         $breadcrumb = new Breadcrumb;
         $breadcrumb->add(trans('userauth::role.header_list'), route('role'));
@@ -113,7 +113,7 @@ final class RoleController extends Controller
     public function edit($id)
     {
         $role = Role::findOrFail($id);
-        $permissionsgroups = PermissionGroup::where('id', '!=', 3)->get();
+        $permissionsgroups = PermissionGroup::fuerRollenformular()->get();
 
         $breadcrumb = new Breadcrumb;
         $breadcrumb->add(trans('userauth::role.header_list'), route('role'));
