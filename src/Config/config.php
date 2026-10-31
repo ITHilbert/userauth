@@ -33,6 +33,10 @@ return [
         'js' => [],
     ],
 
+    // Name einer View des Hosts, die in den <head> der Auth-Seiten mit eigenem <head> eingebunden wird
+    // (z. B. Favicon, Meta-Tags). Leer/null = nichts. Fehlt die View, wird sie ignoriert.
+    'head_view' => env('USERAUTH_HEAD_VIEW') ?: null,
+
     // Aktiviert das Audit Log
     'audit_log_enabled' => env('USERAUTH_AUDIT_LOG_ENABLED', false),
     // Aktiviert 2-Faktor-Authentifizierung
