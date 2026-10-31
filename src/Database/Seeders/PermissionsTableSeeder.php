@@ -18,6 +18,7 @@ class PermissionsTableSeeder extends Seeder
      */
     public function run()
     {
+        $this->call(PermissionsGroupsTableSeeder::class);
 
         $rechte = [
             0 => [
