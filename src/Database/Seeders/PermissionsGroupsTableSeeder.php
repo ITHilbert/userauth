@@ -37,8 +37,6 @@ class PermissionsGroupsTableSeeder extends Seeder
             ],
         ];
 
-        foreach ($gruppen as $gruppe) {
-            $this->legeAnWennNameFehlt('permissions_groups', 'group_name', $gruppe);
-        }
+        $this->legeFehlendeAn('permissions_groups', 'group_name', array_values($gruppen));
     }
 }

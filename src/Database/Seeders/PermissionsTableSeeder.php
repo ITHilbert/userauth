@@ -103,11 +103,13 @@ class PermissionsTableSeeder extends Seeder
             ],
         ];
 
+        $zeilen = [];
         foreach ($rechte as $recht) {
-            $gruppenId = DB::table('permissions_groups')->where('group_name', $recht['group_name'])->value('id');
+            $recht['group_id'] = DB::table('permissions_groups')->where('group_name', $recht['group_name'])->value('id');
             unset($recht['group_name']);
-            $recht['group_id'] = $gruppenId;
-            $this->legeAnWennNameFehlt('permissions', 'permission', $recht);
+            $zeilen[] = $recht;
         }
+
+        $this->legeFehlendeAn('permissions', 'permission', $zeilen);
     }
 }
