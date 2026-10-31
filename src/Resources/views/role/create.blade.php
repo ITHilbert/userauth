@@ -16,7 +16,7 @@
             <div class="form-group row mb-2">
                 <label for="role_display" class="col-md-4 col-form-label text-md-right">@lang('userauth::role.role')</label>
                 <div class="col-md-6">
-                <input-text name="role_display" id="role_display" value="{{ old('role_display', '') }}" onchange="setInternValue()" required />
+                <input-text name="role_display" id="role_display" value="{{ is_scalar(old('role_display')) ? old('role_display') : ('') }}" onchange="setInternValue()" required />
                 </div>
             </div>
 
@@ -24,7 +24,7 @@
             <div class="form-group row mb-2">
                 <label for="role" class="col-md-4 col-form-label text-md-right">@lang('userauth::role.role_intern')</label>
                 <div class="col-md-6">
-                <input-text name="role" id="role" value="{{ old('role', '') }}" required />
+                <input-text name="role" id="role" value="{{ is_scalar(old('role')) ? old('role') : ('') }}" required />
                 </div>
             </div>
 

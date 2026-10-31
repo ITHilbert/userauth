@@ -15,13 +15,10 @@ use ITHilbert\LaravelKit\Helpers\HButton;
 use ITHilbert\UserAuth\Entities\PermissionGroup;
 use ITHilbert\UserAuth\Entities\Role;
 use ITHilbert\UserAuth\Http\Requests\RolleSpeichernRequest;
-use ITHilbert\UserAuth\Traits\Format;
 use Yajra\DataTables\Facades\DataTables;
 
 final class RoleController extends Controller
 {
-    use Format;
-
     /**
      * Display a listing of the resource.
      *
@@ -92,7 +89,7 @@ final class RoleController extends Controller
         DB::transaction(function () use ($daten): void {
             $role = new Role;
             $role->role_display = $daten['role_display'];
-            $role->role = $this->formatDisplayToIntern($daten['role']);
+            $role->role = $daten['role'];
             $role->save();
 
             $role->permissions()->sync(array_values($daten['permission'] ?? []));
@@ -134,8 +131,8 @@ final class RoleController extends Controller
         $daten = $request->validated();
 
         DB::transaction(function () use ($role, $daten): void {
-            $role->role_display = $daten['role_display'] ?? null;
-            $role->role = $this->formatDisplayToIntern($daten['role'] ?? null);
+            $role->role_display = $daten['role_display'];
+            $role->role = $daten['role'];
             $role->update();
 
             $this->sichtbareRechteSetzen($role, array_values($daten['permission'] ?? []));
