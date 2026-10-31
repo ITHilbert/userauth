@@ -1302,4 +1302,185 @@ final class AdminViewsKitTest extends TestCase
     {
         $this->assertMatchesRegularExpression('/(Mindest|mindestens|ab Version|ab `?\^?\d)[^\n]*laravel-kit[^\n]*\d+\.\d+|laravel-kit[^\n]*(Mindest|mindestens|ab Version|ab `?\^?\d)[^\n]*\d+\.\d+/iu', $this->upgradeAbschnitt());
     }
+
+    // ------------------------------------------------------------------ T7: AK1 Kästchen, AK3 Rechtezeilen
+
+    /** @return array<string, array{0: string}> */
+    public static function kaestchenViews(): array
+    {
+        return [
+            'role/recht' => ['role/recht'],
+            'permission/create' => ['permission/create'],
+            'permission/edit' => ['permission/edit'],
+        ];
+    }
+
+    // AK1
+    #[DataProvider('kaestchenViews')]
+    public function test_ak1_kaestchen_enthalten_kein_rohes_input_checkbox(string $view): void
+    {
+        $text = $this->quelltext($view);
+
+        $this->assertDoesNotMatchRegularExpression('/<input\b[^>]*\btype\s*=\s*["\']?checkbox/i', $text);
+        $this->assertDoesNotMatchRegularExpression('/<input\b[^>]*\bcheckbox\b/i', $text);
+    }
+
+    // AK1
+    #[DataProvider('kaestchenViews')]
+    public function test_ak1_kaestchen_kommen_ueber_x_kit_checkbox(string $view): void
+    {
+        $this->assertStringContainsString('<x-kit::checkbox', $this->quelltext($view));
+    }
+
+    // AK1
+    public function test_ak1_kaestchen_erkennung_schlaegt_bei_rohem_input_an(): void
+    {
+        // Gegenprobe zu den Quelltext-Tests oben
+        $this->assertMatchesRegularExpression('/<input\b[^>]*\btype\s*=\s*["\']?checkbox/i', '<input type="checkbox" name="a">');
+        $this->assertDoesNotMatchRegularExpression('/<input\b[^>]*\btype\s*=\s*["\']?checkbox/i', '<x-kit::checkbox name="a" />');
+    }
+
+    /**
+     * Daten eines abgelehnten Rechteformulars (group_display leer) mit zusätzlichen Zeilen.
+     *
+     * @return array<string, string>
+     */
+    private function neueZeilen(): array
+    {
+        return [
+            'permission_display_new_1' => 'Eins "<i>x</i>"', 'permission_new_1' => 'eins_intern',
+            'permission_display_new_2' => 'Zwei', 'permission_new_2' => 'zwei_intern',
+            'permission_display_new_3' => 'Drei & Co', 'permission_new_3' => 'drei_intern',
+        ];
+    }
+
+    // AK3
+    public function test_ak3_recht_anlegen_zeigt_nach_validierungsfehler_alle_per_skript_ergaenzten_zeilen(): void
+    {
+        $url = route('permission.create');
+        $daten = array_merge(['group_display' => '', 'group_name' => 'neue_gruppe', 'ckPermissionGroup' => '1'], $this->neueZeilen());
+
+        $this->actingAs($this->admin)->from($url)->post(route('permission.store'), $daten)->assertSessionHasErrors('group_display');
+        $html = $this->actingAs($this->admin)->from($url)->followingRedirects()->post(route('permission.store'), $daten)->assertOk()->getContent();
+
+        foreach ($this->neueZeilen() as $name => $wert) {
+            $this->assertSame($wert, $this->wertVon($html, $name), $name.' fehlt oder hat den falschen Wert');
+        }
+        $this->assertStringNotContainsString('<i>x</i>', $html, 'Wert ist escaped');
+    }
+
+    // AK3
+    public function test_ak3_recht_anlegen_ergaenzte_zeilen_werden_beim_erneuten_speichern_angelegt(): void
+    {
+        $url = route('permission.create');
+        $daten = array_merge(['group_display' => '', 'group_name' => 'neue_gruppe', 'ckPermissionGroup' => '1'], $this->neueZeilen());
+        $this->actingAs($this->admin)->from($url)->post(route('permission.store'), $daten)->assertSessionHasErrors('group_display');
+        $html = $this->actingAs($this->admin)->from($url)->followingRedirects()->post(route('permission.store'), $daten)->getContent();
+
+        $felder = array_merge($this->formularFelder($html, route('permission.store')), ['group_display' => 'Neue Gruppe']);
+        $this->actingAs($this->admin)->post(route('permission.store'), $this->alsDaten($felder))->assertSessionHasNoErrors();
+
+        $gruppe = DB::table('permissions_groups')->where('group_name', 'neue_gruppe')->first();
+        $this->assertNotNull($gruppe);
+        $interne = DB::table('permissions')->where('group_id', $gruppe->id)->pluck('permission')->all();
+        sort($interne);
+        $this->assertSame(['drei_intern', 'eins_intern', 'zwei_intern'], $interne);
+    }
+
+    // AK3
+    public function test_ak3_recht_anlegen_ohne_ergaenzte_zeilen_bleibt_bei_der_ersten_leeren_zeile(): void
+    {
+        $url = route('permission.create');
+        $daten = ['group_display' => '', 'group_name' => 'x', 'ckPermissionGroup' => '1'];
+        $this->actingAs($this->admin)->from($url)->post(route('permission.store'), $daten)->assertSessionHasErrors('group_display');
+        $html = $this->actingAs($this->admin)->from($url)->followingRedirects()->post(route('permission.store'), $daten)->getContent();
+
+        $this->assertSame(['permission_display_new_1', 'permission_new_1'], array_values(array_filter(
+            array_keys($this->formularFelder($html, route('permission.store'))),
+            fn (string $n) => str_contains($n, 'permission') && $n !== 'ckPermissionGroup'
+        )));
+    }
+
+    // AK3
+    public function test_ak3_recht_bearbeiten_zeigt_nach_validierungsfehler_alle_per_skript_ergaenzten_zeilen(): void
+    {
+        $url = route('permission.edit', 3);
+        $idA = $this->rechte['extras_a'];
+        $daten = array_merge(['group_display' => '', 'group_name' => 'extras', 'permission_display_'.$idA => 'Geändert', 'permission_'.$idA => 'extras_a'], $this->neueZeilen());
+
+        $this->actingAs($this->admin)->from($url)->post(route('permission.update', 3), $daten)->assertSessionHasErrors('group_display');
+        $html = $this->actingAs($this->admin)->from($url)->followingRedirects()->post(route('permission.update', 3), $daten)->assertOk()->getContent();
+
+        foreach ($this->neueZeilen() as $name => $wert) {
+            $this->assertSame($wert, $this->wertVon($html, $name), $name.' fehlt oder hat den falschen Wert');
+        }
+        $this->assertSame('Geändert', $this->wertVon($html, 'permission_display_'.$idA), 'bestehende Zeile behält ihren Wert');
+    }
+
+    // AK3
+    public function test_ak3_recht_bearbeiten_entfernte_zeile_bleibt_nach_validierungsfehler_entfernt(): void
+    {
+        $url = route('permission.edit', 3);
+        $idA = $this->rechte['extras_a'];
+        $idB = $this->rechte['extras_b'];
+
+        // Gegenprobe: ohne Fehler zeigt die Seite beide bestehenden Zeilen als sendende Felder
+        $normal = $this->formularFelder($this->actingAs($this->admin)->get($url)->assertOk()->getContent(), route('permission.update', 3));
+        $this->assertArrayHasKey('permission_'.$idA, $normal);
+        $this->assertArrayHasKey('permission_'.$idB, $normal);
+
+        // So sendet permission.js eine per Löschen-Knopf entfernte Zeile: delete_display_<id>, delete_intern_<id>
+        $daten = [
+            'group_display' => '', 'group_name' => 'extras',
+            'delete_display_'.$idA => 'Recht extras_a', 'delete_intern_'.$idA => 'extras_a',
+            'permission_display_'.$idB => 'Recht extras_b', 'permission_'.$idB => 'extras_b',
+        ];
+        $this->actingAs($this->admin)->from($url)->post(route('permission.update', 3), $daten)->assertSessionHasErrors('group_display');
+        $html = $this->actingAs($this->admin)->from($url)->followingRedirects()->post(route('permission.update', 3), $daten)->assertOk()->getContent();
+
+        $felder = $this->formularFelder($html, route('permission.update', 3));
+        $this->assertArrayNotHasKey('permission_'.$idA, $felder, 'entfernte Zeile sendet kein Recht mehr');
+        $this->assertArrayNotHasKey('permission_display_'.$idA, $felder);
+        $this->assertArrayHasKey('permission_'.$idB, $felder, 'die übrige Zeile bleibt');
+        $this->assertArrayHasKey('delete_intern_'.$idA, $felder, 'die Löschung bleibt beim erneuten Speichern erhalten');
+    }
+
+    // AK3
+    public function test_ak3_recht_bearbeiten_entfernte_zeile_wird_beim_erneuten_speichern_geloescht(): void
+    {
+        $url = route('permission.edit', 3);
+        $idA = $this->rechte['extras_a'];
+        $idB = $this->rechte['extras_b'];
+        $daten = [
+            'group_display' => '', 'group_name' => 'extras',
+            'delete_display_'.$idA => 'Recht extras_a', 'delete_intern_'.$idA => 'extras_a',
+            'permission_display_'.$idB => 'Recht extras_b', 'permission_'.$idB => 'extras_b',
+        ];
+        $this->actingAs($this->admin)->from($url)->post(route('permission.update', 3), $daten)->assertSessionHasErrors('group_display');
+        $html = $this->actingAs($this->admin)->from($url)->followingRedirects()->post(route('permission.update', 3), $daten)->getContent();
+
+        $felder = array_merge($this->formularFelder($html, route('permission.update', 3)), ['group_display' => 'Extras']);
+        $this->actingAs($this->admin)->post(route('permission.update', 3), $this->alsDaten($felder))->assertSessionHasNoErrors();
+
+        $this->assertNotNull(DB::table('permissions')->where('id', $idA)->value('deleted_at'), 'Recht ist (soft) gelöscht');
+        $this->assertNull(DB::table('permissions')->where('id', $idB)->value('deleted_at'), 'das übrige Recht bleibt');
+    }
+
+    // AK3
+    public function test_ak3_permission_js_beginnt_die_nummerierung_nicht_fest_bei_1(): void
+    {
+        $js = (string) file_get_contents(__DIR__.'/../../src/Resources/assets/js/permission.js');
+
+        $this->assertDoesNotMatchRegularExpression('/\b(var|let)\s+newID\s*=\s*1\s*;/', $js, 'Startwert muss aus dem DOM kommen');
+        $this->assertMatchesRegularExpression('/\bnewID\s*=[^;]*(\$\(|document\.|querySelector|data\(|getAttribute|attr\()/', $js, 'Startwert von newID kommt aus dem DOM bzw. einem data-Attribut');
+    }
+
+    // AK3
+    public function test_ak3_permission_js_vergibt_nummer_ueber_dem_startwert(): void
+    {
+        $js = (string) file_get_contents(__DIR__.'/../../src/Resources/assets/js/permission.js');
+
+        // Gegenprobe: newPermission zählt vor dem Vergeben weiter (newID++), so ist die erste neue Zeile Startwert + 1
+        $this->assertMatchesRegularExpression('/function\s+newPermission\s*\(\)\s*\{[^}]*newID\+\+/s', $js);
+    }
 }
