@@ -21,7 +21,7 @@ composer require ithilbert/userauth
 |---|---|---|
 | PHP | 8.5 | Paket-Code |
 | Laravel (`illuminate/*`) | 12 oder 13 | Framework |
-| `ithilbert/laravel-kit` | `^1.2` | Trait `VueComboBox`, das `UserAuth` verwendet |
+| `ithilbert/laravel-kit` | `^1.2`, für die Verwaltungsseiten ein Stand mit Kit-Components (siehe [Upgrade-Hinweise](#upgrade-hinweise-nach-300-unveröffentlicht), Punkt 8) | Trait `VueComboBox`, das `UserAuth` verwendet; Kit-Components der Verwaltungsseiten |
 | `laravel/socialite` | `^5.0` (automatisch installiert) | Social Login (Google) |
 | `yajra/laravel-datatables-oracle` | `^12.0` oder `^13.0` (automatisch installiert) | Nutzerliste (AJAX) |
 | `nesbot/carbon` | `^2.0` oder `^3.0` (automatisch installiert) | Datumsberechnungen |
@@ -103,12 +103,13 @@ Die Verwaltungsseiten erweitern `userauth::layouts.afterLogin`. Dieses Layout en
 Weitere Anforderungen an den Host:
 - **jQuery und DataTables** müssen vor der Section `js` geladen sein. Die Listen rufen `$('.data-table').DataTable(…)` auf. Fehlen beide, bleiben die Listen leer.
 - **Sprachdatei der Listen:** Die Listen laden `vendor/laravelkit/DataTable_DE.json`. Die Datei kommt aus `ithilbert/laravel-kit`.
-- **Vue-Komponenten:** Die Views nutzen `card-main`, `card-main-header`, `card-body`, `dialog-delete`, `button-create`, `input-text`, `input-email`, `input-euro`, `input-date`, `input-file-img`, `text-area` und `combobox`. Der Host muss sie registrieren. `ithilbert/laravel-kit` liefert Komponenten dieser Namen in den Varianten `bootstrap4`, `bootstrap5` und `tailwind`; eine Variante deckt nicht zwingend alle ab.
-- **`OpenDeleteForm(id)`:** Die Lösch-Buttons der Listen (`HButton::delete` aus laravel-kit) rufen `OpenDeleteForm(id)` per `onclick` auf. Die Funktion muss global im Browser verfügbar sein. laravel-kit definiert sie nicht global. Im Host `packages_dev` steht sie in `resources/js/forms.js`.
+- **Kit-Components und Skripte:** Die Views bestehen aus Blade-Components von laravel-kit (`<x-kit::…>`), das Theme bestimmt `laravelkit.theme`. Der Host bindet `initTabs()`, `initLoeschen()` und `mountInseln()` mit der Insel `dialog-delete` ein (siehe [Upgrade-Hinweise](#upgrade-hinweise-nach-300-unveröffentlicht), Punkt 9). Ein Whole-DOM-Mount ist für diese Seiten nicht nötig.
+- **Lösch-Buttons:** `HButton::delete` aus laravel-kit gibt `data-kit-delete="<id>"` für `initLoeschen()` aus und ruft weiter `OpenDeleteForm(id)` per `onclick` auf. Hosts, die `OpenDeleteForm` global definieren (im Host `packages_dev` in `resources/js/forms.js`), öffnen den Dialog weiter auf diesem Weg.
 - **Assets:** `php artisan vendor:publish --provider="ITHilbert\UserAuth\UserAuthServiceProvider"` kopiert `Resources/assets` nach `public/vendor/userauth`, u. a. `js/role.js`, `js/permission.js` und `img/default-user.jpg`. Der Befehl veröffentlicht auch Views, Config und Sprachdateien. Vorhandene Dateien überschreibt er nur mit `--force`.
 - **Views `include.message` und `include.breadcrumb`:** Die Verwaltungsviews binden beide selbst per `@include` ein. Das Paket liefert sie nicht, der Host muss sie bereitstellen.
   - `include.message` zeigt die Erfolgsmeldung aus `session('message')` und alle Validierungsmeldungen aus `$errors`. Ohne diese View kehrt ein abgelehnter Wert kommentarlos ins Formular zurück.
   - `include.breadcrumb` rendert die Variable `$breadcrumb` (Klasse `ITHilbert\LaravelKit\Helpers\Breadcrumb`). Ist sie nicht gesetzt, gibt die View nichts aus.
+  - Beide Views dürfen keine Vue-Tags enthalten (z. B. `<breadcrumb>`), da die Verwaltungsseiten ohne Whole-DOM-Mount laufen.
   - Das Layout darf `$errors` nicht zusätzlich ausgeben, sonst erscheinen Meldungen doppelt.
 
 ### Auth-View-Theme (Login & Passwort-Reset)
@@ -364,6 +365,28 @@ Diese Punkte gelten für Hosts, die den aktuellen Stand des Pakets nutzen. Eine 
 
 **Lösch-Dialog**
 6. Die Listen übergeben `dialog-delete` das Prop `titel` statt `title`. Veröffentlichte Views unter `resources/views/vendor/userauth/` müssen angepasst werden, wenn sie `title=` am Dialog setzen.
+
+**Verwaltungsseiten ohne Vue-Tags (Kit-Components)**
+7. Die Verwaltungsviews (`user/index|create|edit|icon`, `role/index|create|edit`, `permission/index|create|edit`) bestehen aus Blade-Components von laravel-kit (`<x-kit::…>`) statt aus Vue-Tags. Ein Ausdruck wie `{{ 7*7 }}` in Namen oder Anzeigen erscheint als Text. Das Markup wählt laravel-kit über `laravelkit.theme` (`tailwind` oder `bootstrap5`).
+8. Mindeststand von `ithilbert/laravel-kit`: der erste Stand nach 1.2.0 mit den Kit-Components (#142) und der Component `combobox` (#115). Eine Versionsnummer dafür gibt es noch nicht. `^1.2` aus `composer.json` genügt erst, wenn dieser Stand als Release vorliegt.
+9. Der Host bindet die Skripte von laravel-kit einmal pro Seite ein, z. B. in `resources/js/app.js`:
+
+```javascript
+import { initTabs } from '../../vendor/ithilbert/laravel-kit/js/tabs.js';
+import { initLoeschen } from '../../vendor/ithilbert/laravel-kit/js/loeschen.js';
+import { mountInseln } from '../../vendor/ithilbert/laravel-kit/js/mount-inseln.js';
+
+initTabs();
+initLoeschen();
+mountInseln({
+    'dialog-delete': () => import('../../vendor/ithilbert/laravel-kit/vue/tailwind/dialog/delete.vue'),
+});
+```
+
+   `initTabs()` schaltet die Reiter im Rollenformular. `initLoeschen()` nimmt den Klick auf die Lösch-Buttons der Listen entgegen (`data-kit-delete` aus `HButton::delete`). `mountInseln()` mountet die Insel `dialog-delete`. Der Dialog sendet das Formular `#formDelete`, das die Listen selbst mitbringen (Methode DELETE, CSRF-Token). Die Insel `dialog-delete` gibt es nur für das Theme `tailwind`.
+10. Ein Whole-DOM-Mount (`vueapp_TW.js`, `vueapp_B5.js`, `vueapp_B4.js` aus laravel-kit) ist für diese Seiten nicht mehr nötig.
+11. Veröffentlichte Verwaltungs-Views unter `resources/views/vendor/userauth/` neu veröffentlichen: `php artisan vendor:publish --provider="ITHilbert\UserAuth\UserAuthServiceProvider" --force`. Ohne das behält der Host die alten Views mit Vue-Tags. `--force` überschreibt auch Config und Sprachdateien; eigene Änderungen dort vorher sichern. Neu sind die Teil-Views `user/formularfelder`, `role/formularfelder`, `role/recht`, `permission/rechtezeilen` und `partials/loeschen`.
+12. Die Views `include.breadcrumb` und `include.message` des Hosts dürfen keine Vue-Tags enthalten (z. B. `<breadcrumb>`). Ohne Whole-DOM-Mount rendert der Browser sie sonst nicht.
 
 ## Upgrade-Hinweise (3.0.0)
 

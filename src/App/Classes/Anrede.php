@@ -7,6 +7,21 @@ namespace ITHilbert\UserAuth\App\Classes;
 class Anrede
 {
     /**
+     * Anreden aus der Config als Optionen für `<x-kit::combobox>` (`cbKey`/`cbCaption`).
+     *
+     * @return list<array{cbKey: mixed, cbCaption: mixed}>
+     */
+    public static function comboboxOptionen(): array
+    {
+        $optionen = [];
+        foreach ((array) config('userauth.anrede') as $eintrag) {
+            $optionen[] = ['cbKey' => $eintrag['id'] ?? null, 'cbCaption' => $eintrag['anrede'] ?? null];
+        }
+
+        return $optionen;
+    }
+
+    /**
      * Gibt eine ComboBox zurück
      *
      * @param  int  $id

@@ -23,7 +23,19 @@ function showSinglePermissions() {
 
 
 
-var newID = 1;
+// Startwert: höchste Nummer der vorhandenen neuen Zeilen im DOM (nach einem Validierungsfehler können es mehrere sein)
+function hoechsteNeueNummer(tbody) {
+    var hoechste = 1;
+    tbody.find('tr[id^="new-row-"]').each(function () {
+        var nr = parseInt($(this).attr('nummer'), 10);
+        if (!isNaN(nr) && nr > hoechste) {
+            hoechste = nr;
+        }
+    });
+    return hoechste;
+}
+
+var newID = hoechsteNeueNummer($('#tbody'));
 
 function newPermission() {
     var vorlage = $('#vorlage').clone()
