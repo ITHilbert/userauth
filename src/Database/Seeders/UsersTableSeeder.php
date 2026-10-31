@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 
 /**
  * Legt ein Admin-Konto nur an, wenn die Tabelle users komplett leer ist (auch ohne soft-gelöschte
- * Zeilen) und die App unter einer .lan-Domain läuft. Vorhandene Benutzer werden nie angetastet.
+ * Zeilen) und die App unter einer .lan-Domain oder einem lokalen Host (localhost, 127.0.0.1, ::1) läuft. Vorhandene Benutzer werden nie angetastet.
  */
 class UsersTableSeeder extends Seeder
 {
@@ -22,7 +22,7 @@ class UsersTableSeeder extends Seeder
         }
 
         if (! $this->istHeimnetz()) {
-            $this->meldeKeinKonto('keine .lan-Domain in app.url');
+            $this->meldeKeinKonto('kein lokaler Host in app.url');
 
             return;
         }
@@ -61,11 +61,17 @@ class UsersTableSeeder extends Seeder
     {
         $host = parse_url((string) config('app.url'), PHP_URL_HOST);
 
-        return is_string($host) && str_ends_with(strtolower($host), '.lan');
+        if (! is_string($host)) {
+            return false;
+        }
+
+        $host = strtolower($host);
+
+        return str_ends_with($host, '.lan') || in_array($host, ['localhost', '127.0.0.1', '[::1]', '::1'], true);
     }
 
     private function meldeKeinKonto(string $grund): void
     {
-        $this->command?->warn('Kein Admin-Konto angelegt: '.$grund.' (Konto nur unter einer .lan-Domain, Rolle dev vorausgesetzt).');
+        $this->command?->warn('Kein Admin-Konto angelegt: '.$grund.' (Konto nur unter einer .lan-Domain oder einem lokalen Host, Rolle dev vorausgesetzt).');
     }
 }
