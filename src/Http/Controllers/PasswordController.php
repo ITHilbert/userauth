@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ITHilbert\UserAuth\Http\Controllers;
 
-use Closure;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
@@ -13,7 +12,7 @@ use ITHilbert\UserAuth\Application\Passwort\PasswortSetzen;
 use ITHilbert\UserAuth\Application\Passwort\PasswortZuruecksetzen;
 use ITHilbert\UserAuth\Application\Passwort\PasswortZuruecksetzenAnfordern;
 use ITHilbert\UserAuth\Application\Passwort\PasswortZuruecksetzenErgebnis;
-use ITHilbert\UserAuth\Domain\Passwort\Exceptions\PasswortBereitsVerwendetException;
+use ITHilbert\UserAuth\Http\PasswortAblehnung;
 use ITHilbert\UserAuth\Http\Requests\PasswortAendernRequest;
 use ITHilbert\UserAuth\Http\Requests\PasswortZuruecksetzenAnfordernRequest;
 use ITHilbert\UserAuth\Http\Requests\PasswortZuruecksetzenRequest;
@@ -39,7 +38,7 @@ final class PasswordController
      */
     public function update(PasswortAendernRequest $request, PasswortSetzen $passwortSetzen): RedirectResponse
     {
-        $this->neuesPasswortSetzen(fn () => $passwortSetzen->handle($request->user(), (string) $request->validated('password')));
+        PasswortAblehnung::alsValidierungsfehler(fn () => $passwortSetzen->handle($request->user(), (string) $request->validated('password')));
 
         return $this->nachPasswortAenderung();
     }
@@ -86,7 +85,7 @@ final class PasswordController
      */
     public function updatewithtoken(PasswortZuruecksetzenRequest $request, PasswortZuruecksetzen $zuruecksetzen): RedirectResponse
     {
-        $ergebnis = $this->neuesPasswortSetzen(fn (): PasswortZuruecksetzenErgebnis => $zuruecksetzen->handle(
+        $ergebnis = PasswortAblehnung::alsValidierungsfehler(fn (): PasswortZuruecksetzenErgebnis => $zuruecksetzen->handle(
             (string) $request->validated('email'),
             (string) $request->validated('pwtoken'),
             (string) $request->validated('password'),
@@ -98,25 +97,6 @@ final class PasswordController
         }
 
         return $this->nachPasswortAenderung();
-    }
-
-    /**
-     * Bereits verwendetes Passwort → Validierungsfehler am Feld `password`.
-     *
-     * @template T
-     *
-     * @param  Closure(): T  $setzen
-     * @return T
-     *
-     * @throws ValidationException
-     */
-    private function neuesPasswortSetzen(Closure $setzen): mixed
-    {
-        try {
-            return $setzen();
-        } catch (PasswortBereitsVerwendetException) {
-            throw ValidationException::withMessages(['password' => trans('userauth::password.bereits_verwendet')]);
-        }
     }
 
     private function nachPasswortAenderung(): RedirectResponse

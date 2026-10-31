@@ -105,6 +105,9 @@ use ITHilbert\UserAuth\App\Classes\SignatureRule;
             <label for="password" class="col-md-4 col-form-label text-md-right">@lang('userauth::user.password')</label>
             <div class="col-md-6">
                <input-password name="password" value="" autocomplete="new-password" />
+               @error('password')
+                   <div class="text-danger small mt-1">{{ $message }}</div>
+               @enderror
             </div>
         </div>
 

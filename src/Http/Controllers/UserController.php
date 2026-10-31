@@ -10,11 +10,13 @@ use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
 use ITHilbert\LaravelKit\Helpers\Breadcrumb;
 use ITHilbert\LaravelKit\Helpers\HButton;
+use ITHilbert\UserAuth\Application\Passwort\PasswortSetzen;
 use ITHilbert\UserAuth\Entities\Role;
+use ITHilbert\UserAuth\Http\PasswortAblehnung;
 use ITHilbert\UserAuth\Http\Requests\NutzerSpeichernRequest;
 use ITHilbert\UserAuth\Infrastructure\Auth\UserModel;
 use Yajra\DataTables\Facades\DataTables;
@@ -79,7 +81,7 @@ final class UserController extends Controller
      *
      * @return Response
      */
-    public function store(NutzerSpeichernRequest $request)
+    public function store(NutzerSpeichernRequest $request, PasswortSetzen $passwortSetzen)
     {
         $daten = $request->validated();
 
@@ -87,7 +89,8 @@ final class UserController extends Controller
         $user->name = $this->getName($daten);
         $user->email = $daten['email'];
         $user->role_id = $daten['role_id'];
-        $user->password = Hash::make($daten['password']);
+        // Platzhalter bis PasswortSetzen den Hash speichert (kein gültiger Hash).
+        $user->password = '';
         $this->profilfelderSetzen($user, $daten);
 
         // Image
@@ -98,7 +101,12 @@ final class UserController extends Controller
             $user->image = str_replace('public/', 'storage/', $pathImage);
         }
 
-        $user->save();
+        PasswortAblehnung::alsValidierungsfehler(function () use ($user, $passwortSetzen, $daten): void {
+            DB::transaction(function () use ($user, $passwortSetzen, $daten): void {
+                $user->save();
+                $passwortSetzen->handle($user, (string) $daten['password']);
+            });
+        });
 
         return redirect()->route('user')->with([
             'message' => Lang::get('userauth::user.MsgAddSuccess'),
@@ -178,7 +186,7 @@ final class UserController extends Controller
      * @param  int  $id
      * @return Response
      */
-    public function update(NutzerSpeichernRequest $request, $id)
+    public function update(NutzerSpeichernRequest $request, PasswortSetzen $passwortSetzen, $id)
     {
         $daten = $request->validated();
         $editPW = (bool) $request->input('password');
@@ -209,12 +217,14 @@ final class UserController extends Controller
             $user->image = str_replace('public/', 'storage/', $pathImage);
         }
 
-        // Falls das Passwort geändert werden soll
-        if ($editPW) {
-            $user->password = Hash::make($daten['password']);
-        }
+        // Felder und Passwort atomar: lehnt PasswortSetzen ab, wird nichts gespeichert.
+        $erg = PasswortAblehnung::alsValidierungsfehler(fn (): bool => DB::transaction(function () use ($user, $passwortSetzen, $daten, $editPW): bool {
+            if ($editPW) {
+                $passwortSetzen->handle($user, (string) $daten['password']);
+            }
 
-        $erg = $user->update();
+            return $user->save();
+        }));
 
         if ($erg) {
             return redirect()->route('user')->with([
