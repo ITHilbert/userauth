@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ITHilbert\UserAuth\Http\Controllers;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -257,14 +258,16 @@ final class PermissionController extends Controller
                     $pos = strrpos($param, '_');
                     $nr = substr($param, $pos + 1);
 
-                    $permission = Permission::find($nr);
+                    $permission = $this->gruppenRechte((int) $id)->find($nr);
                     if ($permission === null) {
                         continue;
                     }
                     $permission->permission_display = $value;
 
-                    $intern = $input['permission_'.$nr];
-                    $permission->permission = $this->formatDisplayToIntern($intern);
+                    $intern = $input['permission_'.$nr] ?? null;
+                    if (is_string($intern) && $intern !== '') {
+                        $permission->permission = $this->formatDisplayToIntern($intern);
+                    }
                     $permission->update();
                     // Bestehendes Recht löschen
                 } elseif (strpos($param, 'delete_intern_') === 0) {
@@ -272,7 +275,7 @@ final class PermissionController extends Controller
                     $pos = strrpos($param, '_');
                     $nr = substr($param, $pos + 1);
 
-                    Permission::where('id', $nr)->delete();
+                    $this->gruppenRechte((int) $id)->where('id', $nr)->delete();
                 }
             }
         }
@@ -305,6 +308,14 @@ final class PermissionController extends Controller
             'message' => Lang::get('userauth::permission.MsgDeleteSuccess'),
             'alert-type' => 'success',
         ]);
+    }
+
+    /**
+     * @return Builder<Permission>
+     */
+    private function gruppenRechte(int $groupId)
+    {
+        return Permission::where('group_id', $groupId);
     }
 
     public function noPermission(Request $request, $id)
