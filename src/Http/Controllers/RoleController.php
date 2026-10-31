@@ -42,7 +42,6 @@ final class RoleController extends Controller
                 ->addColumn('action', function ($row) use ($user) {
                     $ausgabe = '<div style="white-space: nowrap;">';
                     if ($row->id > 2) {
-                        // $ausgabe .= HButton::show(route('permission.show', $row->id), '');
                         if ($user->hasPermission('role_edit')) {
                             $ausgabe .= HButton::edit(route('role.edit', $row->id), '');
                         }
