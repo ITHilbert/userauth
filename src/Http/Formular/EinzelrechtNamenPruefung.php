@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ITHilbert\UserAuth\Http\Formular;
 
+use Closure;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Validation\ValidationException;
 use ITHilbert\UserAuth\Entities\Permission;
 use ITHilbert\UserAuth\Traits\Format;
@@ -52,13 +54,15 @@ final class EinzelrechtNamenPruefung
             return;
         }
 
-        $namen = array_column($zeilen, 'name');
-        $vergeben = Permission::withTrashed()->whereIn('permission', $namen)->get(['id', 'permission']);
-        $haeufigkeit = array_count_values($namen);
+        $haeufigkeit = array_count_values(array_column($zeilen, 'name'));
 
         $fehler = [];
         foreach ($zeilen as $zeile) {
-            $belegt = $vergeben->contains(fn (Permission $recht): bool => $recht->permission === $zeile['name'] && $recht->id !== $zeile['id']);
+            // Die Datenbank entscheidet über "gleich" (Kollation, z. B. Akzente), nicht PHP.
+            $belegt = Permission::withTrashed()
+                ->where('permission', $zeile['name'])
+                ->when($zeile['id'] !== null, fn ($abfrage) => $abfrage->where('id', '!=', $zeile['id']))
+                ->exists();
             if ($belegt || $haeufigkeit[$zeile['name']] > 1) {
                 $fehler[$zeile['feld']] = __('userauth::permission.NameVergeben');
             }
@@ -66,6 +70,21 @@ final class EinzelrechtNamenPruefung
 
         if ($fehler !== []) {
             throw ValidationException::withMessages($fehler);
+        }
+    }
+
+    /**
+     * Führt das Speichern einer Zeile aus. Verletzt es den Unique-Index (Doppelung innerhalb der Anfrage
+     * oder ein Rennen), wird daraus ein Validierungsfehler am Feld der Zeile; die umgebende Transaktion rollt zurück.
+     *
+     * @throws ValidationException
+     */
+    public function speichern(string $feld, Closure $speichern): void
+    {
+        try {
+            $speichern();
+        } catch (UniqueConstraintViolationException) {
+            throw ValidationException::withMessages([$feld => __('userauth::permission.NameVergeben')]);
         }
     }
 }

@@ -180,7 +180,8 @@ final class PermissionController extends Controller
         }
 
         $nr = substr($param, (int) strrpos($param, '_') + 1);
-        $intern = $input['permission_new_'.$nr] ?? null;
+        $feld = 'permission_new_'.$nr;
+        $intern = $input[$feld] ?? null;
         $quelle = is_string($intern) && $intern !== '' ? $intern : $anzeige;
 
         $permission = new Permission;
@@ -188,7 +189,7 @@ final class PermissionController extends Controller
         $permission->crud = 'single';
         $permission->permission_display = $anzeige;
         $permission->permission = $this->formatDisplayToIntern($quelle);
-        $permission->save();
+        (new EinzelrechtNamenPruefung)->speichern($feld, fn () => $permission->save());
     }
 
     /**
@@ -287,7 +288,7 @@ final class PermissionController extends Controller
                         if (is_string($intern) && $intern !== '') {
                             $permission->permission = $this->formatDisplayToIntern($intern);
                         }
-                        $permission->update();
+                        (new EinzelrechtNamenPruefung)->speichern('permission_'.$nr, fn () => $permission->update());
                         // Bestehendes Recht löschen
                     } elseif (strpos($param, 'delete_intern_') === 0) {
                         // ID ermitteln
