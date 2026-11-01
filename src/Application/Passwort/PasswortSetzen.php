@@ -42,12 +42,17 @@ final class PasswortSetzen
         $neuerHash = $this->hasher->make($neuesPasswort);
 
         $this->db->transaction(function () use ($nutzer, $nutzerId, $alterHash, $neuerHash, $jetzt): void {
-            // Ein neu angelegter Nutzer hat noch keinen Hash – nichts für die Historie.
-            if ($alterHash !== '' && $this->wiederverwendung->historieAktiv()) {
+            // Ein neu angelegter Nutzer hat noch kein Passwort (leer oder Hash des leeren Strings) – nichts für die Historie.
+            if ($this->wiederverwendung->historieAktiv() && ! $this->istPlatzhalter($alterHash)) {
                 $this->historie->merken($nutzerId, $alterHash, $jetzt);
             }
 
             $this->konten->passwortSpeichern($nutzer, $neuerHash, $jetzt);
         });
+    }
+
+    private function istPlatzhalter(string $hash): bool
+    {
+        return $hash === '' || $this->hasher->check('', $hash);
     }
 }
