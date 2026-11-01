@@ -56,11 +56,6 @@ function newPermission() {
     rowid.attr('id', 'display_new_' + zeilenNummer);
     rowid.attr('name', 'permission_display_new_' + zeilenNummer);
 
-    //Recht anpassen
-    var tb1 = vorlage.find('#vorlage_display');
-    tb1.attr('id', 'display_new_' + zeilenNummer);
-    tb1.attr('name', 'permission_display_new_' + zeilenNummer);
-
     //Recht intern anpassen
     var tb2 = vorlage.find('#vorlage_intern');
     tb2.attr('id', 'intern_new_' + zeilenNummer);
