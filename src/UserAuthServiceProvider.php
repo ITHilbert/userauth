@@ -14,6 +14,8 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Http\Kernel as HttpKernelContract;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -164,6 +166,8 @@ class UserAuthServiceProvider extends ServiceProvider
         $router->aliasMiddleware('isAdmin', isAdmin::class);
         $router->aliasMiddleware('isDev', isDev::class);
 
+        $this->registerMiddlewarePriority($router);
+
         // Global in "web": Passwort-Ablauf erzwingen (greift erst nach bestandener 2FA, vorher ist niemand angemeldet)
         // und Sitzungen aus der Zeit vor der sitzungsgebundenen 2FA abmelden (TwoFactorMiddleware)
         $webMiddleware = [EnforcePasswordPolicy::class, TwoFactorMiddleware::class];
@@ -184,6 +188,59 @@ class UserAuthServiceProvider extends ServiceProvider
                 $kernel->appendMiddlewareToGroup('web', $middleware);
             }
         });
+    }
+
+    /**
+     * Rechte-Middlewares laufen nach der Anmeldung und vor dem Route-Model-Binding, sonst verrät die Antwort
+     * (404 statt Ablehnung), welche IDs existieren. Router und Kernel führen je eine eigene Prioritätsliste;
+     * der Kernel gibt seine beim Erzeugen an den Router weiter – deshalb zusätzlich beim Auflösen des Kernels
+     * (auch wenn er schon vor dem Boot erzeugt wurde, dann sofort).
+     */
+    protected function registerMiddlewarePriority(Router $router): void
+    {
+        $rechte = [hasPermission::class, hasPermissionAnd::class, hasPermissionOr::class, hasRole::class, isAdmin::class, isDev::class];
+
+        $router->middlewarePriority = $this->prioritaetMitRechten($router->middlewarePriority, $rechte);
+
+        $this->callAfterResolving(HttpKernelContract::class, static function (HttpKernelContract $kernel) use ($router, $rechte): void {
+            if (! $kernel instanceof HttpKernel) {
+                return;
+            }
+
+            // Der Kernel schreibt beim Eintragen seine Gruppen auf den Router zurück und würde dort ergänzte verwerfen
+            $gruppen = $router->getMiddlewareGroups();
+
+            foreach ($rechte as $middleware) {
+                $kernel->addToMiddlewarePriorityBefore(SubstituteBindings::class, $middleware);
+            }
+
+            foreach ($gruppen as $name => $middlewares) {
+                $router->middlewareGroup($name, $middlewares);
+            }
+        });
+    }
+
+    /**
+     * @param  list<string>  $prioritaet
+     * @param  list<string>  $rechte
+     * @return list<string>
+     */
+    private function prioritaetMitRechten(array $prioritaet, array $rechte): array
+    {
+        $fehlend = array_values(array_diff($rechte, $prioritaet));
+        $stelle = array_search(SubstituteBindings::class, $prioritaet, true);
+
+        if ($fehlend === []) {
+            return $prioritaet;
+        }
+
+        if ($stelle === false) {
+            return array_merge($prioritaet, $fehlend);
+        }
+
+        array_splice($prioritaet, $stelle, 0, $fehlend);
+
+        return $prioritaet;
     }
 
     public function publishAssets()

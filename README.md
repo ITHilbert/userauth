@@ -246,6 +246,8 @@ Leere, `null` oder fehlende Rechtenamen gelten als nicht vorhandenes Recht. Sie 
 
 Die Route `/users` verlangt `user_read` an der Route selbst. Das gilt unabhängig von `routes.users_middleware` in der veröffentlichten Config. Ohne Recht erhält der Nutzer dieselbe Ablehnung wie bei jeder anderen fehlenden Berechtigung (abhängig von `userauth.redirect_on_no_permission`: Anmeldung oder Seite `no-permission`).
 
+Die Rechte-Middlewares (`hasPermission`, `hasPermissionAnd`, `hasPermissionOr`, `hasRole`, `isAdmin`, `isDev`) laufen nach der Anmeldung und **vor dem Route-Model-Binding** (`SubstituteBindings`). Das Paket trägt sie selbst in die Middleware-Priorität von Router und HTTP-Kernel ein. Sonst verriete ein 404 bei Routen mit Model-Parameter, welche IDs existieren. Hosts können eine eigene Übergangslösung dafür (z. B. in `bootstrap/app.php`) entfernen; bleibt sie bestehen, entsteht kein doppelter Eintrag.
+
 ### Nutzerliste (JSON)
 
 Die AJAX-Liste liefert pro Zeile nur: `id`, `name`, `email`, `RoleName` und die Spalte `action` (HTML der Aktionen). Passwort-Hash, Reset-Token, 2FA-Code und 2FA-Ablaufzeit gehören nicht zur Ausgabe. Eigene Erweiterungen der Liste müssen die Felder explizit auswählen, nicht das ganze Model serialisieren.
