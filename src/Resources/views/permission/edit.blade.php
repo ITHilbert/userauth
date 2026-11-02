@@ -29,6 +29,7 @@
                             <label for="group_name" class="col-md-4 col-form-label text-md-right">@lang('userauth::permission.group_name')</label>
                             <div class="col-md-6">
                                 <x-kit::input-text name="group_name" :value="AlteEingabe::text('group_name', $permissiongroup->group_name)" required />
+                                @error('group_name')<div class="text-danger small">{{ $message }}</div>@enderror
                             </div>
                         </div>
 

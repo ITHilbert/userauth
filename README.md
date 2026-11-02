@@ -390,6 +390,13 @@ mountInseln({
 11. Veröffentlichte Verwaltungs-Views unter `resources/views/vendor/userauth/` neu veröffentlichen: `php artisan vendor:publish --provider="ITHilbert\UserAuth\UserAuthServiceProvider" --force`. Ohne das behält der Host die alten Views mit Vue-Tags. `--force` überschreibt auch Config und Sprachdateien; eigene Änderungen dort vorher sichern. Neu sind die Teil-Views `user/formularfelder`, `role/formularfelder`, `role/recht`, `permission/rechtezeilen` und `partials/loeschen`.
 12. Die Views `include.breadcrumb` und `include.message` des Hosts dürfen keine Vue-Tags enthalten (z. B. `<breadcrumb>`). Ohne Whole-DOM-Mount rendert der Browser sie sonst nicht.
 
+**Rechtegruppen: Gruppenname**
+13. `group_name` einer Rechtegruppe wird beim Bearbeiten (`permission.update`) formatiert gespeichert, wie beim Anlegen. Bisher blieb er roh, während die CRUD-Rechte den formatierten Namen erhielten. Gruppen, die nicht bearbeitet werden, behalten ihren gespeicherten `group_name`.
+14. Ein Gruppenname ist eindeutig, geprüft wird der formatierte Name. Kollisionen ergeben beim Anlegen und Bearbeiten einen Validierungsfehler am Feld `group_name` (Meldung `userauth::permission.NameVergeben`), keinen 500er:
+    - der formatierte Name ist bereits als Gruppe vergeben (auch soft-gelöscht),
+    - bei einer CRUD-Gruppe ist einer der Rechtenamen `<name>_create`, `_read`, `_edit` oder `_delete` bereits vergeben (aktiv oder soft-gelöscht), außer er gehört zur bearbeiteten Gruppe selbst.
+    Dann wird weder die Gruppe noch ein Recht angelegt oder umbenannt.
+
 ## Upgrade-Hinweise (3.0.0)
 
 Diese Punkte gelten für Hosts, die auf 3.0.0 aktualisieren. Sie sind nach dem Code geprüft.
