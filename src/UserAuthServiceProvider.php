@@ -14,7 +14,6 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Http\Kernel as HttpKernelContract;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
@@ -46,14 +45,13 @@ use ITHilbert\UserAuth\Application\Zugriff\Contracts\RollenRepository;
 use ITHilbert\UserAuth\Application\Zugriff\Zugriffspruefung;
 use ITHilbert\UserAuth\Domain\SocialLogin\Events\SocialAccountLinked;
 use ITHilbert\UserAuth\Domain\SocialLogin\Events\SocialAccountUnlinked;
-use ITHilbert\UserAuth\Http\Middleware\EnforcePasswordPolicy;
 use ITHilbert\UserAuth\Http\Middleware\hasPermission;
 use ITHilbert\UserAuth\Http\Middleware\hasPermissionAnd;
 use ITHilbert\UserAuth\Http\Middleware\hasPermissionOr;
 use ITHilbert\UserAuth\Http\Middleware\hasRole;
 use ITHilbert\UserAuth\Http\Middleware\isAdmin;
 use ITHilbert\UserAuth\Http\Middleware\isDev;
-use ITHilbert\UserAuth\Http\Middleware\TwoFactorMiddleware;
+use ITHilbert\UserAuth\Http\MiddlewarePrioritaet;
 use ITHilbert\UserAuth\Http\ViewComposers\AvailableSocialProvidersComposer;
 use ITHilbert\UserAuth\Infrastructure\Auth\GuardAnmeldedaten;
 use ITHilbert\UserAuth\Infrastructure\Auth\GuardSitzungsanmeldung;
@@ -170,7 +168,7 @@ class UserAuthServiceProvider extends ServiceProvider
 
         // Global in "web": Passwort-Ablauf erzwingen (greift erst nach bestandener 2FA, vorher ist niemand angemeldet)
         // und Sitzungen aus der Zeit vor der sitzungsgebundenen 2FA abmelden (TwoFactorMiddleware)
-        $webMiddleware = [EnforcePasswordPolicy::class, TwoFactorMiddleware::class];
+        $webMiddleware = MiddlewarePrioritaet::VORPRUEFUNGEN;
         foreach ($webMiddleware as $middleware) {
             $router->pushMiddlewareToGroup('web', $middleware);
         }
@@ -191,56 +189,22 @@ class UserAuthServiceProvider extends ServiceProvider
     }
 
     /**
-     * Rechte-Middlewares laufen nach der Anmeldung und vor dem Route-Model-Binding, sonst verrät die Antwort
-     * (404 statt Ablehnung), welche IDs existieren. Router und Kernel führen je eine eigene Prioritätsliste;
-     * der Kernel gibt seine beim Erzeugen an den Router weiter – deshalb zusätzlich beim Auflösen des Kernels
-     * (auch wenn er schon vor dem Boot erzeugt wurde, dann sofort).
+     * Vorprüfungen und Rechte-Middlewares in die Priorität von Router und Kernel (siehe MiddlewarePrioritaet).
+     *
+     * Router und Kernel führen je eine eigene Liste. Am Router sofort; den Kernel beim Auflösen: Wurde er schon
+     * vor dem Boot erzeugt (`public/index.php`), sofort (callAfterResolving), sonst nach seinem Konstruktor, der die
+     * Router-Liste mit seiner eigenen überschreibt (Testbench) – dann erneut aus der Router-Liste, die zu diesem
+     * Zeitpunkt der Kernel-Liste samt den Einträgen früher aufgerufener afterResolving-Callbacks entspricht.
      */
     protected function registerMiddlewarePriority(Router $router): void
     {
-        $rechte = [hasPermission::class, hasPermissionAnd::class, hasPermissionOr::class, hasRole::class, isAdmin::class, isDev::class];
+        $router->middlewarePriority = MiddlewarePrioritaet::einordnen($router->middlewarePriority);
 
-        $router->middlewarePriority = $this->prioritaetMitRechten($router->middlewarePriority, $rechte);
-
-        $this->callAfterResolving(HttpKernelContract::class, static function (HttpKernelContract $kernel) use ($router, $rechte): void {
-            if (! $kernel instanceof HttpKernel) {
-                return;
-            }
-
-            // Der Kernel schreibt beim Eintragen seine Gruppen auf den Router zurück und würde dort ergänzte verwerfen
-            $gruppen = $router->getMiddlewareGroups();
-
-            foreach ($rechte as $middleware) {
-                $kernel->addToMiddlewarePriorityBefore(SubstituteBindings::class, $middleware);
-            }
-
-            foreach ($gruppen as $name => $middlewares) {
-                $router->middlewareGroup($name, $middlewares);
+        $this->callAfterResolving(HttpKernelContract::class, static function (HttpKernelContract $kernel) use ($router): void {
+            if ($kernel instanceof HttpKernel) {
+                MiddlewarePrioritaet::inRouterUndKernel($router, $kernel);
             }
         });
-    }
-
-    /**
-     * @param  list<string>  $prioritaet
-     * @param  list<string>  $rechte
-     * @return list<string>
-     */
-    private function prioritaetMitRechten(array $prioritaet, array $rechte): array
-    {
-        $fehlend = array_values(array_diff($rechte, $prioritaet));
-        $stelle = array_search(SubstituteBindings::class, $prioritaet, true);
-
-        if ($fehlend === []) {
-            return $prioritaet;
-        }
-
-        if ($stelle === false) {
-            return array_merge($prioritaet, $fehlend);
-        }
-
-        array_splice($prioritaet, $stelle, 0, $fehlend);
-
-        return $prioritaet;
     }
 
     public function publishAssets()
