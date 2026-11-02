@@ -299,6 +299,65 @@ final class AdminViewsSkripteTest extends TestCase
         $this->assertSame(['showSinglePermissions', 'newPermission'], $lauf['funktionen'], 'globale Funktionen von permission.js stehen bereit');
     }
 
+    // ================================================================== Randfälle 4 bis 6 — Host-Section js (Randfall 7 „nie leer“ ist nicht prüfbar, siehe abdeckung.md)
+
+    private const OHNE_SKRIPTE = ['user.create', 'user.edit', 'password.edit'];
+
+    /** @return array<string, array{0: string, 1: string}> */
+    public static function hostSectionsOhneSkripte(): array
+    {
+        $faelle = [];
+        foreach (['hostsection' => 'HOSTJS', 'hostdefault' => 'DEFAULTJS'] as $variante => $marker) {
+            foreach (self::OHNE_SKRIPTE as $seite) {
+                $faelle[$variante.' '.$seite] = [$variante, $seite, $marker];
+            }
+        }
+
+        return $faelle;
+    }
+
+    private function urlOhneSkripte(string $seite): string
+    {
+        return match ($seite) {
+            'user.create' => route('user.create'),
+            'user.edit' => route('user.edit', $this->admin->id),
+            'password.edit' => route('password.edit'),
+        };
+    }
+
+    // Randfall 5
+    #[DataProvider('hostSectionsOhneSkripte')]
+    public function test_randfall5_seite_ohne_skripte_laesst_host_section_js_und_default_in_der_seite(string $variante, string $seite, string $marker): void
+    {
+        $this->layout($variante);
+
+        $html = $this->actingAs($this->admin)->get($this->urlOhneSkripte($seite))->assertOk()->getContent();
+
+        $this->assertStringContainsString('<h1', $html, 'Aufbau: Verwaltungsseite ist im Host-Layout gerendert');
+        $this->assertSame(1, substr_count($html, $marker), $marker.' des Host-Layouts steht genau einmal in der Seite');
+    }
+
+    // Randfall 6
+    #[DataProvider('seiten')]
+    public function test_randfall6_seite_mit_skripten_behaelt_den_inhalt_der_host_section_js(string $seite): void
+    {
+        $this->layout('hostsection');
+
+        $html = $this->seite($seite);
+
+        $this->assertStringContainsString('<h1', $html, 'Aufbau: Verwaltungsseite ist im Host-Layout gerendert');
+        $this->assertSame(1, substr_count($html, 'HOSTJS'), 'Inhalt der Host-Section js bleibt in der Seite');
+    }
+
+    // Randfall 6
+    #[DataProvider('seiten')]
+    public function test_randfall6_seite_mit_skripten_behaelt_ihre_skripte_neben_der_host_section_js(string $seite): void
+    {
+        $this->layout('hostsection');
+
+        $this->assertSkriptGenauEinmal($seite);
+    }
+
     // ================================================================== AK4 — Sprachdatei
 
     // AK4

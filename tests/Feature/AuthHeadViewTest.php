@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ITHilbert\UserAuth\Tests\Feature;
 
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use ITHilbert\UserAuth\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -219,13 +220,26 @@ final class AuthHeadViewTest extends TestCase
     // Randfall 3
     public function test_admin_layout_des_hosts_bleibt_ohne_head_view(): void
     {
-        $partial = $this->partialImKopf('layouts/auth.blade.php');
-        $this->assertNotNull($partial, 'Gegenprobe: layouts/auth bindet das Partial ein');
+        // Gegenprobe: eine Auth-Seite mit eigenem <head> gibt die Host-View aus, der Aufbau greift
+        $this->assertStringContainsString(self::MARKER, $this->seiteLaden('tailwind', '/login', 'hostkopf'));
 
-        $afterLogin = (string) file_get_contents($this->viewPfad('layouts/afterLogin.blade.php'));
-        $this->assertStringContainsString("@extends('layouts.app')", $afterLogin);
-        $this->assertStringNotContainsString('head_view', $afterLogin);
-        $this->assertStringNotContainsString($partial, $afterLogin);
+        File::ensureDirectoryExists($this->hostViewDir.'/layouts');
+        File::put(
+            $this->hostViewDir.'/layouts/app.blade.php',
+            '<html><head><meta name="host-layout" content="HOSTLAYOUT-3c1e"></head><body>@yield(\'content\')</body></html>'
+        );
+        File::put(
+            $this->hostViewDir.'/verwaltungsseite.blade.php',
+            "@extends('userauth::layouts.afterLogin')\n@section('content')\nVERWALTUNGSSEITE\n@endsection\n"
+        );
+        config()->set('userauth.head_view', 'hostkopf');
+
+        Route::get('/_verwaltungsseite', fn () => view('verwaltungsseite'));
+        $html = (string) $this->get('/_verwaltungsseite')->assertOk()->getContent();
+
+        $this->assertStringContainsString('HOSTLAYOUT-3c1e', $html, 'die Verwaltungsseite rendert das layouts.app des Hosts');
+        $this->assertStringContainsString('VERWALTUNGSSEITE', $html);
+        $this->assertStringNotContainsString(self::MARKER, $html, 'die Auth-Head-View steht nicht in der Verwaltungsseite');
     }
 
     // AK3
