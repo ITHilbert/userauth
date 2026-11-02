@@ -398,6 +398,10 @@ mountInseln({
     - bei einer CRUD-Gruppe ist einer der Rechtenamen `<name>_create`, `_read`, `_edit` oder `_delete` bereits vergeben (aktiv oder soft-gelöscht), außer er gehört zur bearbeiteten Gruppe selbst.
     Dann wird weder die Gruppe noch ein Recht angelegt oder umbenannt.
 
+**Skripte der Verwaltungsseiten**
+15. Die Verwaltungsseiten legen ihre Skripte in den Stack `userauth-scripts`; `userauth::layouts.afterLogin` bringt sie in Stack `scripts` und Section `js` des Host-Layouts (siehe [Verwaltungsseiten](#verwaltungsseiten-benutzer-rollen-rechte-passwort-benutzerbild)). Ein Nachstarter im Host-Layout für diese Skripte kann entfallen. Das Host-Layout gibt den Stack bzw. die Section nach dem Bundle mit jQuery und DataTables aus.
+16. Hosts mit veröffentlichtem `layouts/afterLogin.blade.php` oder veröffentlichten Verwaltungs-Views unter `resources/views/vendor/userauth/` übernehmen die neue Fassung (neu veröffentlichen, siehe Punkt 11). Eine alte `afterLogin` ohne Brücke gibt die Skripte der neuen Views nicht aus; alte Views mit `@section('js')` laufen weiter wie bisher.
+
 ## Upgrade-Hinweise (3.0.0)
 
 Diese Punkte gelten für Hosts, die auf 3.0.0 aktualisieren. Sie sind nach dem Code geprüft.
