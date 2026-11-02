@@ -66,6 +66,6 @@
 </div>
 @stop
 
-@section('js')
-    <script src="{{ asset('vendor/userauth/js/permission.js') }}"></script>
-@stop
+@push('userauth-scripts')
+    <script defer src="{{ asset('vendor/userauth/js/permission.js') }}"></script>
+@endpush

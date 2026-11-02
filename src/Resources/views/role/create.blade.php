@@ -27,6 +27,6 @@
     </x-kit::card-main>
 @stop
 
-@section('js')
-    <script src="{{ asset('vendor/userauth/js/role.js') }}"></script>
-@stop
+@push('userauth-scripts')
+    <script defer src="{{ asset('vendor/userauth/js/role.js') }}"></script>
+@endpush
