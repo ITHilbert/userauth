@@ -16,6 +16,8 @@ use ITHilbert\LaravelKit\Helpers\HButton;
 use ITHilbert\UserAuth\Entities\Permission;
 use ITHilbert\UserAuth\Entities\PermissionGroup;
 use ITHilbert\UserAuth\Http\Formular\EinzelrechtNamenPruefung;
+use ITHilbert\UserAuth\Http\Formular\GruppenNamenPruefung;
+use ITHilbert\UserAuth\Http\Requests\PermissionGruppeRequest;
 use ITHilbert\UserAuth\Traits\Format;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -83,19 +85,16 @@ final class PermissionController extends Controller
      *
      * @return Response
      */
-    public function store(Request $request)
+    public function store(PermissionGruppeRequest $request)
     {
-        $request->validate([
-            'group_display' => 'required | unique:permissions_groups',
-            'group_name' => 'required | unique:permissions_groups',
-        ]);
-
         $group_display = $request->group_display;
         $group_name = $this->formatDisplayToIntern($request->group_name);
 
+        $namenPruefung = new GruppenNamenPruefung;
+        $namenPruefung->pruefen($group_name, ! isset($request->ckPermissionGroup));
         (new EinzelrechtNamenPruefung)->pruefen(isset($request->ckPermissionGroup) ? $request->all() : []);
 
-        DB::transaction(function () use ($request, $group_display, $group_name): void {
+        $namenPruefung->speichern(fn () => DB::transaction(function () use ($request, $group_display, $group_name): void {
             if (! isset($request->ckPermissionGroup)) {
                 // Permissions group anlegen
                 $group = new PermissionGroup;
@@ -158,7 +157,7 @@ final class PermissionController extends Controller
                     }
                 }
             }
-        });
+        }));
 
         return redirect()->route('permission')->with([
             'message' => Lang::get('userauth::permission.MsgAddSuccess'),
@@ -216,17 +215,15 @@ final class PermissionController extends Controller
      * @param  int  $id
      * @return Response
      */
-    public function update(Request $request, $id)
+    public function update(PermissionGruppeRequest $request, $id)
     {
-        $request->validate([
-            'group_display' => 'required',
-            'group_name' => 'required',
-        ]);
-
         $group_display = $request->group_display;
         $group_name = $this->formatDisplayToIntern($request->group_name);
 
         $group = PermissionGroup::findOrFail($id);
+
+        $namenPruefung = new GruppenNamenPruefung;
+        $namenPruefung->pruefen($group_name, $group->is_group === 0, (int) $id);
 
         if ($group->is_group !== 0) {
             (new EinzelrechtNamenPruefung)->pruefen(
@@ -235,9 +232,9 @@ final class PermissionController extends Controller
             );
         }
 
-        DB::transaction(function () use ($request, $id, $group, $group_display, $group_name): void {
+        $namenPruefung->speichern(fn () => DB::transaction(function () use ($request, $id, $group, $group_display, $group_name): void {
             $group->group_display = $request->group_display;
-            $group->group_name = $request->group_name;
+            $group->group_name = $group_name;
             $group->update();
 
             // CRUD Rechte
@@ -299,7 +296,7 @@ final class PermissionController extends Controller
                     }
                 }
             }
-        });
+        }));
 
         return redirect()->route('permission')->with([
             'message' => Lang::get('userauth::permission.MsgEditSuccess'),
