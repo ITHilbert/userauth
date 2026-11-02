@@ -12,6 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Routing\Router;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -21,6 +22,7 @@ use ITHilbert\UserAuth\Http\Middleware\hasPermissionOr;
 use ITHilbert\UserAuth\Http\Middleware\hasRole;
 use ITHilbert\UserAuth\Http\Middleware\isAdmin;
 use ITHilbert\UserAuth\Http\Middleware\isDev;
+use ITHilbert\UserAuth\Http\Middleware\TwoFactorMiddleware;
 use ITHilbert\UserAuth\Tests\Fixtures\User;
 use ITHilbert\UserAuth\Tests\TestCase;
 use Orchestra\Testbench\Attributes\DefineEnvironment;
@@ -63,7 +65,7 @@ final class RechtePrioritaetTest extends TestCase
      */
     protected function getPackageProviders($app): array
     {
-        return [FremdeGruppenMiddlewareProvider::class, ...parent::getPackageProviders($app)];
+        return [FremdeGruppenMiddlewareProvider::class, FremdePrioritaetProvider::class, ...parent::getPackageProviders($app)];
     }
 
     protected function setUp(): void
@@ -116,6 +118,26 @@ final class RechtePrioritaetTest extends TestCase
         foreach (self::RECHTE_MIDDLEWARES as $middleware) {
             $kernel->addToMiddlewarePriorityBefore(SubstituteBindings::class, $middleware);
         }
+    }
+
+    /**
+     * Host setzt zwei Rechte-Middlewares falsch (hinter SubstituteBindings), Kernel vor dem Boot
+     * (setMiddlewarePriority([...$prio, hasPermission::class]) in bootstrap/app.php).
+     */
+    protected function hostSetztPrioritaetHinten($app): void
+    {
+        $kernel = $app->make(HttpKernelContract::class);
+        $kernel->setMiddlewarePriority([...$kernel->getMiddlewarePriority(), hasPermission::class, hasRole::class]);
+    }
+
+    /**
+     * Host setzt dieselben Einträge hinter SubstituteBindings, der Kernel entsteht erst nach dem Boot.
+     */
+    protected function hostSetztPrioritaetHintenNachBoot($app): void
+    {
+        $app->afterResolving(HttpKernelContract::class, static function (HttpKernelContract $kernel): void {
+            $kernel->setMiddlewarePriority([...$kernel->getMiddlewarePriority(), hasPermission::class, hasRole::class]);
+        });
     }
 
     /**
@@ -382,6 +404,232 @@ final class RechtePrioritaetTest extends TestCase
     {
         $this->pruefeFremdeGruppeBleibtErhalten();
     }
+
+    // ------------------------------------------------------------ AK7 — eigene Vorprüfungen zuerst
+
+    private function abgelaufenerNutzer(int $rolle): User
+    {
+        $nutzer = $this->nutzer($rolle);
+        DB::table('users')->where('id', $nutzer->id)->update(['password_changed_at' => now()->subDays(200)]);
+
+        return $nutzer->fresh();
+    }
+
+    private function pruefeAbgelaufenesPasswort(string $middleware): void
+    {
+        config(['userauth.password_policy.enabled' => true, 'userauth.password_policy.require_change_every_days' => 90]);
+        $this->probeRoutes($middleware);
+        Route::middleware(['web', 'auth'])->get('/nur-auth', fn () => 'OK');
+        $ziel = $this->ziel();
+        $passwort = $this->pfad(route('password.edit'));
+        $login = $this->pfad(route('login'));
+
+        // Gegenprobe: Der Aufbau greift (Richtlinie leitet auf einer Route nur mit auth um, ID existiert bzw. nicht)
+        $this->actingAs($this->abgelaufenerNutzer(self::ROLLE_OHNE_RECHTE));
+        $referenz = $this->antwort('/nur-auth');
+        $this->assertSame(302, $referenz[0]);
+        $this->assertSame($passwort, $this->pfad($referenz[1]));
+        $this->assertNotNull(User::find($ziel->id));
+        $this->assertNull(User::find(self::FEHLENDE_ID));
+
+        $vorhanden = $this->antwort('/probe/'.$ziel->id);
+        $fehlend = $this->antwort('/probe/'.self::FEHLENDE_ID);
+        $this->assertSame(302, $vorhanden[0]);
+        $this->assertSame($passwort, $this->pfad($vorhanden[1]), 'vorhandene ID: Umleitung auf die Passwortänderung');
+        $this->assertSame(302, $fehlend[0]);
+        $this->assertSame($passwort, $this->pfad($fehlend[1]), 'fehlende ID: Umleitung auf die Passwortänderung');
+
+        // Gegenprobe: ohne abgelaufenes Passwort lehnt die Rechte-Middleware ab (Login, nicht Passwortänderung)
+        $this->actingAs($this->nutzer(self::ROLLE_OHNE_RECHTE));
+        $this->assertSame($login, $this->pfad($this->antwort('/probe/'.$ziel->id)[1]));
+        $this->assertSame($login, $this->pfad($this->antwort('/probe/'.self::FEHLENDE_ID)[1]));
+    }
+
+    private function pruefeAltsitzungWirdAbgemeldet(string $middleware): void
+    {
+        config(['userauth.two_factor_enabled' => true]);
+        $this->probeRoutes($middleware);
+        $ziel = $this->ziel();
+        $login = $this->pfad(route('login'));
+        $this->assertNotNull(User::find($ziel->id));
+        $this->assertNull(User::find(self::FEHLENDE_ID));
+
+        $antworten = [];
+        foreach ([$ziel->id, self::FEHLENDE_ID] as $id) {
+            $nutzer = $this->nutzer(self::ROLLE_OHNE_RECHTE);
+            DB::table('users')->where('id', $nutzer->id)->update(['two_factor_code' => '123456']);
+
+            // Sitzung ohne Markierung, Nutzer mit altem offenem Code
+            $this->actingAs($nutzer->fresh());
+            $this->assertAuthenticated();
+
+            $antworten[$id] = $this->antwort('/probe/'.$id);
+
+            $this->assertSame(302, $antworten[$id][0]);
+            $this->assertSame($login, $this->pfad($antworten[$id][1]));
+            $this->assertGuest();
+        }
+        $this->assertSame($antworten[$ziel->id], $antworten[self::FEHLENDE_ID]);
+    }
+
+    private function pruefeSitzungMitMarkierungBleibtAngemeldet(string $middleware): void
+    {
+        config(['userauth.two_factor_enabled' => true]);
+        $this->probeRoutes($middleware);
+        $ziel = $this->ziel();
+        $nutzer = $this->nutzer(self::ROLLE_OHNE_RECHTE);
+        DB::table('users')->where('id', $nutzer->id)->update(['two_factor_code' => '123456']);
+
+        $this->withSession([TwoFactorMiddleware::MARKIERUNG => true])->actingAs($nutzer->fresh());
+        $this->assertAuthenticated();
+
+        foreach ([$ziel->id, self::FEHLENDE_ID] as $id) {
+            $antwort = $this->antwort('/probe/'.$id);
+            $this->assertSame(302, $antwort[0]);
+            $this->assertSame($this->pfad(route('login')), $this->pfad($antwort[1]));
+            $this->assertAuthenticated();
+        }
+    }
+
+    // AK7, AK3
+    #[DataProvider('rechteMiddlewares')]
+    public function test_abgelaufenes_passwort_ohne_recht_leitet_auf_passwortaenderung_kernel_nach_dem_boot(string $middleware, int $rolleMit): void
+    {
+        $this->pruefeAbgelaufenesPasswort($middleware);
+    }
+
+    // AK7, AK5
+    #[DefineEnvironment('kernelVorDemBoot')]
+    #[DataProvider('rechteMiddlewares')]
+    public function test_abgelaufenes_passwort_ohne_recht_leitet_auf_passwortaenderung_kernel_vor_dem_boot(string $middleware, int $rolleMit): void
+    {
+        $this->pruefeAbgelaufenesPasswort($middleware);
+    }
+
+    // AK7, AK3
+    #[DataProvider('rechteMiddlewares')]
+    public function test_altsitzung_ohne_markierung_wird_trotz_fehlendem_recht_abgemeldet_kernel_nach_dem_boot(string $middleware, int $rolleMit): void
+    {
+        $this->pruefeAltsitzungWirdAbgemeldet($middleware);
+    }
+
+    // AK7, AK5
+    #[DefineEnvironment('kernelVorDemBoot')]
+    #[DataProvider('rechteMiddlewares')]
+    public function test_altsitzung_ohne_markierung_wird_trotz_fehlendem_recht_abgemeldet_kernel_vor_dem_boot(string $middleware, int $rolleMit): void
+    {
+        $this->pruefeAltsitzungWirdAbgemeldet($middleware);
+    }
+
+    // AK7 (Gegenprobe: eine Sitzung mit Markierung wird nicht abgemeldet, nur abgelehnt)
+    public function test_sitzung_mit_markierung_bleibt_bei_fehlendem_recht_angemeldet_kernel_nach_dem_boot(): void
+    {
+        $this->pruefeSitzungMitMarkierungBleibtAngemeldet('hasPermission:x');
+    }
+
+    // AK7, AK5
+    #[DefineEnvironment('kernelVorDemBoot')]
+    public function test_sitzung_mit_markierung_bleibt_bei_fehlendem_recht_angemeldet_kernel_vor_dem_boot(): void
+    {
+        $this->pruefeSitzungMitMarkierungBleibtAngemeldet('hasPermission:x');
+    }
+
+    // AK7, Randfall 1 (Host hat falsch platziert gesetzt)
+    #[DefineEnvironment('hostSetztPrioritaetHinten')]
+    public function test_abgelaufenes_passwort_leitet_um_wenn_host_prioritaet_falsch_gesetzt_hat(): void
+    {
+        $this->pruefeAbgelaufenesPasswort('hasPermission:x');
+    }
+
+    // ------------------------------------------------------------ Randfall 1 — falsch platzierte Host-Einträge
+
+    // Randfall 1
+    #[DefineEnvironment('hostSetztPrioritaetHinten')]
+    public function test_host_eintraege_hinter_substitutebindings_werden_umgesetzt_kernel_vor_dem_boot(): void
+    {
+        $this->assertTrue($this->app->resolved(HttpKernelContract::class));
+        $this->pruefePrioritaet();
+    }
+
+    // Randfall 1
+    #[DefineEnvironment('hostSetztPrioritaetHinten')]
+    public function test_ablehnung_unabhaengig_von_der_id_wenn_host_eintrag_hinten_steht_kernel_vor_dem_boot(): void
+    {
+        $this->pruefeAblehnungUnabhaengigVonId('hasPermission:x', self::ROLLE_NUR_X);
+    }
+
+    // Randfall 1
+    #[DefineEnvironment('hostSetztPrioritaetHintenNachBoot')]
+    public function test_host_eintraege_hinter_substitutebindings_werden_umgesetzt_kernel_nach_dem_boot(): void
+    {
+        $this->pruefePrioritaet();
+    }
+
+    // Randfall 1
+    #[DefineEnvironment('hostSetztPrioritaetHintenNachBoot')]
+    public function test_ablehnung_unabhaengig_von_der_id_wenn_host_eintrag_hinten_steht_kernel_nach_dem_boot(): void
+    {
+        $this->pruefeAblehnungUnabhaengigVonId('hasRole:redakteur', self::ROLLE_REDAKTEUR);
+    }
+
+    // ------------------------------------------------------------ Randfall 4 — fremde Prioritätseinträge
+
+    /**
+     * @param  list<string>  $liste
+     */
+    private function pruefeFremdenEintrag(array $liste, string $name): void
+    {
+        $fremd = array_search(FremdePrioritaetMiddleware::class, $liste, true);
+        $start = array_search(StartSession::class, $liste, true);
+        $auth = array_search(AuthenticatesRequests::class, $liste, true);
+
+        $this->assertNotFalse($start, "{$name}: StartSession in der Priorität");
+        $this->assertNotFalse($auth, "{$name}: AuthenticatesRequests in der Priorität");
+        $this->assertNotFalse($fremd, "{$name}: Eintrag des anderen Pakets bleibt erhalten");
+        $this->assertSame(1, count(array_keys($liste, FremdePrioritaetMiddleware::class, true)));
+        $this->assertSame($start + 1, $fremd, "{$name}: Eintrag direkt nach StartSession wie vom anderen Paket gesetzt");
+        $this->assertLessThan($auth, $fremd, "{$name}: Eintrag vor AuthenticatesRequests");
+    }
+
+    private function pruefeFremdePrioritaetWirkt(): void
+    {
+        Route::middleware(['auth', FremdePrioritaetMiddleware::class])->get('/fremd-prio', fn () => 'OK');
+
+        // vor Authenticate einsortiert: läuft für Gäste noch, bevor die Anmeldung abweist
+        $this->get('/fremd-prio')->assertRedirect()->assertHeader('X-Fremd-Prio', '1');
+    }
+
+    // Randfall 4
+    #[DefineEnvironment('kernelVorDemBoot')]
+    public function test_fremder_prioritaetseintrag_bleibt_in_der_router_prioritaet_kernel_vor_dem_boot(): void
+    {
+        $this->assertTrue($this->app->resolved(HttpKernelContract::class), 'Kernel wurde vor dem Boot aufgelöst');
+        $this->pruefePrioritaet(); // Gegenprobe: userauth hat seine Einträge gesetzt
+        $this->pruefeFremdenEintrag($this->app->make(Router::class)->middlewarePriority, 'Router');
+    }
+
+    // Randfall 4
+    #[DefineEnvironment('kernelVorDemBoot')]
+    public function test_fremder_prioritaetseintrag_wirkt_kernel_vor_dem_boot(): void
+    {
+        $this->pruefePrioritaet();
+        $this->pruefeFremdePrioritaetWirkt();
+    }
+
+    // Randfall 4
+    public function test_fremder_prioritaetseintrag_bleibt_in_router_und_kernel_prioritaet_kernel_nach_dem_boot(): void
+    {
+        $this->pruefePrioritaet(); // Gegenprobe: userauth hat seine Einträge gesetzt
+        $this->pruefeFremdenEintrag($this->app->make(Router::class)->middlewarePriority, 'Router');
+        $this->pruefeFremdenEintrag($this->app->make(HttpKernelContract::class)->getMiddlewarePriority(), 'Kernel');
+    }
+
+    // Randfall 4
+    public function test_fremder_prioritaetseintrag_wirkt_kernel_nach_dem_boot(): void
+    {
+        $this->pruefePrioritaet();
+        $this->pruefeFremdePrioritaetWirkt();
+    }
 }
 
 /**
@@ -414,5 +662,51 @@ final class FremdeGruppenMiddlewareProvider extends ServiceProvider
                 $kernel->appendMiddlewareToGroup('web', FremdeGruppenMiddleware::class);
             }
         });
+    }
+}
+
+/**
+ * Probe-Middleware eines anderen Pakets, die über die Priorität vor `auth` einsortiert wird (wie `HerkunftErfassen`).
+ */
+final class FremdePrioritaetMiddleware
+{
+    public function handle(Request $request, \Closure $next): mixed
+    {
+        $antwort = $next($request);
+        $antwort->headers->set('X-Fremd-Prio', '1');
+
+        return $antwort;
+    }
+}
+
+/**
+ * Provider eines anderen Pakets, der VOR userauth bootet (Auto-Discovery, alphabetisch): setzt seinen Eintrag direkt
+ * nach `StartSession` in die Router-Priorität, bei einem erst nach dem Boot erzeugten Kernel zusätzlich im Kernel
+ * (wie `KontaktformularServiceProvider`).
+ */
+final class FremdePrioritaetProvider extends ServiceProvider
+{
+    public function boot(): void
+    {
+        $router = $this->app->make(Router::class);
+        $router->middlewarePriority = self::mitEintrag($router->middlewarePriority);
+
+        $this->app->afterResolving(HttpKernelContract::class, static function (HttpKernelContract $kernel): void {
+            if ($kernel instanceof HttpKernel) {
+                $kernel->setMiddlewarePriority(self::mitEintrag($kernel->getMiddlewarePriority()));
+            }
+        });
+    }
+
+    /**
+     * @param  list<string>  $prioritaet
+     * @return list<string>
+     */
+    private static function mitEintrag(array $prioritaet): array
+    {
+        $stelle = array_search(StartSession::class, $prioritaet, true);
+        array_splice($prioritaet, $stelle === false ? 0 : $stelle + 1, 0, [FremdePrioritaetMiddleware::class]);
+
+        return array_values($prioritaet);
     }
 }
