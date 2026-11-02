@@ -6,11 +6,14 @@ namespace ITHilbert\UserAuth\Tests\Feature;
 
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Contracts\Http\Kernel as HttpKernelContract;
+use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\ServiceProvider;
 use ITHilbert\UserAuth\Http\Middleware\hasPermission;
 use ITHilbert\UserAuth\Http\Middleware\hasPermissionAnd;
 use ITHilbert\UserAuth\Http\Middleware\hasPermissionOr;
@@ -49,6 +52,18 @@ final class RechtePrioritaetTest extends TestCase
         isAdmin::class,
         isDev::class,
     ];
+
+    /**
+     * Ein anderes Paket trägt seine Middleware in seinem Provider direkt in die Router-Gruppe `web` ein
+     * (vor dem Provider von userauth).
+     *
+     * @param  Application  $app
+     * @return array<int, class-string>
+     */
+    protected function getPackageProviders($app): array
+    {
+        return [FremdeGruppenMiddlewareProvider::class, ...parent::getPackageProviders($app)];
+    }
 
     protected function setUp(): void
     {
@@ -334,5 +349,61 @@ final class RechtePrioritaetTest extends TestCase
         $abgelehnt = $this->get('/probe-ohne/abc');
         $this->assertSame(302, $abgelehnt->getStatusCode());
         $this->assertStringNotContainsString('OK-abc', (string) $abgelehnt->getContent());
+    }
+
+    // ------------------------------------------------------------ Randfall: fremde Router-Gruppen bleiben erhalten
+
+    private function pruefeFremdeGruppeBleibtErhalten(): void
+    {
+        // Gegenprobe: die Rechte-Middlewares stehen in der Priorität (Eintragen hat stattgefunden)
+        $router = $this->app->make(Router::class);
+        $this->app->make(HttpKernelContract::class);
+        $this->assertContains(SubstituteBindings::class, $router->middlewarePriority);
+        foreach (self::RECHTE_MIDDLEWARES as $middleware) {
+            $this->assertContains($middleware, $router->middlewarePriority);
+        }
+
+        $this->assertContains(FremdeGruppenMiddleware::class, $router->getMiddlewareGroups()['web'] ?? []);
+
+        Route::middleware('web')->get('/fremd', fn () => 'OK');
+        $this->get('/fremd')->assertOk()->assertHeader('X-Fremd', '1');
+    }
+
+    // Randfall 3
+    public function test_fremde_middleware_in_router_gruppe_bleibt_erhalten_kernel_nach_dem_boot(): void
+    {
+        $this->pruefeFremdeGruppeBleibtErhalten();
+    }
+
+    // Randfall 3
+    #[DefineEnvironment('kernelVorDemBoot')]
+    public function test_fremde_middleware_in_router_gruppe_bleibt_erhalten_kernel_vor_dem_boot(): void
+    {
+        $this->pruefeFremdeGruppeBleibtErhalten();
+    }
+}
+
+/**
+ * Probe-Middleware eines anderen Pakets.
+ */
+final class FremdeGruppenMiddleware
+{
+    public function handle(Request $request, \Closure $next): mixed
+    {
+        $antwort = $next($request);
+        $antwort->headers->set('X-Fremd', '1');
+
+        return $antwort;
+    }
+}
+
+/**
+ * Provider eines anderen Pakets: trägt seine Middleware direkt in die Router-Gruppe `web` ein.
+ */
+final class FremdeGruppenMiddlewareProvider extends ServiceProvider
+{
+    public function boot(): void
+    {
+        $this->app['router']->pushMiddlewareToGroup('web', FremdeGruppenMiddleware::class);
     }
 }
