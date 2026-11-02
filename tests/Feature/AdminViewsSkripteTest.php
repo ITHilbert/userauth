@@ -299,7 +299,7 @@ final class AdminViewsSkripteTest extends TestCase
         $this->assertSame(['showSinglePermissions', 'newPermission'], $lauf['funktionen'], 'globale Funktionen von permission.js stehen bereit');
     }
 
-    // ================================================================== Randfälle 4 bis 6 — Host-Section js (Randfall 7 „nie leer“ ist nicht prüfbar, siehe abdeckung.md)
+    // ================================================================== Randfälle 4 bis 6 — Host-Section js und Randfall 7 (nie leere Seite)
 
     private const OHNE_SKRIPTE = ['user.create', 'user.edit', 'password.edit'];
 
@@ -356,6 +356,36 @@ final class AdminViewsSkripteTest extends TestCase
         $this->layout('hostsection');
 
         $this->assertSkriptGenauEinmal($seite);
+    }
+
+    // Randfall 7
+    public function test_randfall7_scheitert_die_nachbearbeitung_bleibt_die_seite_vollstaendig_und_nie_leer(): void
+    {
+        $this->layout('beides');
+
+        // Gegenprobe: mit normalem Limit steht das Skript bei „beides“ genau einmal da (die Nachbearbeitung greift);
+        // der Lauf kompiliert und cacht dabei die Views.
+        $normal = $this->seite('permission.index');
+        $this->assertSame(1, substr_count($normal, '.DataTable('), 'Aufbau: Doppelausgabe wird entfernt');
+
+        $this->app['view']->flushState();
+        ini_set('pcre.jit', '0');
+        ini_set('pcre.backtrack_limit', '400');
+        try {
+            preg_match('/<a>.*?<\/a>/s', '<a>'.str_repeat('x', 5000).'</a>');
+            $this->assertSame(PREG_BACKTRACK_LIMIT_ERROR, preg_last_error(), 'Aufbau: reguläre Ausdrücke über die Seite scheitern');
+
+            $html = (string) $this->actingAs($this->admin)->get($this->url('permission.index'))->assertOk()->getContent();
+        } finally {
+            ini_restore('pcre.jit');
+            ini_restore('pcre.backtrack_limit');
+        }
+
+        $this->assertNotSame('', trim($html), 'Seite ist nicht leer');
+        $this->assertStringContainsString('<!--HOSTLAYOUT-->', $html, 'Host-Layout ist gerendert');
+        $this->assertStringContainsString('<h1', $html, 'Verwaltungsseite ist vollständig');
+        $this->assertStringContainsString('</html>', $html);
+        $this->assertGreaterThanOrEqual(1, substr_count($html, '.DataTable('), 'Skript der Seite steht in der Seite');
     }
 
     // ================================================================== AK4 — Sprachdatei
