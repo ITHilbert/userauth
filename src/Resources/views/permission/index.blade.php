@@ -37,15 +37,16 @@
     ])
 @stop
 
-@section('js')
+@push('userauth-scripts')
 <script>
+document.addEventListener('DOMContentLoaded', function () {
   $(function() {
 
     var table = $('.data-table').DataTable({
         processing: true,
         serverSide: true,
         responsive: true,
-        language: { url: "{{ asset("vendor/laravelkit/DataTable_DE.json ") }}" },
+        language: { url: "{{ asset("vendor/laravelkit/DataTable_DE.json") }}" },
         ajax: "{{ route('permission') }}",
         columns: [
             { data: 'id', name: 'id' },
@@ -56,5 +57,6 @@
     });
 
   });
+});
 </script>
-@stop
+@endpush
