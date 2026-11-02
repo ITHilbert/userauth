@@ -129,27 +129,57 @@ final class AdminViewsSkripteTest extends TestCase
     }
 
     /**
-     * Inline-Skripte (ohne src) der Seite, die DataTable aufrufen.
+     * Skripte der Seite in Dokument-Reihenfolge als Manifest für den Lauf; `permission.js` kommt aus dem Paket statt per URL.
+     * Skripte mit defer/async/type=module laufen erst mit dem Bundle.
+     *
+     * @return list<array{typ: string, code: string, src: string, spaeter: bool}>
      */
-    private function inlineSkript(string $html): string
+    private function manifest(string $html): array
     {
-        $this->assertSame(1, preg_match_all('#<script(?![^>]*\ssrc=)[^>]*>(.*?)</script>#is', $html, $treffer), 'genau ein Inline-Skript auf der Seite');
+        preg_match_all('#<script([^>]*)>(.*?)</script>#is', $html, $treffer, PREG_SET_ORDER);
+        $liste = [];
+        foreach ($treffer as [, $attribute, $inhalt]) {
+            $spaeter = preg_match('/\b(defer|async)\b|type\s*=\s*["\']?module/i', $attribute) === 1;
+            if (preg_match('/\ssrc\s*=\s*["\']([^"\']*)["\']/i', $attribute, $quelle) === 1) {
+                if (str_ends_with($quelle[1], 'permission.js')) {
+                    $liste[] = ['typ' => 'src', 'code' => (string) file_get_contents(__DIR__.'/../../src/Resources/assets/js/permission.js'), 'src' => $quelle[1], 'spaeter' => $spaeter];
+                }
 
-        return $treffer[1][0];
+                continue;
+            }
+            $liste[] = ['typ' => 'inline', 'code' => $inhalt, 'src' => '', 'spaeter' => $spaeter];
+        }
+
+        return $liste;
     }
 
     /**
-     * Führt das Inline-Skript der Seite aus wie bei einem Host mit Modul-Bundle (`$` erst nach dem Laden).
+     * Führt die Skripte der Seite aus wie bei einem Host mit Modul-Bundle (`$` erst nach dem Laden).
      *
-     * @return array{fehler: ?string, fehlerVorBundle: ?string, aufrufe: list<mixed>, optionen: list<array<string, mixed>>}
+     * @return array{fehler: ?string, fehlerVorBundle: ?string, aufrufe: list<mixed>, optionen: list<array<string, mixed>>, funktionen: list<string>}
      */
     private function skriptLaufen(string $seite): array
+    {
+        $html = $this->seite($seite);
+        $manifest = $this->manifest($html);
+        if (in_array($seite, self::LISTEN, true)) {
+            $this->assertCount(1, array_filter($manifest, fn (array $s) => $s['typ'] === 'inline'), 'genau ein Inline-Skript auf der Seite');
+        }
+
+        return $this->manifestLaufen($manifest);
+    }
+
+    /**
+     * @param  list<array{typ: string, code: string, src: string, spaeter: bool}>  $manifest
+     * @return array{fehler: ?string, fehlerVorBundle: ?string, aufrufe: list<mixed>, optionen: list<array<string, mixed>>, funktionen: list<string>}
+     */
+    private function manifestLaufen(array $manifest): array
     {
         $datei = tempnam(sys_get_temp_dir(), 'userauth-skript-');
         $this->assertNotFalse($datei);
 
         try {
-            file_put_contents($datei, $this->inlineSkript($this->seite($seite)));
+            file_put_contents($datei, json_encode($manifest, JSON_THROW_ON_ERROR));
             $ausgabe = shell_exec('node '.escapeshellarg(__DIR__.'/../Fixtures/inline-skript-lauf.mjs').' '.escapeshellarg($datei).' 2>&1');
         } finally {
             @unlink($datei);
@@ -218,6 +248,55 @@ final class AdminViewsSkripteTest extends TestCase
         $this->assertNull($lauf['fehler'], 'Nach dem Bundle läuft die Initialisierung ohne Fehler');
         $this->assertContains('.data-table', $lauf['aufrufe'], 'Tabelle `.data-table` wird initialisiert');
         $this->assertCount(1, $lauf['optionen'], 'DataTable genau einmal initialisiert');
+    }
+
+    // AK3
+    public function test_ak3_gegenprobe_permission_js_ohne_bundle_wirft_reference_error(): void
+    {
+        $code = (string) file_get_contents(__DIR__.'/../../src/Resources/assets/js/permission.js');
+
+        $lauf = $this->manifestLaufen([['typ' => 'src', 'code' => $code, 'src' => 'permission.js', 'spaeter' => false]]);
+
+        $this->assertStringContainsString('ReferenceError', (string) $lauf['fehlerVorBundle'], 'Aufbau: ohne Verzögerung scheitert permission.js ohne `$`');
+    }
+
+    /** @return array<string, array{0: string, 1: string}> */
+    public static function permissionSeitenMitLayouts(): array
+    {
+        $faelle = [];
+        foreach (['stack', 'yield', 'beides'] as $variante) {
+            foreach (['permission.create', 'permission.edit'] as $seite) {
+                $faelle[$variante.' '.$seite] = [$variante, $seite];
+            }
+        }
+
+        return $faelle;
+    }
+
+    // AK3
+    // Randfall 3
+    #[DataProvider('permissionSeitenMitLayouts')]
+    public function test_randfall3_permission_js_wirft_vor_dem_bundle_keinen_reference_error(string $variante, string $seite): void
+    {
+        $this->layout($variante);
+
+        $lauf = $this->skriptLaufen($seite);
+
+        $this->assertNull($lauf['fehlerVorBundle'], 'permission.js darf `$` nicht vor dem Bundle aufrufen');
+    }
+
+    // AK3
+    // Randfall 3
+    #[DataProvider('permissionSeitenMitLayouts')]
+    public function test_randfall3_permission_js_laeuft_nach_dem_bundle(string $variante, string $seite): void
+    {
+        $this->layout($variante);
+
+        $lauf = $this->skriptLaufen($seite);
+
+        $this->assertNull($lauf['fehler'], 'Nach dem Bundle läuft permission.js ohne Fehler');
+        $this->assertContains('input[name="group_display"]', $lauf['aufrufe'], 'permission.js hat mit `$` gearbeitet');
+        $this->assertSame(['showSinglePermissions', 'newPermission'], $lauf['funktionen'], 'globale Funktionen von permission.js stehen bereit');
     }
 
     // ================================================================== AK4 — Sprachdatei
