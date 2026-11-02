@@ -19,7 +19,7 @@ final class GruppenNamenPruefung
     private const CRUD = ['create', 'read', 'edit', 'delete'];
 
     /**
-     * @param  int|null  $gruppeId  die bearbeitete Gruppe; sie und ihre aktiven Rechte zählen nicht als Kollision
+     * @param  int|null  $gruppeId  die bearbeitete Gruppe; sie und ihre Rechte (auch soft-gelöschte) zählen nicht als Kollision
      *
      * @throws ValidationException
      */
@@ -34,7 +34,7 @@ final class GruppenNamenPruefung
             ->whereIn('permission', array_map(fn (string $art): string => $name.'_'.$art, self::CRUD))
             ->when($gruppeId !== null, fn ($abfrage) => $abfrage->whereNotIn(
                 'id',
-                Permission::where('group_id', $gruppeId)->select('id')
+                Permission::withTrashed()->where('group_id', $gruppeId)->select('id')
             ))
             ->exists();
 
