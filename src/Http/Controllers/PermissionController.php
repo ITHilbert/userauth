@@ -336,7 +336,7 @@ final class PermissionController extends Controller
         return Permission::where('group_id', $groupId);
     }
 
-    public function noPermission(Request $request, $id)
+    public function noPermission(Request $request)
     {
         return view('userauth::nopermission');
     }

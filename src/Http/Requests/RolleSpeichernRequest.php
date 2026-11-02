@@ -53,4 +53,19 @@ final class RolleSpeichernRequest extends FormRequest
 
         return $regeln;
     }
+
+    /**
+     * Beschriftungen wie im Rollenformular.
+     *
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'role_display' => __('userauth::role.role'),
+            'role' => __('userauth::role.role_intern'),
+            'permission' => __('userauth::permission.permission'),
+            'permission.*' => __('userauth::permission.permission'),
+        ];
+    }
 }
