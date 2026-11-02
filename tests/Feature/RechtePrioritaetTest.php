@@ -7,6 +7,7 @@ namespace ITHilbert\UserAuth\Tests\Feature;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Contracts\Http\Kernel as HttpKernelContract;
 use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Http\Kernel as HttpKernel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
@@ -398,12 +399,20 @@ final class FremdeGruppenMiddleware
 }
 
 /**
- * Provider eines anderen Pakets: trägt seine Middleware direkt in die Router-Gruppe `web` ein.
+ * Provider eines anderen Pakets: trägt seine Middleware in die Router-Gruppe `web` ein, bei einem erst nach dem
+ * Boot erzeugten Kernel zusätzlich im Kernel (wie `KontaktformularServiceProvider`).
  */
 final class FremdeGruppenMiddlewareProvider extends ServiceProvider
 {
     public function boot(): void
     {
         $this->app['router']->pushMiddlewareToGroup('web', FremdeGruppenMiddleware::class);
+
+        // Wie kontaktformular: entsteht der Kernel erst nach dem Boot, trägt sich das Paket zusätzlich im Kernel ein
+        $this->app->afterResolving(HttpKernelContract::class, static function (HttpKernelContract $kernel): void {
+            if ($kernel instanceof HttpKernel && array_key_exists('web', $kernel->getMiddlewareGroups())) {
+                $kernel->appendMiddlewareToGroup('web', FremdeGruppenMiddleware::class);
+            }
+        });
     }
 }
