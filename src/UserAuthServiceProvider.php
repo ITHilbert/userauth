@@ -14,6 +14,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Http\Kernel as HttpKernelContract;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -44,14 +45,13 @@ use ITHilbert\UserAuth\Application\Zugriff\Contracts\RollenRepository;
 use ITHilbert\UserAuth\Application\Zugriff\Zugriffspruefung;
 use ITHilbert\UserAuth\Domain\SocialLogin\Events\SocialAccountLinked;
 use ITHilbert\UserAuth\Domain\SocialLogin\Events\SocialAccountUnlinked;
-use ITHilbert\UserAuth\Http\Middleware\EnforcePasswordPolicy;
 use ITHilbert\UserAuth\Http\Middleware\hasPermission;
 use ITHilbert\UserAuth\Http\Middleware\hasPermissionAnd;
 use ITHilbert\UserAuth\Http\Middleware\hasPermissionOr;
 use ITHilbert\UserAuth\Http\Middleware\hasRole;
 use ITHilbert\UserAuth\Http\Middleware\isAdmin;
 use ITHilbert\UserAuth\Http\Middleware\isDev;
-use ITHilbert\UserAuth\Http\Middleware\TwoFactorMiddleware;
+use ITHilbert\UserAuth\Http\MiddlewarePrioritaet;
 use ITHilbert\UserAuth\Http\ViewComposers\AvailableSocialProvidersComposer;
 use ITHilbert\UserAuth\Infrastructure\Auth\GuardAnmeldedaten;
 use ITHilbert\UserAuth\Infrastructure\Auth\GuardSitzungsanmeldung;
@@ -164,9 +164,11 @@ class UserAuthServiceProvider extends ServiceProvider
         $router->aliasMiddleware('isAdmin', isAdmin::class);
         $router->aliasMiddleware('isDev', isDev::class);
 
+        $this->registerMiddlewarePriority($router);
+
         // Global in "web": Passwort-Ablauf erzwingen (greift erst nach bestandener 2FA, vorher ist niemand angemeldet)
         // und Sitzungen aus der Zeit vor der sitzungsgebundenen 2FA abmelden (TwoFactorMiddleware)
-        $webMiddleware = [EnforcePasswordPolicy::class, TwoFactorMiddleware::class];
+        $webMiddleware = MiddlewarePrioritaet::VORPRUEFUNGEN;
         foreach ($webMiddleware as $middleware) {
             $router->pushMiddlewareToGroup('web', $middleware);
         }
@@ -182,6 +184,25 @@ class UserAuthServiceProvider extends ServiceProvider
 
             foreach ($webMiddleware as $middleware) {
                 $kernel->appendMiddlewareToGroup('web', $middleware);
+            }
+        });
+    }
+
+    /**
+     * Vorprüfungen und Rechte-Middlewares in die Priorität von Router und Kernel (siehe MiddlewarePrioritaet).
+     *
+     * Router und Kernel führen je eine eigene Liste. Am Router sofort; den Kernel beim Auflösen: Wurde er schon
+     * vor dem Boot erzeugt (`public/index.php`), sofort (callAfterResolving), sonst nach seinem Konstruktor, der die
+     * Router-Liste mit seiner eigenen überschreibt (Testbench) – dann erneut aus der Router-Liste, die zu diesem
+     * Zeitpunkt der Kernel-Liste samt den Einträgen früher aufgerufener afterResolving-Callbacks entspricht.
+     */
+    protected function registerMiddlewarePriority(Router $router): void
+    {
+        $router->middlewarePriority = MiddlewarePrioritaet::einordnen($router->middlewarePriority);
+
+        $this->callAfterResolving(HttpKernelContract::class, static function (HttpKernelContract $kernel) use ($router): void {
+            if ($kernel instanceof HttpKernel) {
+                MiddlewarePrioritaet::inRouterUndKernel($router, $kernel);
             }
         });
     }
