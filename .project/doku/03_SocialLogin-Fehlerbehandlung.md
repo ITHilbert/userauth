@@ -246,7 +246,7 @@ Wenn Adapter neue Fremd-Exceptions nicht übersetzt (z.B. neue Socialite-Excepti
 
 ### 4. Email-Verification & Double-Verify
 **Fallstrick:** Wenn User E-Mail nach Google-Login ändert und beide E-Mails unterschiedlich bei Google/lokal verifiziert sind.  
-**Lösung:** Verknüpfung über `provider_user_id`, nicht E-Mail. `email_verified_at` spielt nur beim initialen Verknüpfen eine Rolle.
+**Lösung:** Verknüpfung über `provider_user_id`, nicht E-Mail. `email_verified_at` spielt nur beim initialen Verknüpfen eine Rolle. Ausnahme: Bei einem Konto mit „Bestätigung offen“ aus der Selbstregistrierung verfallen bei der Social-Bestätigung Passwort und Angemeldet-bleiben-Tokens (siehe `04_Sicherheitsregeln.md`, Abschnitt Selbstregistrierung).
 
 ## Test-Strategie
 
