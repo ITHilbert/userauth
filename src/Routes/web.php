@@ -4,17 +4,20 @@ declare(strict_types=1);
 
 use Illuminate\Foundation\Http\Middleware\InvokeDeferredCallbacks;
 use Illuminate\Support\Facades\Route;
+use ITHilbert\UserAuth\Application\Registrierung\RegistrierungsEinstellungen;
 use ITHilbert\UserAuth\Http\Controllers\AuthCssController;
 use ITHilbert\UserAuth\Http\Controllers\ImpersonateController;
 use ITHilbert\UserAuth\Http\Controllers\LoginController;
 use ITHilbert\UserAuth\Http\Controllers\PasswordController;
 use ITHilbert\UserAuth\Http\Controllers\PermissionController;
+use ITHilbert\UserAuth\Http\Controllers\RegistrierungController;
 use ITHilbert\UserAuth\Http\Controllers\RoleController;
 use ITHilbert\UserAuth\Http\Controllers\SocialAccountController;
 use ITHilbert\UserAuth\Http\Controllers\SocialLinkConfirmationController;
 use ITHilbert\UserAuth\Http\Controllers\SocialLoginController;
 use ITHilbert\UserAuth\Http\Controllers\TwoFactorController;
 use ITHilbert\UserAuth\Http\Controllers\UserController;
+use ITHilbert\UserAuth\Http\Middleware\EnsureRegistrationEnabled;
 use ITHilbert\UserAuth\Http\Middleware\EnsureSocialLoginEnabled;
 
 /*
@@ -105,6 +108,24 @@ Route::middleware(['web'])
             // Mail wird per defer() nach der Antwort verschickt; auch für Hosts mit altem HTTP-Kernel ohne InvokeDeferredCallbacks
             ->middleware(['throttle:userauth-passwort-anfordern', InvokeDeferredCallbacks::class]);
         Route::post('password/updatewithtoken', [PasswordController::class, 'updatewithtoken'])->name('password.updatewithtoken')->middleware('throttle:userauth-passwort-zuruecksetzen');
+
+        // Selbstregistrierung: Routen gibt es nur bei userauth.registration.enabled (sonst 404 für jede Methode);
+        // EnsureRegistrationEnabled prüft zusätzlich zur Laufzeit (z. B. Routen-Cache aus der Zeit vor dem Abschalten).
+        // Mails gehen per defer() nach der Antwort raus; InvokeDeferredCallbacks auch für Hosts mit altem HTTP-Kernel
+        if (app(RegistrierungsEinstellungen::class)->aktiv()) {
+            Route::middleware([EnsureRegistrationEnabled::class])->prefix('register')->group(function () {
+                Route::middleware(['guest'])->group(function () {
+                    Route::get('/', [RegistrierungController::class, 'create'])->name('register');
+                    Route::post('/', [RegistrierungController::class, 'store'])->name('register.store')
+                        ->middleware(['throttle:userauth-registrieren', InvokeDeferredCallbacks::class]);
+                    Route::get('bestaetigung', [RegistrierungController::class, 'bestaetigung'])->name('register.bestaetigung');
+                    Route::post('bestaetigung', [RegistrierungController::class, 'erneut'])->name('register.erneut')
+                        ->middleware(['throttle:userauth-registrierung-link', InvokeDeferredCallbacks::class]);
+                });
+                // Signatur und Ablauf prüft der Controller selbst: ungültige Links bekommen einen Hinweis statt 403
+                Route::get('bestaetigen/{id}/{hash}', [RegistrierungController::class, 'bestaetigen'])->name('register.bestaetigen');
+            });
+        }
 
         // 2FA: vor dem Code ist niemand angemeldet; der Controller verlangt eine offene Anmeldung in dieser Sitzung
         Route::middleware(['guest'])->group(function () {
