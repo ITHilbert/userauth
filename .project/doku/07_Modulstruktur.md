@@ -41,7 +41,6 @@
     /Zugriff
   /Listeners                # Event-Listener (Anmeldung, Social-Login-Änderungen)
   /Mail                     # Mailables
-  /Providers                # RouteServiceProvider
   /Resources
     /assets                 # CSS, JavaScript, Bilder
     /lang                   # Übersetzungen (de, en, global)
