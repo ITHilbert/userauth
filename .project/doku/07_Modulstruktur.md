@@ -2,10 +2,54 @@
 
 ```
 /src
+  /App                      # Hilfsklassen (Classes/) und Artisan-Befehle (Console/Commands/)
+  /Application              # Anwendungsfälle je Bereich, Ports in Contracts/
+    /Auth                   # Anmeldung und Zwei-Faktor-Anmeldung, mit Contracts/, Events/, Exceptions/
+    /Contracts              # MailLinks (Port für Links in Mails)
+    /Passwort               # Passwort ändern und zurücksetzen, Wiederverwendung
+    /Registrierung          # Selbstregistrierung, mit Contracts/ und Exceptions/
+    /SocialLogin            # Verknüpfung und Anmeldung über Social-Anbieter
+    /Zugriff                # Rollen- und Rechteprüfung, mit Contracts/
+  /Config                   # config.php (Gruppe userauth)
   /Database
+    /factories
+    /Migrations
+    /Seeders
+  /Domain                   # Fachobjekte und Regeln je Bereich
+    /Auth                   # OffeneAnmeldung, ZweiFaktorCode
+    /Passwort               # Exceptions/
+    /Registrierung          # BestaetigungsHash, Events/, Exceptions/
+    /SocialLogin            # Events/, Exceptions/, SocialProvider, SocialIdentity, AllowedDomainPolicy
+    /Zugriff                # Rolle, Namensliste
+  /Entities                 # Eloquent-Modelle: Permission, PermissionGroup, Role, Team, UserAuthAuditLog
   /Http
+    /Controllers
+    /Formular               # Namensprüfungen und alte Eingaben in Verwaltungsformularen
     /Middleware
-  /Models
+    /Requests
+    /Responses              # ZugriffVerweigert
+    /ViewComposers
+    MiddlewarePrioritaet.php
+    PasswortAblehnung.php
+  /Infrastructure           # Adapter zu den Ports, je Bereich
+    /Assets                 # Version der vorkompilierten CSS
+    /Auth
+    /Mail                   # AppUrlMailLinks
+    /Passwort
+    /Registrierung
+    /SocialLogin
+    /Zugriff
+  /Listeners                # Event-Listener (Anmeldung, Social-Login-Änderungen)
+  /Mail                     # Mailables
+  /Providers                # RouteServiceProvider
+  /Resources
+    /assets                 # CSS, JavaScript, Bilder
+    /lang                   # Übersetzungen (de, en, global)
+    /schema                 # UI-Schemas (ui/)
+    /views                  # Blade-Views
+  /Routes                   # web.php
+  /Rules                    # PasswordHistoryRule
+  /Traits                   # UserAuth, Format
   UserAuthServiceProvider.php
 ```
 
