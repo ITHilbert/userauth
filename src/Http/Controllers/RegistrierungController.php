@@ -13,10 +13,12 @@ use ITHilbert\UserAuth\Application\Registrierung\Exceptions\RegistrierungFalschK
 use ITHilbert\UserAuth\Application\Registrierung\Registrieren;
 use ITHilbert\UserAuth\Http\Requests\BestaetigungsLinkAnfordernRequest;
 use ITHilbert\UserAuth\Http\Requests\RegistrierenRequest;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 
 /**
- * Selbstregistrierung per E-Mail und Passwort. Routen nur bei `userauth.registration.enabled`
- * (EnsureRegistrationEnabled), Drosselung je IP an den Routen.
+ * Selbstregistrierung per E-Mail und Passwort. Die Routen sind immer registriert; bei ausgeschalteter
+ * Registrierung (`userauth.registration.enabled`) antwortet EnsureRegistrationEnabled mit 404.
+ * Drosselung je IP an den Routen.
  */
 final class RegistrierungController
 {
@@ -69,5 +71,14 @@ final class RegistrierungController
         }
 
         return redirect()->route('login')->with('status', __('userauth::registrierung.bestaetigt'));
+    }
+
+    /**
+     * Andere Methode als GET auf den Bestätigungslink: 405 wie ohne eigene Route. Die Route gibt es nur, damit
+     * bei ausgeschalteter Registrierung die Middleware 404 liefert (sonst 405 aus einer GET-Fallback-Route).
+     */
+    public function nurGet(): never
+    {
+        throw new MethodNotAllowedHttpException(['GET', 'HEAD']);
     }
 }

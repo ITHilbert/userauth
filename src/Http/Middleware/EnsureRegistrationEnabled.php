@@ -11,7 +11,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Liefert 404, solange `userauth.registration.enabled` aus ist – auch für Bestätigungslinks, die noch
- * unterwegs sind. Prüfung zur Request-Zeit, damit Konfigurationsänderungen sofort wirken.
+ * unterwegs sind. Prüfung zur Request-Zeit: Die Routen sind immer registriert, Ein- und Ausschalten wirkt
+ * ohne neuen Routen-Cache. Läuft vor der CSRF-Prüfung (MiddlewarePrioritaet), damit auch POST ohne Token 404 bekommt.
  */
 final class EnsureRegistrationEnabled
 {

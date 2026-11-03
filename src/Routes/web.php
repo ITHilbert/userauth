@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use Illuminate\Foundation\Http\Middleware\InvokeDeferredCallbacks;
 use Illuminate\Support\Facades\Route;
-use ITHilbert\UserAuth\Application\Registrierung\RegistrierungsEinstellungen;
 use ITHilbert\UserAuth\Http\Controllers\AuthCssController;
 use ITHilbert\UserAuth\Http\Controllers\ImpersonateController;
 use ITHilbert\UserAuth\Http\Controllers\LoginController;
@@ -109,23 +108,25 @@ Route::middleware(['web'])
             ->middleware(['throttle:userauth-passwort-anfordern', InvokeDeferredCallbacks::class]);
         Route::post('password/updatewithtoken', [PasswordController::class, 'updatewithtoken'])->name('password.updatewithtoken')->middleware('throttle:userauth-passwort-zuruecksetzen');
 
-        // Selbstregistrierung: Routen gibt es nur bei userauth.registration.enabled (sonst 404 für jede Methode);
-        // EnsureRegistrationEnabled prüft zusätzlich zur Laufzeit (z. B. Routen-Cache aus der Zeit vor dem Abschalten).
+        // Selbstregistrierung: Routen immer registriert, damit Ein- und Ausschalten ohne neuen Routen-Cache wirkt.
+        // EnsureRegistrationEnabled liefert bei userauth.registration.enabled = false zur Laufzeit 404 – vor der
+        // CSRF-Prüfung (MiddlewarePrioritaet), also für GET und POST auf jeden Pfad, auch mit Fallback-Route im Host.
         // Mails gehen per defer() nach der Antwort raus; InvokeDeferredCallbacks auch für Hosts mit altem HTTP-Kernel
-        if (app(RegistrierungsEinstellungen::class)->aktiv()) {
-            Route::middleware([EnsureRegistrationEnabled::class])->prefix('register')->group(function () {
-                Route::middleware(['guest'])->group(function () {
-                    Route::get('/', [RegistrierungController::class, 'create'])->name('register');
-                    Route::post('/', [RegistrierungController::class, 'store'])->name('register.store')
-                        ->middleware(['throttle:userauth-registrieren', InvokeDeferredCallbacks::class]);
-                    Route::get('bestaetigung', [RegistrierungController::class, 'bestaetigung'])->name('register.bestaetigung');
-                    Route::post('bestaetigung', [RegistrierungController::class, 'erneut'])->name('register.erneut')
-                        ->middleware(['throttle:userauth-registrierung-link', InvokeDeferredCallbacks::class]);
-                });
-                // Signatur und Ablauf prüft der Controller selbst: ungültige Links bekommen einen Hinweis statt 403
-                Route::get('bestaetigen/{id}/{hash}', [RegistrierungController::class, 'bestaetigen'])->name('register.bestaetigen');
+        Route::middleware([EnsureRegistrationEnabled::class])->prefix('register')->group(function () {
+            Route::middleware(['guest'])->group(function () {
+                Route::get('/', [RegistrierungController::class, 'create'])->name('register');
+                Route::post('/', [RegistrierungController::class, 'store'])->name('register.store')
+                    ->middleware(['throttle:userauth-registrieren', InvokeDeferredCallbacks::class]);
+                Route::get('bestaetigung', [RegistrierungController::class, 'bestaetigung'])->name('register.bestaetigung');
+                Route::post('bestaetigung', [RegistrierungController::class, 'erneut'])->name('register.erneut')
+                    ->middleware(['throttle:userauth-registrierung-link', InvokeDeferredCallbacks::class]);
             });
-        }
+            // Signatur und Ablauf prüft der Controller selbst: ungültige Links bekommen einen Hinweis statt 403
+            Route::get('bestaetigen/{id}/{hash}', [RegistrierungController::class, 'bestaetigen'])->name('register.bestaetigen');
+            // POST auf den Link: bei „aus“ 404 über die Middleware statt 405 aus einer GET-Fallback-Route des Hosts,
+            // bei „an“ 405 wie ohne diese Route
+            Route::post('bestaetigen/{id}/{hash}', [RegistrierungController::class, 'nurGet']);
+        });
 
         // 2FA: vor dem Code ist niemand angemeldet; der Controller verlangt eine offene Anmeldung in dieser Sitzung
         Route::middleware(['guest'])->group(function () {
