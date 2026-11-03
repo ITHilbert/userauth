@@ -19,7 +19,7 @@ use RuntimeException;
 
 /**
  * E-Mail eines gelöschten Benutzers: sperren | reaktivieren | neu (userauth-geloeschte-email).
- * Abgedeckt: AK1–AK8 und Randfälle 1–3 (AK9 ist Doku, nicht prüfbar).
+ * Abgedeckt: AK1–AK8 und Randfälle 1–4 (AK9 ist Doku, nicht prüfbar).
  *
  * Aufbau: Social-Login-Testaufbau (Rollen 1–3, Fake-Anbieter); Admin hat Rolle 3 mit user_create.
  */
@@ -1094,5 +1094,120 @@ final class GeloeschteEmailTest extends SocialLoginTestCase
         $zeile = $this->rohzeile($alt->id);
         $this->assertNull($zeile['deleted_at']);
         $this->assertSame(3, (int) $zeile['role_id'], 'Rolle aus social.default_role');
+    }
+
+    // ---------------------------------------------------------------- Randfall 4
+
+    private const ALTES_BILD = 'users/alt-randfall4.jpg';
+
+    private function geloeschtMitBilddatei(): User
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put(self::ALTES_BILD, 'bilddaten');
+
+        return $this->geloescht(['image' => 'storage/'.self::ALTES_BILD]);
+    }
+
+    // Randfall 4
+    public function test_randfall4_neu_loescht_die_bilddatei_der_alten_zeile(): void
+    {
+        $this->option('neu');
+        $alt = $this->geloeschtMitBilddatei();
+        $this->assertTrue(Storage::disk('public')->exists(self::ALTES_BILD), 'Ausgangslage: Datei da');
+
+        $this->anlegen($this->daten())->assertSessionHasNoErrors();
+
+        $this->assertSame(0, DB::table('users')->where('id', $alt->id)->count(), 'Gegenprobe: alte Zeile weg');
+        $this->assertFalse(Storage::disk('public')->exists(self::ALTES_BILD), 'Datei der alten Zeile ist gelöscht');
+    }
+
+    // Randfall 4
+    public function test_randfall4_reaktivieren_mit_neuem_bild_loescht_die_alte_datei_und_behaelt_die_neue(): void
+    {
+        $this->option('reaktivieren');
+        $alt = $this->geloeschtMitBilddatei();
+
+        $this->anlegen($this->daten(['image' => UploadedFile::fake()->image('neu.jpg')]))->assertSessionHasNoErrors();
+
+        $bild = (string) $this->rohzeile($alt->id)['image'];
+        $this->assertNull($this->rohzeile($alt->id)['deleted_at'], 'Gegenprobe: wiederhergestellt');
+        $this->assertNotSame('storage/'.self::ALTES_BILD, $bild);
+        $this->assertTrue(Storage::disk('public')->exists(substr($bild, strlen('storage/'))), 'neue Datei da');
+        $this->assertFalse(Storage::disk('public')->exists(self::ALTES_BILD), 'alte Datei ist gelöscht');
+    }
+
+    // Randfall 4
+    public function test_randfall4_reaktivieren_ohne_bild_loescht_die_alte_datei(): void
+    {
+        $this->option('reaktivieren');
+        $alt = $this->geloeschtMitBilddatei();
+
+        $this->anlegen($this->daten())->assertSessionHasNoErrors();
+
+        $this->assertNull($this->rohzeile($alt->id)['deleted_at'], 'Gegenprobe: wiederhergestellt');
+        $this->assertEmpty($this->rohzeile($alt->id)['image'], 'Gegenprobe: keine Zeile verweist mehr auf die Datei');
+        $this->assertFalse(Storage::disk('public')->exists(self::ALTES_BILD), 'alte Datei ist gelöscht');
+    }
+
+    // Randfall 4
+    public function test_randfall4_scheitert_reaktivieren_bleibt_die_bilddatei(): void
+    {
+        $this->option('reaktivieren');
+        config()->set('userauth.password_policy.enabled', true);
+        config()->set('userauth.password_policy.prevent_reuse_last_passwords', 3);
+        $alt = $this->geloeschtMitBilddatei();
+        DB::table('users')->where('id', $alt->id)->whereNotNull('deleted_at')->update(['password_changed_at' => now()->subDays(10)]);
+
+        $antwort = $this->anlegen($this->daten(['password' => self::ALTES_PASSWORT, 'password2' => self::ALTES_PASSWORT]));
+
+        $antwort->assertSessionHasErrors('password');
+        $this->assertNotNull($this->rohzeile($alt->id)['deleted_at'], 'Gegenprobe: Vorgang ist gescheitert');
+        $this->assertTrue(Storage::disk('public')->exists(self::ALTES_BILD), 'Datei bleibt');
+    }
+
+    // Randfall 4
+    public function test_randfall4_scheitert_die_neuanlage_bei_neu_bleibt_die_bilddatei(): void
+    {
+        $this->option('neu');
+        $alt = $this->geloeschtMitBilddatei();
+        $aufgerufen = 0;
+        User::creating(function () use (&$aufgerufen): void {
+            $aufgerufen++;
+            throw new RuntimeException('Neuanlage scheitert');
+        });
+
+        $this->anlegen($this->daten());
+
+        $this->assertGreaterThan(0, $aufgerufen, 'Gegenprobe: die Neuanlage wurde versucht und ist gescheitert');
+        $this->assertSame(1, DB::table('users')->where('id', $alt->id)->count(), 'alte Zeile bleibt');
+        $this->assertTrue(Storage::disk('public')->exists(self::ALTES_BILD), 'Datei bleibt');
+    }
+
+    // Randfall 4
+    public function test_randfall4_social_reaktivierung_behaelt_bild_datei_und_spalte(): void
+    {
+        config()->set('userauth.social.allow_registration', true);
+        $this->option('reaktivieren');
+        $alt = $this->geloeschtMitBilddatei();
+        $this->provider->returnIdentity('google-sub-1', self::EMAIL);
+
+        $this->socialCallback()->assertRedirect('/');
+
+        $zeile = $this->rohzeile($alt->id);
+        $this->assertNull($zeile['deleted_at'], 'Gegenprobe: wiederhergestellt');
+        $this->assertSame('storage/'.self::ALTES_BILD, $zeile['image'], 'Spalte bleibt');
+        $this->assertTrue(Storage::disk('public')->exists(self::ALTES_BILD), 'Datei bleibt');
+    }
+
+    // Randfall 4
+    public function test_randfall4_sperren_laesst_die_bilddatei_unberuehrt(): void
+    {
+        $this->option('sperren');
+        $alt = $this->geloeschtMitBilddatei();
+
+        $this->anlegen($this->daten())->assertSessionHasErrors('email');
+
+        $this->assertSame(1, DB::table('users')->where('id', $alt->id)->count(), 'Gegenprobe: Vorgang wurde abgelehnt');
+        $this->assertTrue(Storage::disk('public')->exists(self::ALTES_BILD), 'Datei bleibt');
     }
 }
