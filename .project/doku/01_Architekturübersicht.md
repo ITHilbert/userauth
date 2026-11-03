@@ -5,8 +5,8 @@ Nutzt Middleware und Policies zur Rechtekontrolle.
 
 ## Wichtige Klassen
 - `ITHilbert\UserAuth\UserAuthServiceProvider`
-- `ITHilbert\UserAuth\Models\User` (Erweiterung)
-- `ITHilbert\UserAuth\Models\Role`
+- `ITHilbert\UserAuth\Traits\UserAuth` (Trait für das User-Model des Hosts, `auth.providers.users.model`)
+- `ITHilbert\UserAuth\Entities\Role`
 
 ## Selbstregistrierung
 
