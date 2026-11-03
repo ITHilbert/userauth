@@ -242,7 +242,6 @@ class UserAuthServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        /*  $this->app->register(RouteServiceProvider::class); */
         $this->registerBladeExtensions();
         $this->registerSocialLogin();
         $this->registerZugriffspruefung();
