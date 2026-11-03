@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Route;
 use ITHilbert\UserAuth\Tests\Fixtures\User;
 use ITHilbert\UserAuth\Tests\Support\RegistrierungHilfen;
 use ITHilbert\UserAuth\Tests\TestCase;
@@ -122,6 +123,117 @@ final class RegistrierungTest extends TestCase
             config()->set('userauth.theme', $theme);
             $this->assertFalse($this->hatRegisterLink((string) $this->get('/login')->assertOk()->getContent()), "Login-Seite ({$theme}) zeigt einen Link zur Registrierung.");
         }
+    }
+
+    /**
+     * Pfade der Registrierung (ohne Pfadparameter) aus dem Zustand „an“.
+     *
+     * @return list<string>
+     */
+    private function registrierungsPfade(): array
+    {
+        $pfade = ['/register'];
+        foreach ($this->registrierungsRouten() as $route) {
+            if (! str_contains($route->uri(), '{')) {
+                $pfade[] = '/'.ltrim($route->uri(), '/');
+            }
+        }
+
+        return array_values(array_unique($pfade));
+    }
+
+    private function fallbackRouteRegistrieren(): void
+    {
+        Route::fallback(fn () => abort(404));
+    }
+
+    /**
+     * @param  list<string>  $pfade
+     */
+    private function assertAllesAntwortetMit404(array $pfade, string $link): void
+    {
+        foreach ($pfade as $pfad) {
+            $this->get($pfad)->assertNotFound();
+            $this->post($pfad, $this->gueltigeDaten())->assertNotFound();
+        }
+        $this->get($link)->assertNotFound();
+        $this->post($link)->assertNotFound();
+    }
+
+    /**
+     * @param  array<string, mixed>  $konfiguration
+     */
+    // AK1
+    #[DataProvider('ausZustaende')]
+    public function test_ak1_schalter_aus_ergibt_mit_get_fallback_route_fuer_jede_methode_404(array $konfiguration): void
+    {
+        $pfade = $this->registrierungsPfade();
+        $link = $this->registriertMitLink();
+        $this->fallbackRouteRegistrieren();
+        $this->get('/register')->assertOk(); // Gegenprobe: bei „an“ erreichbar, auch mit Fallback-Route
+        $this->assertNotSame(405, $this->post('/register', $this->gueltigeDaten())->getStatusCode());
+
+        $this->neuStarten($konfiguration);
+        $this->fallbackRouteRegistrieren();
+
+        $this->assertAllesAntwortetMit404($pfade, $link);
+        $this->assertCount(1, $this->konten(self::EMAIL), 'Es darf kein weiteres Konto entstehen.');
+    }
+
+    /**
+     * @return array<string, array{mixed}>
+     */
+    public static function ausWerte(): array
+    {
+        return [
+            'false' => [false],
+            'leer gesetzt' => [''],
+            'null (nicht gesetzt)' => [null],
+        ];
+    }
+
+    // AK1
+    #[DataProvider('ausWerte')]
+    public function test_ak1_ausschalten_wirkt_zur_laufzeit_ohne_neue_routenregistrierung(mixed $aus): void
+    {
+        $pfade = $this->registrierungsPfade();
+        $link = $this->registriertMitLink();
+        $this->fallbackRouteRegistrieren();
+        $this->get('/register')->assertOk(); // Gegenprobe: Routen sind mit „an“ registriert
+
+        config()->set('userauth.registration.enabled', $aus);
+
+        $this->assertAllesAntwortetMit404($pfade, $link);
+        $this->assertFalse($this->hatRegisterLink((string) $this->get('/login')->assertOk()->getContent()), 'Login-Seite zeigt noch den Link.');
+        $this->assertNull($this->konto(self::EMAIL)->email_verified_at, 'Der Link darf nichts bestätigen.');
+        config()->set('userauth.registration.enabled', true);
+        $this->get('/register')->assertOk();
+    }
+
+    /**
+     * @param  array<string, mixed>  $konfiguration
+     */
+    // AK1
+    #[DataProvider('ausZustaende')]
+    public function test_ak1_einschalten_wirkt_zur_laufzeit_ohne_neue_routenregistrierung(array $konfiguration): void
+    {
+        $pfade = $this->registrierungsPfade();
+        $link = $this->registriertMitLink();
+        $this->neuStarten($konfiguration); // Routen werden mit „aus“ registriert
+        $this->fallbackRouteRegistrieren();
+        foreach ($pfade as $pfad) {
+            $this->get($pfad)->assertNotFound(); // Gegenprobe: zuerst aus
+        }
+        $this->get($link)->assertNotFound();
+
+        config()->set('userauth.registration.enabled', true);
+
+        $this->get('/register')->assertOk();
+        $this->assertTrue($this->hatRegisterLink((string) $this->get('/login')->assertOk()->getContent()));
+        $this->registrieren(['email' => 'neu@example.test'])->assertRedirect();
+        $this->assertCount(1, $this->konten('neu@example.test'));
+        $this->get($link);
+        $this->assertNotNull($this->konto(self::EMAIL)->email_verified_at, 'Der Link bestätigt nach dem Einschalten.');
     }
 
     private function hatRegisterLink(string $html): bool

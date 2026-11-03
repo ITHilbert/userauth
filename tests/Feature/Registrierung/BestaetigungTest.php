@@ -644,18 +644,29 @@ final class BestaetigungTest extends TestCase
         $this->assertTrue($this->bestaetigt(self::EMAIL), 'Gegenprobe: Mit der ursprünglichen E-Mail gilt der Link.');
     }
 
-    // Randfall 3
-    public function test_randfall3_social_login_mit_bestaetigter_adresse_setzt_email_verified_at_und_beendet_die_bestaetigung(): void
+    // Randfall 3 (verweist auf AK17)
+    public function test_randfall3_verweist_auf_ak17_social_login_beendet_die_bestaetigung(): void
+    {
+        $this->registrieren();
+        $this->assertFalse($this->bestaetigt(self::EMAIL), 'Gegenprobe: Zuerst ist die Bestätigung offen.');
+
+        $this->socialBestaetigen(self::EMAIL);
+
+        $this->assertTrue($this->bestaetigt(self::EMAIL));
+    }
+
+    // ------------------------------------------------------------------ AK17
+
+    /**
+     * Social Login mit bestätigter Adresse: Fake-Anbieter liefert die Identität, der Nutzer bestätigt die Verknüpfung per Link.
+     */
+    private function socialBestaetigen(string $email, string $sub = 'google-sub-1'): FakeSocialIdentityProvider
     {
         config()->set('userauth.social.enabled', true);
         config()->set('userauth.social.providers', ['google']);
         $provider = new FakeSocialIdentityProvider;
         $this->app->instance(SocialIdentityProvider::class, $provider);
-        $this->registrieren();
-        $this->anmelden(self::EMAIL);
-        $this->assertGuest();
-        $this->assertFalse($this->bestaetigt(self::EMAIL), 'Gegenprobe: Zuerst ist die Bestätigung offen.');
-        $provider->returnIdentity('google-sub-1', self::EMAIL);
+        $provider->returnIdentity($sub, $email);
         $this->get(route('userauth.social.callback', 'google'));
         $url = null;
         Mail::assertQueued(SocialLinkConfirmation::class, function (SocialLinkConfirmation $mail) use (&$url): bool {
@@ -667,10 +678,116 @@ final class BestaetigungTest extends TestCase
 
         $this->post(route('userauth.social.confirm.store', $token));
 
-        $this->assertTrue($this->bestaetigt(self::EMAIL));
-        $this->anmelden(self::EMAIL)->assertRedirect('/');
+        return $provider;
+    }
+
+    // AK17
+    public function test_ak17_registrierungspasswort_gilt_nach_dem_social_login_nicht_mehr(): void
+    {
+        $this->registrieren();
+        $this->assertFalse($this->bestaetigt(self::EMAIL), 'Gegenprobe: Bestätigung offen.');
+        $falsch = $this->anmelden(self::EMAIL, 'ein-falsches-Passwort-2026!');
+        $falscheMeldung = session('errors')?->getBag('default')->all();
+        $this->assertGuest();
+
+        $this->socialBestaetigen(self::EMAIL);
+        $this->assertTrue($this->bestaetigt(self::EMAIL), 'Gegenprobe: Die Bestätigung ist erledigt.');
+        $antwort = $this->anmelden(self::EMAIL);
+
+        $this->assertGuest();
+        $this->assertSame($falsch->headers->get('Location'), $antwort->headers->get('Location'));
+        $this->assertSame($falscheMeldung, session('errors')?->getBag('default')->all(), 'Anmeldung scheitert wie mit falschem Passwort.');
+        $this->get('/password/edit')->assertRedirect(route('login'));
+    }
+
+    // AK17
+    public function test_ak17_angemeldet_bleiben_tokens_des_kontos_sind_ungueltig(): void
+    {
+        $this->registrieren();
+        DB::table('users')->where('id', $this->kontoId(self::EMAIL))->update(['remember_token' => 'bekannter-token-aus-der-registrierung']);
+        $this->assertSame('bekannter-token-aus-der-registrierung', $this->konto(self::EMAIL)->remember_token, 'Gegenprobe: Token ist gesetzt.');
+
+        $this->socialBestaetigen(self::EMAIL);
+
+        $this->assertNotSame('bekannter-token-aus-der-registrierung', $this->konto(self::EMAIL)->remember_token);
+    }
+
+    // AK17
+    public function test_ak17_anmelden_per_social_login_funktioniert_danach(): void
+    {
+        $this->registrieren();
+        $provider = $this->socialBestaetigen(self::EMAIL);
+        $this->assertGuest();
+
+        $provider->returnIdentity('google-sub-1', self::EMAIL);
+        $this->get(route('userauth.social.callback', 'google'));
+
         $this->assertAuthenticated();
-        $this->get('/password/edit')->assertOk();
+        $this->assertSame($this->kontoId(self::EMAIL), (int) auth()->id());
+    }
+
+    // AK17
+    public function test_ak17_neues_passwort_ueber_passwort_vergessen_funktioniert_danach(): void
+    {
+        $neu = 'Voellig-Neues-Passwort-2026!';
+        $this->registrieren();
+        $this->socialBestaetigen(self::EMAIL);
+
+        $this->post(route('password.sendtocken'), ['email' => self::EMAIL])->assertRedirect();
+        $treffer = [];
+        foreach ($this->nachrichtenAn(self::EMAIL) as $nachricht) {
+            if (preg_match('~password/editwithtoken/([^/?"\'<>\s]+)~', $nachricht['html'], $gefunden) === 1) {
+                $treffer = $gefunden;
+            }
+        }
+        $this->assertNotEmpty($treffer, 'Es wurde keine Reset-Mail mit Link versendet.');
+        $this->from('/password/forgotten')->post(route('password.updatewithtoken'), [
+            'email' => self::EMAIL, 'pwtoken' => urldecode($treffer[1]),
+            'password' => $neu, 'password_confirmation' => $neu,
+        ]);
+
+        $this->assertAuthenticatedOrLogin($neu);
+    }
+
+    private function assertAuthenticatedOrLogin(string $passwort): void
+    {
+        auth()->logout();
+        $this->anmelden(self::EMAIL, $passwort)->assertRedirect('/');
+        $this->assertAuthenticated();
+    }
+
+    // AK17
+    public function test_ak17_konto_ohne_offene_bestaetigung_behaelt_beim_social_login_sein_passwort(): void
+    {
+        $admin = User::factory()->unverified()->create(['email' => 'admin-konto@example.test', 'role_id' => 3, 'password' => bcrypt(self::PASSWORT)]);
+        $this->anmelden($admin->email)->assertRedirect('/');
+        $this->assertAuthenticated();
+        auth()->logout();
+
+        $this->socialBestaetigen($admin->email, 'google-sub-admin');
+
+        $this->assertNotNull($this->konto($admin->email)->email_verified_at, 'Gegenprobe: Der Social Login hat die Adresse bestätigt.');
+        $this->anmelden($admin->email)->assertRedirect('/');
+        $this->assertAuthenticated();
+    }
+
+    // AK17
+    public function test_ak17_registriertes_konto_mit_erledigter_bestaetigung_behaelt_beim_social_login_sein_passwort(): void
+    {
+        $this->get($this->registriertMitLink());
+        $this->assertTrue($this->bestaetigt(self::EMAIL), 'Gegenprobe: Die Bestätigung über den Link ist erledigt.');
+        config()->set('userauth.social.enabled', true);
+        config()->set('userauth.social.providers', ['google']);
+        $provider = new FakeSocialIdentityProvider;
+        $this->app->instance(SocialIdentityProvider::class, $provider);
+        $provider->returnIdentity('google-sub-9', self::EMAIL);
+        $this->get(route('userauth.social.callback', 'google'));
+        $this->assertAuthenticated();
+        auth()->logout();
+
+        $this->anmelden(self::EMAIL)->assertRedirect('/');
+
+        $this->assertAuthenticated();
     }
 
     // Randfall 4
