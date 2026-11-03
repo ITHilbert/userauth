@@ -17,7 +17,7 @@ return [
     // Views Header
     'header_list' => 'Rechte',
     'header_create' => 'Neues Recht',
-    'header_edit' => 'Rechts anpassen',
+    'header_edit' => 'Recht anpassen',
     'header_no' => 'Keine Berechtigung',
 
     'id' => 'ID',
