@@ -195,7 +195,7 @@ final class RechtegruppeNamenTest extends TestCase
         return [
             'Recht kunde_read aktiv' => ['Kunde'],
             'Recht kunde_read aktiv, Großschreibung' => ['KUNDE'],
-            'Recht kunde_read aktiv, mit Leerzeichen' => ['Ku nde'],
+            'Recht kunde_read aktiv, mit entferntem Zeichen' => ['Ku;nde'],
             'Recht depot_create soft-gelöscht' => ['Depot'],
         ];
     }
@@ -275,7 +275,7 @@ final class RechtegruppeNamenTest extends TestCase
         return [
             'Großschreibung' => ['Beta'],
             'ganz groß' => ['BETA'],
-            'mit Leerzeichen' => ['Be ta'],
+            'mit entferntem Zeichen' => ['Be;ta'],
         ];
     }
 
@@ -313,7 +313,7 @@ final class RechtegruppeNamenTest extends TestCase
         // Gegenprobe: freier Name legt Gruppe und Einzelrecht an
         $this->store(['group_name' => 'Gamma'], true)->assertRedirect(route('permission'));
         $this->assertSame(1, DB::table('permissions_groups')->where('group_name', 'gamma')->where('is_group', 1)->count());
-        $this->assertSame(1, DB::table('permissions')->where('permission', 'neueseinzelrecht')->count());
+        $this->assertSame(1, DB::table('permissions')->where('permission', 'neues_einzelrecht')->count());
     }
 
     // AK2
@@ -358,7 +358,7 @@ final class RechtegruppeNamenTest extends TestCase
     {
         $this->update(self::EINZEL, ['group_name' => 'Neuer Kunde'])->assertRedirect(route('permission'));
 
-        $this->assertSame('neuerkunde', DB::table('permissions_groups')->where('id', self::EINZEL)->value('group_name'));
+        $this->assertSame('neuer_kunde', DB::table('permissions_groups')->where('id', self::EINZEL)->value('group_name'));
         // die Einzelrechte bleiben unverändert
         $this->assertSame(['einzelrecht', 'kunde_read', 'lager_edit'], $this->rechteNamen(self::EINZEL));
     }
@@ -536,12 +536,12 @@ final class RechtegruppeNamenTest extends TestCase
 
         $gruppe = DB::table('permissions_groups')->where('group_display', 'Neue Gruppe')->first();
         $this->assertNotNull($gruppe);
-        $this->assertSame('neuerkunde', $gruppe->group_name);
+        $this->assertSame('neuer_kunde', $gruppe->group_name);
         $this->assertSame(0, (int) $gruppe->is_group);
 
         $rechte = DB::table('permissions')->where('group_id', $gruppe->id)->orderBy('id')->get();
         $this->assertSame(['create', 'read', 'edit', 'delete'], $rechte->pluck('crud')->all());
-        $this->assertSame(['neuerkunde_create', 'neuerkunde_read', 'neuerkunde_edit', 'neuerkunde_delete'], $rechte->pluck('permission')->all());
+        $this->assertSame(['neuer_kunde_create', 'neuer_kunde_read', 'neuer_kunde_edit', 'neuer_kunde_delete'], $rechte->pluck('permission')->all());
         $this->assertSame('Neue Gruppe '.__('userauth::permission.read'), $rechte[1]->permission_display);
     }
 
@@ -557,7 +557,7 @@ final class RechtegruppeNamenTest extends TestCase
         $gruppe = DB::table('permissions_groups')->where('group_name', 'gamma')->first();
         $this->assertNotNull($gruppe);
         $this->assertSame(1, (int) $gruppe->is_group);
-        $this->assertSame(['neueseinzelrecht'], $this->rechteNamen((int) $gruppe->id));
+        $this->assertSame(['neues_einzelrecht'], $this->rechteNamen((int) $gruppe->id));
     }
 
     // AK6
@@ -701,7 +701,7 @@ final class RechtegruppeNamenTest extends TestCase
         $this->assertSame($vorher, $this->stand());
 
         $this->store(['group_name' => 'Gamma', 'permission_display_new_1' => 'Frei Eins'], true)->assertRedirect(route('permission'));
-        $this->assertSame(['freieins'], $this->rechteNamen((int) DB::table('permissions_groups')->where('group_name', 'gamma')->value('id')));
+        $this->assertSame(['frei_eins'], $this->rechteNamen((int) DB::table('permissions_groups')->where('group_name', 'gamma')->value('id')));
     }
 
     // Randfall 3
@@ -717,7 +717,7 @@ final class RechtegruppeNamenTest extends TestCase
         $this->assertSame($vorher, $this->stand());
 
         $this->update(self::EINZEL, ['group_name' => 'Gamma', 'permission_display_new_1' => 'Frei Eins'])->assertRedirect(route('permission'));
-        $this->assertSame(1, DB::table('permissions')->where('permission', 'freieins')->count());
+        $this->assertSame(1, DB::table('permissions')->where('permission', 'frei_eins')->count());
     }
 
     // ---------------------------------------------------------------- Randfall: leer / nicht gesetzt / Liste

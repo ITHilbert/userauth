@@ -36,6 +36,7 @@ return [
 
     // Meldungen
     'NameVergeben' => 'This internal name is already taken or used more than once.',
+    'NameLeer' => 'The internal name must not be empty.',
     'MsgAddSuccess' => 'Permission add successful.',
     'MsgEditSuccess' => 'Permission edit successful',
     'MsgDeleteSuccess' => 'Permission delte successful',

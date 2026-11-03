@@ -178,7 +178,7 @@ final class RolleValidierungTest extends TestCase
     {
         $this->anlegen($this->daten(['role_display' => 'Neu A', 'role' => 'neu a']))
             ->assertSessionHasNoErrors()->assertRedirect(route('role'));
-        $this->assertSame(1, DB::table('roles')->where('role', 'neua')->count());
+        $this->assertSame(1, DB::table('roles')->where('role', 'neu_a')->count());
     }
 
     // ------------------------------------------------------------------ AK1
@@ -396,7 +396,7 @@ final class RolleValidierungTest extends TestCase
             ->assertSessionHasNoErrors()->assertRedirect(route('role'));
 
         $zeile = $this->rolleZeile(self::ROLLE_ZIEL);
-        $this->assertSame('editorneu', $zeile['role']);
+        $this->assertSame('editor_neu', $zeile['role']);
         $this->assertSame('Editor Neu', $zeile['role_display']);
     }
 
@@ -408,7 +408,7 @@ final class RolleValidierungTest extends TestCase
         $this->anlegen($this->daten(['role_display' => 'Neue Rolle', 'role' => 'Neue Rolle ä']))
             ->assertSessionHasNoErrors()->assertRedirect(route('role'));
 
-        $this->assertSame(1, DB::table('roles')->where('role', 'neuerolleae')->count());
+        $this->assertSame(1, DB::table('roles')->where('role', 'neue_rolle_ae')->count());
     }
 
     /**

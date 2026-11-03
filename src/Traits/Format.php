@@ -6,20 +6,18 @@ namespace ITHilbert\UserAuth\Traits;
 
 trait Format
 {
-    public function formatDisplayToIntern($display)
+    /**
+     * Bildet aus einer Anzeige den internen Namen (Regel AK1; der Browser bildet ihn in js/rechtename.js gleich):
+     * Kleinbuchstaben, Umlaute und ß ersetzen, `; : " ' ` ~ < > |` entfernen, Leerraum außen entfernen,
+     * Leerraum innen zu genau einem `_`.
+     */
+    public function formatDisplayToIntern($display): string
     {
-        $intern = strtolower(str_replace(' ', '', $display));
-        $intern = str_replace('ä', 'ae', $intern);
-        $intern = str_replace('ö', 'oe', $intern);
-        $intern = str_replace('ü', 'ue', $intern);
-        $intern = str_replace('ß', 'ss', $intern);
-        $intern = str_replace(';', '', $intern);
-        $intern = str_replace(':', '', $intern);
-        $intern = str_replace('"', '', $intern);
-        $intern = str_replace("'", '', $intern);
-        $intern = str_replace('<', '', $intern);
-        $intern = str_replace('>', '', $intern);
+        $intern = mb_strtolower((string) $display);
+        $intern = strtr($intern, ['ä' => 'ae', 'ö' => 'oe', 'ü' => 'ue', 'ß' => 'ss']);
+        $intern = str_replace([';', ':', '"', "'", '`', '~', '<', '>', '|'], '', $intern);
+        $intern = (string) preg_replace('/^\s+|\s+$/u', '', $intern);
 
-        return $intern;
+        return (string) preg_replace('/\s+/u', '_', $intern);
     }
 }

@@ -58,6 +58,11 @@ final class EinzelrechtNamenPruefung
 
         $fehler = [];
         foreach ($zeilen as $zeile) {
+            if ($zeile['name'] === '') {
+                $fehler[$zeile['feld']] = __('userauth::permission.NameLeer');
+
+                continue;
+            }
             // Die Datenbank entscheidet über "gleich" (Kollation, z. B. Akzente), nicht PHP.
             $belegt = Permission::withTrashed()
                 ->where('permission', $zeile['name'])

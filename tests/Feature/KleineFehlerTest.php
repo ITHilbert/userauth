@@ -259,8 +259,6 @@ final class KleineFehlerTest extends TestCase
     // Randfall 1
     public function test_randfall1_gegenprobe_ohne_das_geloeschte_recht_wird_umbenannt(): void
     {
-        $this->recht('gamma_read', 'Gamma lesen', self::ALPHA, 'read', now()->toDateTimeString());
-
         $this->gruppeSpeichern('Delta', 'Delta Anzeige')->assertSessionHasNoErrors()->assertRedirect(route('permission'));
         $this->assertSame('delta', DB::table('permissions_groups')->where('id', self::ALPHA)->value('group_name'));
     }

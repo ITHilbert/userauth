@@ -17,7 +17,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 /**
  * Der interne Name eines Einzelrechts ist eindeutig (userauth-recht-eindeutig, Dashboard #386).
  * Gruppe A (id 3) ist die bearbeitete Gruppe (Rechte `gruppe_a_a1`, `gruppe_a_a2`), Gruppe B (id 4) eine fremde Gruppe
- * mit dem Recht `fremdername` und dem soft-gelöschten Recht `geloeschtername`. `permission.store` legt „Neue Gruppe“ an.
+ * mit dem Recht `fremder_name` und dem soft-gelöschten Recht `geloeschter_name`. `permission.store` legt „Neue Gruppe“ an.
  */
 final class RechtEindeutigTest extends TestCase
 {
@@ -53,8 +53,8 @@ final class RechtEindeutigTest extends TestCase
 
         $this->a1 = $this->recht('gruppe_a_a1', 'Recht A1', self::GRUPPE_A);
         $this->a2 = $this->recht('gruppe_a_a2', 'Recht A2', self::GRUPPE_A);
-        $this->recht('fremdername', 'Fremdes Recht', 4);
-        $this->recht('geloeschtername', 'Gelöschtes Recht', 4, '2020-01-02 03:04:05');
+        $this->recht('fremder_name', 'Fremdes Recht', 4);
+        $this->recht('geloeschter_name', 'Gelöschtes Recht', 4, '2020-01-02 03:04:05');
 
         $this->dev = User::factory()->create(['role_id' => 1, 'name' => 'Dev Nutzer', 'email' => 'dev@example.test']);
     }
@@ -154,9 +154,9 @@ final class RechtEindeutigTest extends TestCase
     public static function vergebeneNamen(): array
     {
         return [
-            'Recht einer anderen Gruppe' => ['fremdername', 'Fremder Name'],
-            'Recht einer anderen Gruppe, Großschreibung' => ['fremdername', 'FREMDERNAME'],
-            'soft-gelöschtes Recht' => ['geloeschtername', 'Gelöschter Name'],
+            'Recht einer anderen Gruppe' => ['fremder_name', 'Fremder Name'],
+            'Recht einer anderen Gruppe, Großschreibung' => ['fremder_name', 'FREMDER NAME'],
+            'soft-gelöschtes Recht' => ['geloeschter_name', 'Gelöschter Name'],
             'Recht derselben Gruppe' => ['gruppe_a_a1', 'Gruppe_A_A1'],
         ];
     }
@@ -205,7 +205,7 @@ final class RechtEindeutigTest extends TestCase
         // Gegenprobe: derselbe Aufbau speichert, wenn die Namen frei sind
         $this->store(['permission_display_new_1' => 'Frei Eins', 'permission_display_new_2' => 'Gültig Zwei', 'permission_new_2' => 'gueltig_zwei'])
             ->assertRedirect(route('permission'));
-        $this->assertSame(['freieins', 'gueltig_zwei'], $this->neueRechteDerNeuenGruppe());
+        $this->assertSame(['frei_eins', 'gueltig_zwei'], $this->neueRechteDerNeuenGruppe());
     }
 
     // AK1
@@ -240,7 +240,7 @@ final class RechtEindeutigTest extends TestCase
         $this->assertSame('Geänderte Gruppe', DB::table('permissions_groups')->where('id', self::GRUPPE_A)->value('group_display'));
         $this->assertSame('Geändert A1', DB::table('permissions')->where('id', $this->a1)->value('permission_display'));
         $this->assertNotNull(DB::table('permissions')->where('id', $this->a2)->value('deleted_at'));
-        $this->assertSame(1, DB::table('permissions')->where('permission', 'freieins')->count());
+        $this->assertSame(1, DB::table('permissions')->where('permission', 'frei_eins')->count());
     }
 
     // AK1
@@ -288,9 +288,9 @@ final class RechtEindeutigTest extends TestCase
         $vorher = $this->stand();
 
         foreach ([
-            ['permission_display_new_1' => ['Fremder Name', 'x'], 'permission_new_1' => ['fremdername']],
-            ['permission_display_new_1' => 'Fremder Name', 'permission_new_1' => ['fremdername', 'x']],
-            ['permission_'.$this->a1 => ['fremdername', 'x']],
+            ['permission_display_new_1' => ['Fremder Name', 'x'], 'permission_new_1' => ['fremder_name']],
+            ['permission_display_new_1' => 'Fremder Name', 'permission_new_1' => ['fremder_name', 'x']],
+            ['permission_'.$this->a1 => ['fremder_name', 'x']],
         ] as $felder) {
             $antwort = $this->update($felder);
             $this->assertLessThan(500, $antwort->getStatusCode());
@@ -335,7 +335,7 @@ final class RechtEindeutigTest extends TestCase
             'permission_'.$this->a1 => 'Frei Umbenannt',
             'permission_display_new_1' => 'Gültig Zwei', 'permission_new_1' => 'gueltig_zwei',
         ])->assertRedirect(route('permission'));
-        $this->assertSame('freiumbenannt', DB::table('permissions')->where('id', $this->a1)->value('permission'));
+        $this->assertSame('frei_umbenannt', DB::table('permissions')->where('id', $this->a1)->value('permission'));
     }
 
     // AK2
@@ -377,7 +377,7 @@ final class RechtEindeutigTest extends TestCase
     {
         $this->update([
             'permission_display_'.$this->a1 => 'A1', 'permission_'.$this->a1 => 'frei_a1',
-            'permission_display_'.$this->a2 => 'A2', 'permission_'.$this->a2 => 'fremdername',
+            'permission_display_'.$this->a2 => 'A2', 'permission_'.$this->a2 => 'fremder_name',
         ])->assertSessionHasErrors('permission_'.$this->a2);
 
         // Gegenprobe: das frei umbenannte Recht hat keinen Fehler
@@ -387,7 +387,7 @@ final class RechtEindeutigTest extends TestCase
     // AK2
     public function test_ak2_update_zeigt_die_fehlermeldung_in_der_seite(): void
     {
-        $felder = ['permission_display_'.$this->a1 => 'A1', 'permission_'.$this->a1 => 'fremdername'];
+        $felder = ['permission_display_'.$this->a1 => 'A1', 'permission_'.$this->a1 => 'fremder_name'];
 
         $this->update($felder)->assertSessionHasErrors('permission_'.$this->a1);
         $meldung = session('errors')->first('permission_'.$this->a1);
@@ -407,11 +407,11 @@ final class RechtEindeutigTest extends TestCase
                 ['permission_new_1', 'permission_new_2'],
             ],
             'beide gesendet, nur formatiert gleich' => [
-                ['permission_display_new_1' => 'Eins', 'permission_new_1' => 'Dop pelt', 'permission_display_new_2' => 'Zwei', 'permission_new_2' => 'DOPPELT'],
+                ['permission_display_new_1' => 'Eins', 'permission_new_1' => 'Dop;pelt', 'permission_display_new_2' => 'Zwei', 'permission_new_2' => 'DOPPELT'],
                 ['permission_new_1', 'permission_new_2'],
             ],
             'beide aus der Anzeige' => [
-                ['permission_display_new_1' => 'Dop pelt', 'permission_display_new_2' => 'Doppelt'],
+                ['permission_display_new_1' => 'Dop;pelt', 'permission_display_new_2' => 'Doppelt'],
                 ['permission_new_1', 'permission_new_2'],
             ],
             'eine gesendet, eine aus der Anzeige' => [
@@ -469,11 +469,11 @@ final class RechtEindeutigTest extends TestCase
                 ['permission_new_1', 'permission_A1'],
             ],
             'zwei umbenannte Rechte' => [
-                ['permission_display_A1' => 'A1', 'permission_A1' => 'zielname', 'permission_display_A2' => 'A2', 'permission_A2' => 'Ziel Name'],
+                ['permission_display_A1' => 'A1', 'permission_A1' => 'zielname', 'permission_display_A2' => 'A2', 'permission_A2' => 'Ziel;Name'],
                 ['permission_A1', 'permission_A2'],
             ],
             'neues Recht aus der Anzeige und umbenanntes Recht' => [
-                ['permission_display_new_1' => 'Ziel Name', 'permission_display_A2' => 'A2', 'permission_A2' => 'zielname'],
+                ['permission_display_new_1' => 'Ziel;Name', 'permission_display_A2' => 'A2', 'permission_A2' => 'zielname'],
                 ['permission_new_1', 'permission_A2'],
             ],
         ];
@@ -510,7 +510,7 @@ final class RechtEindeutigTest extends TestCase
     {
         $felder = [
             'group_display' => 'Eingabe Gruppe', 'group_name' => 'eingabegruppe',
-            'permission_display_new_1' => 'Anzeige Eins', 'permission_new_1' => 'fremdername',
+            'permission_display_new_1' => 'Anzeige Eins', 'permission_new_1' => 'fremder_name',
             'permission_display_new_2' => 'Anzeige Zwei', 'permission_new_2' => 'zwei_x',
         ];
 
@@ -527,7 +527,7 @@ final class RechtEindeutigTest extends TestCase
     {
         $felder = [
             'group_display' => 'Eingabe Gruppe', 'group_name' => 'eingabegruppe',
-            'permission_display_'.$this->a1 => 'Eingabe A1', 'permission_'.$this->a1 => 'fremdername',
+            'permission_display_'.$this->a1 => 'Eingabe A1', 'permission_'.$this->a1 => 'fremder_name',
             'permission_display_'.$this->a2 => 'Eingabe A2', 'permission_'.$this->a2 => 'a2_neu',
             'permission_display_new_1' => 'Anzeige Eins', 'permission_new_1' => 'zwei_x',
             'permission_display_new_2' => 'Anzeige Zwei', 'permission_new_2' => 'drei_x',
@@ -549,7 +549,7 @@ final class RechtEindeutigTest extends TestCase
             'permission_display_new_2' => 'Anzeige Zwei', 'permission_new_2' => 'Zwei Gesendet',
         ])->assertRedirect(route('permission'))->assertSessionHasNoErrors();
 
-        $this->assertSame(['freieins', 'zweigesendet'], $this->neueRechteDerNeuenGruppe());
+        $this->assertSame(['frei_eins', 'zwei_gesendet'], $this->neueRechteDerNeuenGruppe());
     }
 
     // Randfall 1
@@ -564,12 +564,12 @@ final class RechtEindeutigTest extends TestCase
         ])->assertRedirect(route('permission'))->assertSessionHasNoErrors();
 
         $this->assertSame('Geänderte Gruppe', DB::table('permissions_groups')->where('id', self::GRUPPE_A)->value('group_display'));
-        $this->assertSame(['Geändert A1', 'neua1'], [
+        $this->assertSame(['Geändert A1', 'neu_a1'], [
             DB::table('permissions')->where('id', $this->a1)->value('permission_display'),
             DB::table('permissions')->where('id', $this->a1)->value('permission'),
         ]);
         $this->assertNotNull(DB::table('permissions')->where('id', $this->a2)->value('deleted_at'));
-        $this->assertSame(1, DB::table('permissions')->where('permission', 'freieins')->count());
-        $this->assertSame(1, DB::table('permissions')->where('permission', 'zweigesendet')->count());
+        $this->assertSame(1, DB::table('permissions')->where('permission', 'frei_eins')->count());
+        $this->assertSame(1, DB::table('permissions')->where('permission', 'zwei_gesendet')->count());
     }
 }

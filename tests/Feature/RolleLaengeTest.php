@@ -163,7 +163,7 @@ final class RolleLaengeTest extends TestCase
         if ($anlegen) {
             $this->senden(true, $this->daten(['role_display' => 'Neu A', 'role' => 'neu a']))
                 ->assertSessionHasNoErrors()->assertRedirect(route('role'));
-            $this->assertSame(1, DB::table('roles')->where('role', 'neua')->count());
+            $this->assertSame(1, DB::table('roles')->where('role', 'neu_a')->count());
 
             return;
         }
