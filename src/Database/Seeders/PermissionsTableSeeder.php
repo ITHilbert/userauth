@@ -54,7 +54,7 @@ class PermissionsTableSeeder extends Seeder
             3 => [
                 'id' => 4,
                 'permission' => 'user_delete',
-                'permission_display' => 'Benutzer delete',
+                'permission_display' => 'Benutzer löschen',
                 'group_name' => 'user',
                 'crud' => 'delete',
                 'created_at' => '2020-08-10 13:25:31',
@@ -94,7 +94,7 @@ class PermissionsTableSeeder extends Seeder
             7 => [
                 'id' => 8,
                 'permission' => 'role_delete',
-                'permission_display' => 'Rollen delete',
+                'permission_display' => 'Rollen löschen',
                 'group_name' => 'role',
                 'crud' => 'delete',
                 'created_at' => '2020-08-12 12:31:35',
