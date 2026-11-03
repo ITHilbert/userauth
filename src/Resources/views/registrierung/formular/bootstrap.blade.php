@@ -19,12 +19,12 @@
                   <!--/.bg-holder-->
 
                   <div class="position-relative px-4 px-lg-7 pt-7 pb-7 pb-sm-5 text-center text-md-start pb-lg-7">
-                    <h3 class="mb-3 text-black fs-1">Phoenix Authentication</h3>
-                    <p class="text-700">Give yourself some hassle-free development process with the uniqueness of Phoenix!</p>
+                    <h3 class="mb-3 text-black fs-1">@lang('userauth::login.seite_titel')</h3>
+                    <p class="text-700">@lang('userauth::login.seite_text')</p>
                     <ul class="list-unstyled mb-0 w-max-content w-md-auto mx-auto">
-                      <li class="d-flex align-items-center"><span class="uil uil-check-circle text-success me-2"></span><span class="text-700 fw-semi-bold">Fast</span></li>
-                      <li class="d-flex align-items-center"><span class="uil uil-check-circle text-success me-2"></span><span class="text-700 fw-semi-bold">Simple</span></li>
-                      <li class="d-flex align-items-center"><span class="uil uil-check-circle text-success me-2"></span><span class="text-700 fw-semi-bold">Responsive</span></li>
+                      <li class="d-flex align-items-center"><span class="uil uil-check-circle text-success me-2"></span><span class="text-700 fw-semi-bold">@lang('userauth::login.merkmal_schnell')</span></li>
+                      <li class="d-flex align-items-center"><span class="uil uil-check-circle text-success me-2"></span><span class="text-700 fw-semi-bold">@lang('userauth::login.merkmal_einfach')</span></li>
+                      <li class="d-flex align-items-center"><span class="uil uil-check-circle text-success me-2"></span><span class="text-700 fw-semi-bold">@lang('userauth::login.merkmal_responsiv')</span></li>
                     </ul>
                   </div>
                   <div class="position-relative z-index--1 mb-6 d-none d-md-block text-center mt-md-5"><img class="auth-title-box-img d-dark-none" src="{{ asset('assets/img/spot-illustrations/auth.png') }}" alt="" />

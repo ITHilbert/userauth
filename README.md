@@ -288,7 +288,7 @@ Entscheidung 0008 (Projekt `packages_dev`, Ordner `.project/doku/decisions/`). D
 
 ## Registrierung
 
-Selbstregistrierung per E-Mail und Passwort (Dashboard #255). **Standard: aus.** Ist sie aus, gibt es die Routen nicht (404), und die Login-Seite zeigt keinen Link „Registrieren“.
+Selbstregistrierung per E-Mail und Passwort (Dashboard #255). **Standard: aus.** Ist sie aus, antworten alle Registrierungs-Routen mit 404, und die Login-Seite zeigt keinen Link „Registrieren“.
 
 ### Konfiguration
 
@@ -316,7 +316,7 @@ Hosts mit veröffentlichter Config ergänzen die Gruppe `registration`; fehlende
 1. **Mail-Versand konfiguriert** (`MAIL_*`, `mail.from`): Ohne Mail kann niemand sein Konto bestätigen.
 2. **`APP_URL` richtig:** Der Bestätigungslink entsteht aus `APP_URL` und ist für genau diese Adresse signiert. Zeigt `APP_URL` auf einen anderen Host als den, unter dem die Seite aufgerufen wird, gilt jeder Link als ungültig.
 3. **`php artisan migrate`:** Die Migration `2026_11_03_000000_add_self_registered_to_users_table` ergänzt die Spalte `users.self_registered`.
-4. **Cache-Store** nicht `array` (Drosselung, siehe Pflichten oben).
+4. **Cache-Store** nicht `array` (Drosselung, siehe Abschnitt „Passwort zurücksetzen“, Unterpunkt „Drosselung“).
 
 Die Routen der Registrierung sind immer registriert; ob sie antworten, entscheidet `EnsureRegistrationEnabled` bei jeder Anfrage. Ein- und Ausschalten wirkt deshalb ohne neuen Routen-Cache (bei `config:cache` wie jede Config-Änderung erst nach neuem Config-Cache). Ausgeschaltet antworten `GET` und `POST` auf alle Pfade unter `register` mit 404 – auch in einem Host mit GET-Fallback-Route (`Route::fallback`, z. B. Paket `pages`) und vor der CSRF-Prüfung (die Middleware steht in der Middleware-Priorität vor `ShareErrorsFromSession`).
 
