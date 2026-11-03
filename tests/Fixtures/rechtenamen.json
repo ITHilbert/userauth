@@ -1,0 +1,32 @@
+{
+    "beispiele": [
+        {"anzeige": "Bericht Lesen", "intern": "bericht_lesen"},
+        {"anzeige": "Export Ä", "intern": "export_ae"},
+        {"anzeige": "Bericht  lesen   alle", "intern": "bericht_lesen_alle"},
+        {"anzeige": "Größe : Ändern", "intern": "groesse_aendern"},
+        {"anzeige": "ÖL;Ü", "intern": "oelue"},
+        {"anzeige": "kunde_read", "intern": "kunde_read"}
+    ],
+    "weitere": [
+        {"anzeige": "ÄÖÜ", "intern": "aeoeue"},
+        {"anzeige": "Straße", "intern": "strasse"},
+        {"anzeige": "  Bericht lesen  ", "intern": "bericht_lesen"},
+        {"anzeige": "Bericht\tlesen\n alle", "intern": "bericht_lesen_alle"},
+        {"anzeige": "\tBericht lesen\n", "intern": "bericht_lesen"},
+        {"anzeige": "a ; b", "intern": "a_b"},
+        {"anzeige": "a;;b;c", "intern": "abc"},
+        {"anzeige": "a:b::c", "intern": "abc"},
+        {"anzeige": "a\"b\"\"c", "intern": "abc"},
+        {"anzeige": "a'b''c", "intern": "abc"},
+        {"anzeige": "a`b``c", "intern": "abc"},
+        {"anzeige": "a~b~~c", "intern": "abc"},
+        {"anzeige": "a<b<<c", "intern": "abc"},
+        {"anzeige": "a>b>>c", "intern": "abc"},
+        {"anzeige": "a|b||c", "intern": "abc"},
+        {"anzeige": "user.read", "intern": "user.read"},
+        {"anzeige": "Kunde-Alt 2", "intern": "kunde-alt_2"},
+        {"anzeige": "Café", "intern": "café"},
+        {"anzeige": "ÉCOLE", "intern": "école"},
+        {"anzeige": "Ärger Öl Übung", "intern": "aerger_oel_uebung"}
+    ]
+}

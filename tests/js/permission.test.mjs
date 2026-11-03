@@ -10,6 +10,11 @@ import { fileURLToPath } from 'node:url';
 
 const hier = path.dirname(fileURLToPath(import.meta.url));
 const paketDatei = path.resolve(hier, '../../src/Resources/assets/js/permission.js');
+const jsOrdner = path.resolve(hier, '../../src/Resources/assets/js');
+const skripteDerView = (view) => {
+    const html = fs.readFileSync(path.resolve(hier, '../../src/Resources/views', view + '.blade.php'), 'utf8');
+    return [...html.matchAll(/vendor\/userauth\/js\/([\w.\-]+\.js)/g)].map((m) => m[1]);
+};
 const hostDatei = path.resolve(hier, '../../../../public/vendor/userauth/js/permission.js');
 
 // ---------- minimaler DOM ----------
@@ -190,7 +195,10 @@ function baueKontext(zeilenNummern) {
 
     const ctx = vm.createContext({ $, jQuery: $, document: doc, console });
     ctx.window = ctx;
-    vm.runInContext(fs.readFileSync(paketDatei, 'utf8'), ctx, { filename: 'permission.js' });
+    // Die Skripte laden wie die Views: erst die gemeinsamen Dateien (Namensregel), dann permission.js.
+    for (const datei of skripteDerView('permission/create')) {
+        vm.runInContext(fs.readFileSync(path.join(jsOrdner, datei), 'utf8'), ctx, { filename: datei });
+    }
 
     // Zeilen aus dem Markup tragen ein inline onchange="editIntern('new-row-<n>')"
     for (const n of zeilenNummern) {

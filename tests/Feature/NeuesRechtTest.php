@@ -122,7 +122,7 @@ final class NeuesRechtTest extends TestCase
         $this->store(array_merge(['permission_display_new_1' => 'Möglich Neu: Test'], $intern));
 
         $this->assertSame(
-            [['permission' => 'moeglichneutest', 'permission_display' => 'Möglich Neu: Test']],
+            [['permission' => 'moeglich_neu_test', 'permission_display' => 'Möglich Neu: Test']],
             $this->rechteNachStore()
         );
     }
@@ -144,7 +144,7 @@ final class NeuesRechtTest extends TestCase
         $this->update(array_merge(['permission_display_new_1' => 'Möglich Neu: Test'], $intern));
 
         $this->assertSame(
-            [['permission' => 'moeglichneutest', 'permission_display' => 'Möglich Neu: Test']],
+            [['permission' => 'moeglich_neu_test', 'permission_display' => 'Möglich Neu: Test']],
             $this->rechteNachUpdate()
         );
     }
@@ -156,9 +156,9 @@ final class NeuesRechtTest extends TestCase
             'permission_display_new_1' => 'Anzeige Eins', 'permission_new_1' => 'Mein Nämen: X',
         ])->assertRedirect(route('permission'));
 
-        // Gegenprobe: der Name stammt nicht aus der Anzeige (die ergäbe „anzeigeeins“)
+        // Gegenprobe: der Name stammt nicht aus der Anzeige (die ergäbe „anzeige_eins“)
         $this->assertSame(
-            [['permission' => 'meinnaemenx', 'permission_display' => 'Anzeige Eins']],
+            [['permission' => 'mein_naemen_x', 'permission_display' => 'Anzeige Eins']],
             $this->rechteNachStore()
         );
     }
@@ -171,7 +171,7 @@ final class NeuesRechtTest extends TestCase
         ])->assertRedirect(route('permission'));
 
         $this->assertSame(
-            [['permission' => 'meinnaemenx', 'permission_display' => 'Anzeige Eins']],
+            [['permission' => 'mein_naemen_x', 'permission_display' => 'Anzeige Eins']],
             $this->rechteNachUpdate()
         );
     }
@@ -186,7 +186,7 @@ final class NeuesRechtTest extends TestCase
 
         $this->assertSame([
             ['permission' => 'eigener_name', 'permission_display' => 'Anzeige Eins'],
-            ['permission' => 'anzeigezwei', 'permission_display' => 'Anzeige Zwei'],
+            ['permission' => 'anzeige_zwei', 'permission_display' => 'Anzeige Zwei'],
         ], $this->rechteNachUpdate());
     }
 
@@ -210,7 +210,7 @@ final class NeuesRechtTest extends TestCase
 
         $this->assertSame([
             ['permission' => 'eigener_name', 'permission_display' => 'Anzeige Eins'],
-            ['permission' => 'anzeigezwei', 'permission_display' => 'Anzeige Zwei'],
+            ['permission' => 'anzeige_zwei', 'permission_display' => 'Anzeige Zwei'],
         ], $this->rechteNachStore());
     }
 
