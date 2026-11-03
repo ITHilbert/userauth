@@ -19,7 +19,6 @@ use ITHilbert\UserAuth\Tests\TestCase;
 final class SeederHostEintraegeTest extends TestCase
 {
     private const ROLLEN = [
-        ['id' => 1, 'role' => 'dev', 'role_display' => 'Developer'],
         ['id' => 2, 'role' => 'admin', 'role_display' => 'Admin'],
         ['id' => 3, 'role' => 'user', 'role_display' => 'Anwender'],
     ];
@@ -153,7 +152,7 @@ final class SeederHostEintraegeTest extends TestCase
 
         $this->seed(RolesTableSeeder::class);
 
-        $this->assertNotNull($this->zeile('roles', 'role', 'dev'), 'Seeder hat keine Paket-Rolle angelegt');
+        $this->assertNotNull($this->zeile('roles', 'role', 'admin'), 'Seeder hat keine Paket-Rolle angelegt');
         $this->assertSame($this->hostRolle(), $this->zeile('roles', 'role', 'kunde_host'));
     }
 
@@ -202,7 +201,7 @@ final class SeederHostEintraegeTest extends TestCase
 
         $this->seed(DatabaseSeeder::class);
 
-        $this->assertNotNull($this->zeile('roles', 'role', 'dev'), 'DatabaseSeeder hat nichts angelegt');
+        $this->assertNotNull($this->zeile('roles', 'role', 'admin'), 'DatabaseSeeder hat nichts angelegt');
         $this->assertSame($this->hostRolle(), $this->zeile('roles', 'role', 'kunde_host'));
         $this->assertSame($this->hostGruppe(), $this->zeile('permissions_groups', 'group_name', 'projekt'));
         $this->assertSame($this->hostRecht(), $this->zeile('permissions', 'permission', 'projekt_read'));
@@ -258,7 +257,7 @@ final class SeederHostEintraegeTest extends TestCase
     {
         $this->seedAlle();
         $erster = $this->schnappschuss();
-        $this->assertCount(3, $erster['roles']);
+        $this->assertCount(2, $erster['roles']);
         $this->assertCount(2, $erster['groups']);
         $this->assertCount(8, $erster['permissions']);
 
@@ -273,7 +272,7 @@ final class SeederHostEintraegeTest extends TestCase
         $this->hostEintraegeAnlegen();
         $this->seedAlle();
         $erster = $this->schnappschuss();
-        $this->assertCount(4, $erster['roles']);
+        $this->assertCount(3, $erster['roles']);
         $this->assertCount(3, $erster['groups']);
         $this->assertCount(9, $erster['permissions']);
 
@@ -286,11 +285,11 @@ final class SeederHostEintraegeTest extends TestCase
     public function test_zweiter_lauf_ueber_databaseseeder_wirft_keinen_fehler(): void
     {
         $this->seed(DatabaseSeeder::class);
-        $this->assertSame(3, DB::table('roles')->count());
+        $this->assertSame(2, DB::table('roles')->count());
 
         $this->seed(DatabaseSeeder::class);
 
-        $this->assertSame(3, DB::table('roles')->count());
+        $this->assertSame(2, DB::table('roles')->count());
         $this->assertSame(2, DB::table('permissions_groups')->count());
         $this->assertSame(8, DB::table('permissions')->count());
     }
@@ -303,7 +302,7 @@ final class SeederHostEintraegeTest extends TestCase
 
         $this->seed(RolesTableSeeder::class);
 
-        $this->assertNotNull($this->zeile('roles', 'role', 'dev'), 'Seeder hat fehlende Rollen nicht angelegt');
+        $this->assertNotNull($this->zeile('roles', 'role', 'admin'), 'Seeder hat fehlende Rollen nicht angelegt');
         $this->assertSame($vorher, $this->zeile('roles', 'role', 'user'));
         $this->assertSame(1, DB::table('roles')->where('role', 'user')->count());
     }
@@ -349,7 +348,7 @@ final class SeederHostEintraegeTest extends TestCase
         $this->assertNotNull($user, 'Paket-Rolle user fehlt');
         $this->assertNotSame(3, (int) $user['id']);
         $this->assertSame('Anwender', $user['role_display']);
-        $this->assertSame(4, DB::table('roles')->count());
+        $this->assertSame(3, DB::table('roles')->count());
     }
 
     // Randfall 1
@@ -408,14 +407,14 @@ final class SeederHostEintraegeTest extends TestCase
     // Randfall 3
     public function test_soft_geloeschte_paket_rolle_gilt_als_vorhanden(): void
     {
-        DB::table('roles')->insert(['id' => 1, 'role' => 'dev', 'role_display' => 'Alt', 'created_at' => null, 'updated_at' => null, 'deleted_at' => '2024-03-03 03:03:03']);
-        $vorher = $this->zeile('roles', 'role', 'dev');
+        DB::table('roles')->insert(['id' => 1, 'role' => 'admin', 'role_display' => 'Alt', 'created_at' => null, 'updated_at' => null, 'deleted_at' => '2024-03-03 03:03:03']);
+        $vorher = $this->zeile('roles', 'role', 'admin');
 
         $this->seed(RolesTableSeeder::class);
 
         $this->assertNotNull($this->zeile('roles', 'role', 'admin'), 'Seeder hat fehlende Rollen nicht angelegt');
-        $this->assertSame($vorher, $this->zeile('roles', 'role', 'dev'));
-        $this->assertSame(1, DB::table('roles')->where('role', 'dev')->count());
+        $this->assertSame($vorher, $this->zeile('roles', 'role', 'admin'));
+        $this->assertSame(1, DB::table('roles')->where('role', 'admin')->count());
     }
 
     // Randfall 3

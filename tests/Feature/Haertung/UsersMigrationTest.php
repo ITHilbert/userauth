@@ -231,7 +231,6 @@ final class UsersMigrationTest extends TestCase
         $pruefung = $this->app->make(Zugriffspruefung::class);
 
         $this->assertFalse($pruefung->istPrivilegiert($nutzer));
-        $this->assertFalse($pruefung->istDev($nutzer));
     }
 
     // AK24 (neue Installation, direkter Insert)

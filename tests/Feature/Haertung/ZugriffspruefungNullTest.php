@@ -202,13 +202,13 @@ final class ZugriffspruefungNullTest extends TestCase
     // AK13
     public function test_blade_has_permission_or_mit_variable_null_gewaehrt_auch_privilegierten_ohne_serverfehler(): void
     {
-        $dev = User::factory()->create(['role_id' => 1]);
+        $admin = User::factory()->create(['role_id' => 2]);
 
-        // Gegenprobe: Dev besteht die Direktive mit gültigem Recht
-        $this->assertRendert('JA', "@hasPermissionOr(['a']) JA @else NEIN @endhasPermissionOr", $dev);
+        // Gegenprobe: Admin besteht die Direktive mit gültigem Recht
+        $this->assertRendert('JA', "@hasPermissionOr(['a']) JA @else NEIN @endhasPermissionOr", $admin);
 
-        [$status] = $this->rendereUeberRoute('@hasPermissionOr($x) JA @else NEIN @endhasPermissionOr', $dev);
-        $this->assertSame(200, $status, 'Auch für Dev/Admin darf null keinen Serverfehler auslösen');
+        [$status] = $this->rendereUeberRoute('@hasPermissionOr($x) JA @else NEIN @endhasPermissionOr', $admin);
+        $this->assertSame(200, $status, 'Auch für Admin darf null keinen Serverfehler auslösen');
     }
 
     // AK13
@@ -220,7 +220,7 @@ final class ZugriffspruefungNullTest extends TestCase
         $this->assertRendert('JA', "@hasPermissionAnd(['a', 'b']) JA @else NEIN @endhasPermissionAnd", $admin);
 
         [$status] = $this->rendereUeberRoute("@hasPermissionAnd(['a', null]) JA @else NEIN @endhasPermissionAnd", $admin);
-        $this->assertSame(200, $status, 'Auch für Dev/Admin darf ein null-Element keinen Serverfehler auslösen');
+        $this->assertSame(200, $status, 'Auch für Admin darf ein null-Element keinen Serverfehler auslösen');
     }
 
     // ---------------------------------------------------------------- Middleware

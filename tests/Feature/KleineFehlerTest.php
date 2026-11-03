@@ -99,7 +99,7 @@ final class KleineFehlerTest extends TestCase
 
     private function entwickler(): User
     {
-        return User::factory()->create(['role_id' => 1]);
+        return User::factory()->create(['role_id' => 2]);
     }
 
     private function nutzer(int $rolle = self::ROLLE_NUTZER): User

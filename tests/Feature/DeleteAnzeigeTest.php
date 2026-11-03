@@ -29,7 +29,7 @@ final class DeleteAnzeigeTest extends TestCase
     {
         app()->setLocale('de');
         $jetzt = now();
-        DB::table('roles')->insert(['id' => 1, 'role' => 'dev', 'role_display' => 'Dev', 'created_at' => $jetzt, 'updated_at' => $jetzt]);
+        DB::table('roles')->insert(['id' => 1, 'role' => 'admin', 'role_display' => 'Admin', 'created_at' => $jetzt, 'updated_at' => $jetzt]);
         $dev = User::factory()->create(['role_id' => 1, 'name' => 'Dev Nutzer', 'email' => 'dev@example.test']);
 
         $this->actingAs($dev)->post(route('permission.store'), [

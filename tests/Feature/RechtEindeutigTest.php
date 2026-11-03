@@ -56,7 +56,7 @@ final class RechtEindeutigTest extends TestCase
         $this->recht('fremder_name', 'Fremdes Recht', 4);
         $this->recht('geloeschter_name', 'Gelöschtes Recht', 4, '2020-01-02 03:04:05');
 
-        $this->dev = User::factory()->create(['role_id' => 1, 'name' => 'Dev Nutzer', 'email' => 'dev@example.test']);
+        $this->dev = User::factory()->create(['role_id' => 2, 'name' => 'Dev Nutzer', 'email' => 'dev@example.test']);
     }
 
     private function recht(string $intern, string $anzeige, int $gruppe, ?string $geloescht = null): int

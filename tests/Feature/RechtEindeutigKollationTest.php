@@ -65,7 +65,7 @@ final class RechtEindeutigKollationTest extends TestCase
         $this->recht('creme', 'Fremdes Creme', 4);
         $this->recht('cafe_geloescht', 'Gelöschtes Recht', 4, '2020-01-02 03:04:05');
 
-        $this->dev = User::factory()->create(['role_id' => 1, 'name' => 'Dev Nutzer', 'email' => 'dev@example.test']);
+        $this->dev = User::factory()->create(['role_id' => 2, 'name' => 'Dev Nutzer', 'email' => 'dev@example.test']);
     }
 
     /**

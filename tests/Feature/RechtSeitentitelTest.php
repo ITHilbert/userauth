@@ -41,7 +41,7 @@ final class RechtSeitentitelTest extends TestCase
         app()->setLocale('de');
 
         $jetzt = now();
-        DB::table('roles')->insert(['id' => 1, 'role' => 'dev', 'role_display' => 'Dev', 'created_at' => $jetzt, 'updated_at' => $jetzt]);
+        DB::table('roles')->insert(['id' => 1, 'role' => 'admin', 'role_display' => 'Admin', 'created_at' => $jetzt, 'updated_at' => $jetzt]);
         foreach ([[3, 'alpha', 'Alpha', 0], [4, 'einzel', 'Einzel', 1]] as [$id, $name, $anzeige, $istGruppe]) {
             DB::table('permissions_groups')->insert([
                 'id' => $id, 'group_name' => $name, 'group_display' => $anzeige, 'is_group' => $istGruppe,
