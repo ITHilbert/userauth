@@ -475,6 +475,9 @@ mountInseln({
 19. Assets neu veröffentlichen: `php artisan vendor:publish --provider="ITHilbert\UserAuth\UserAuthServiceProvider" --force` (neue gemeinsame Datei `public/vendor/userauth/js/rechtename.js`, `permission.js` und `role.js` nutzen sie). `--force` überschreibt auch Config, Views und Sprachdateien (siehe Punkt 11).
 20. Gespeicherte Namen mit großen Umlauten (z. B. `exportÄ`) bleiben unverändert, bis zum nächsten Speichern der Gruppe; dann werden sie nach der Regel neu gebildet (`export_ae`).
 
+**Englische Erfolgsmeldungen**
+21. Die englischen Erfolgsmeldungen `MsgAddSuccess`, `MsgEditSuccess` und `MsgDeleteSuccess` in `lang/en/user.php` sind korrigiert. Hosts mit veröffentlichten Sprachdateien (`resources/lang/vendor/userauth/en/user.php` bzw. `lang/vendor/userauth/en/user.php`) übernehmen die drei Zeilen.
+
 ## Upgrade-Hinweise (3.0.0)
 
 Diese Punkte gelten für Hosts, die auf 3.0.0 aktualisieren. Sie sind nach dem Code geprüft.
