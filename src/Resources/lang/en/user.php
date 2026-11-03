@@ -50,7 +50,7 @@ return [
     'image' => 'image',
 
     // Meldungen
-    'MsgAddSuccess' => 'Add user successfull.',
-    'MsgEditSuccess' => 'Add edit successfull.',
-    'MsgDeleteSuccess' => 'Add delte successfull.',
+    'MsgAddSuccess' => 'The user has been created.',
+    'MsgEditSuccess' => 'The user has been updated.',
+    'MsgDeleteSuccess' => 'The user has been deleted.',
 ];
