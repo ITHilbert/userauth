@@ -931,7 +931,7 @@ final class RegistrierungTest extends TestCase
     public function test_ak15_nichts_im_paket_verweist_auf_die_entfernten_dateien(): void
     {
         $treffer = [];
-        foreach (['src', 'docs', 'resources-src'] as $ordner) {
+        foreach (['src', '.project/doku', 'resources-src'] as $ordner) {
             if (! is_dir($this->paketPfad($ordner))) {
                 continue;
             }
