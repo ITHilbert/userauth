@@ -1,3 +1,4 @@
+@use('ITHilbert\UserAuth\Http\Formular\AlteEingabe')
 @extends('userauth::layouts.beforeLogin')
 
 @section('main')
@@ -49,6 +50,9 @@
                           @endforeach
                         </div>
                       @endif
+                      @if (session('userauth_bestaetigung_offen') && ($registrierungAktiv ?? false))
+                        <div class="text-center mb-3"><a href="{{ route('register.bestaetigung') }}">@lang('userauth::registrierung.link_erneut_anfordern')</a></div>
+                      @endif
                       @if (in_array('google', $availableSocialProviders ?? [], true))
                         <a class="btn btn-phoenix-secondary w-100 mb-3 d-inline-flex align-items-center justify-content-center gap-2" href="{{ route('userauth.social.redirect', 'google') }}">
                           @include('userauth::partials.google-logo')
@@ -69,7 +73,7 @@
                       <div class="mb-3 text-start">
                         <label class="form-label" for="email">Email address</label>
                         <div class="form-icon-container">
-                            <input type="email" class="form-control form-icon-input" id="email" name="email" class="@error('email') is-invalid @enderror" value="{{ old('email') }}" required autocomplete="email" autofocus><span class="fas fa-user text-900 fs--1 form-icon"></span>
+                            <input type="email" class="form-control form-icon-input" id="email" name="email" class="@error('email') is-invalid @enderror" value="{{ AlteEingabe::text('email') }}" required autocomplete="email" autofocus><span class="fas fa-user text-900 fs--1 form-icon"></span>
                         </div>
                       </div>
                       {{-- Password --}}
@@ -95,7 +99,9 @@
                         </div>
                       </div>
                       <button class="btn btn-primary w-100 mb-3">Login</button>
-                      {{-- <div class="text-center"><a class="fs--1 fw-bold" href="../../../pages/authentication/card/sign-up.html">Create an account</a></div> --}}
+                      @if ($registrierungAktiv ?? false)
+                        <div class="text-center">@lang('userauth::registrierung.noch_kein_konto') <a class="fs--1 fw-bold" href="{{ route('register') }}">@lang('userauth::registrierung.registrieren')</a></div>
+                      @endif
                     </div>
                   </div>
                 </div>

@@ -63,6 +63,10 @@ USERAUTH_PASSWORD_POLICY_ENABLED=true
 # Mandantenfähigkeit (Teams)
 USERAUTH_TEAMS_ENABLED=true
 
+# Selbstregistrierung (siehe Abschnitt „Registrierung“)
+USERAUTH_REGISTRATION=false
+USERAUTH_REGISTRATION_ROLE=
+
 # Theme der Auth-Views (Login, Passwort-Reset): 'tailwind' (Default) oder 'bootstrap'
 # Nur in ÄLTEREN Bootstrap-/Phoenix-Projekten setzen:
 USERAUTH_THEME=bootstrap
@@ -282,6 +286,62 @@ Entscheidung 0008 (Projekt `packages_dev`, Ordner `.project/doku/decisions/`). D
 
 **Links in Mails:** Der Reset-Link und der Bestätigungslink der Kontoverknüpfung (Social Login) entstehen aus `APP_URL` (`app.url`), nicht aus Host und Schema der Anfrage. So kann ein gefälschter `X-Forwarded-Host` den Token nicht auf einen fremden Host lenken. `APP_URL` muss deshalb auf die öffentliche Adresse zeigen (auch mit Unterpfad, z. B. `https://example.com/app`). Ist `APP_URL` leer, entsteht der Link wie bisher aus der Anfrage und das Paket schreibt eine Warnung ins Log.
 
+## Registrierung
+
+Selbstregistrierung per E-Mail und Passwort (Dashboard #255). **Standard: aus.** Ist sie aus, gibt es die Routen nicht (404), und die Login-Seite zeigt keinen Link „Registrieren“.
+
+### Konfiguration
+
+```dotenv
+# Registrierung einschalten (Default: false)
+USERAUTH_REGISTRATION=true
+# Rollen-Key (roles.role) für neue Konten; leer = keine Rolle (role_id null)
+USERAUTH_REGISTRATION_ROLE=user
+```
+
+In `config/userauth.php` (Gruppe `registration`):
+
+| Schlüssel | Default | Wirkung |
+|---|---|---|
+| `enabled` | `env('USERAUTH_REGISTRATION', false)` | Routen der Registrierung an/aus |
+| `role` | `env('USERAUTH_REGISTRATION_ROLE')` | Rolle neuer Konten; leer = keine Rolle |
+| `verify_ttl_minutes` | `60` | Gültigkeit des Bestätigungslinks in Minuten; leer oder ungültig = 60 |
+
+Hosts mit veröffentlichter Config ergänzen die Gruppe `registration`; fehlende Schlüssel bekommen die Werte aus der Tabelle.
+
+**Rolle:** Die Rolle darf keine privilegierte sein. Steht in `USERAUTH_REGISTRATION_ROLE` `dev` oder `admin` oder ein Schlüssel, zu dem es keine Rolle gibt, legt die Registrierung kein Konto an und wirft `RegistrierungFalschKonfiguriertException` (Text nennt `userauth.registration.role`).
+
+### Pflichten des Hosts
+
+1. **Mail-Versand konfiguriert** (`MAIL_*`, `mail.from`): Ohne Mail kann niemand sein Konto bestätigen.
+2. **`APP_URL` richtig:** Der Bestätigungslink entsteht aus `APP_URL` und ist für genau diese Adresse signiert. Zeigt `APP_URL` auf einen anderen Host als den, unter dem die Seite aufgerufen wird, gilt jeder Link als ungültig.
+3. **`php artisan migrate`:** Die Migration `2026_11_03_000000_add_self_registered_to_users_table` ergänzt die Spalte `users.self_registered`.
+4. **Cache-Store** nicht `array` (Drosselung, siehe Pflichten oben).
+5. **Routen-Cache:** Nach dem Ein- oder Ausschalten `php artisan route:cache` neu ausführen (die Routen werden nur bei eingeschalteter Registrierung registriert).
+
+### Ablauf
+
+1. **Formular:** `GET register` (Name `register`), Felder Name, E-Mail, Passwort, Passwort-Wiederholung; Passwortregeln wie beim Passwort ändern. Angemeldete Nutzer werden wie beim Login weitergeleitet.
+2. **Anlegen:** `POST register` (Name `register.store`). Das Konto entsteht mit „Bestätigung offen“ (`self_registered = 1`, `email_verified_at` leer) und der Rolle aus der Config. Der Nutzer ist **nicht** angemeldet und landet auf `register/bestaetigung` mit der Meldung „Wir haben Ihnen eine E-Mail geschickt …“. Bei aktiver Passwort-Richtlinie gilt `password_changed_at` = jetzt.
+3. **Mail:** `ITHilbert\UserAuth\Mail\RegistrierungBestaetigen` mit einem signierten Link (`register/bestaetigen/{id}/{hash}`, Name `register.bestaetigen`), gültig `verify_ttl_minutes`, gebunden an Konto-ID und E-Mail. Versand **nach der HTTP-Antwort** (`defer()`, wie beim Passwort-Reset); die Routen tragen `InvokeDeferredCallbacks`.
+4. **Bestätigen:** Gültiger Link → `email_verified_at` gesetzt, Weiterleitung auf die Login-Seite mit Erfolgsmeldung. Ein zweiter Aufruf ändert nichts und zeigt dieselbe Meldung. Abgelaufener, veränderter Link, gelöschtes Konto oder geänderte E-Mail → Hinweis „Link ungültig oder abgelaufen“ mit Formular für einen neuen Link.
+5. **Vor der Bestätigung:** Anmeldung mit richtigem Passwort wird abgelehnt, mit Hinweis und Link „Bestätigungslink erneut anfordern“; auch kein 2FA-Code. Konten, die nicht über die Registrierung entstanden sind (Admin, Seeder, Social Login), melden sich an wie bisher – auch mit leerem `email_verified_at`.
+6. **Link erneut anfordern:** `GET register/bestaetigung` (Name `register.bestaetigung`) zeigt das Formular, `POST register/bestaetigung` (Name `register.erneut`) verschickt den Link – nur, wenn zu der E-Mail ein Konto mit offener Bestätigung existiert. Die Antwort ist für jede Eingabe dieselbe.
+
+**Doppelte E-Mail:** Ist die Adresse bereits vergeben (auch soft-gelöscht, Groß-/Kleinschreibung egal), entsteht kein zweites Konto, das bestehende bleibt unverändert, und es geht keine Mail raus. Die Antwort ist dieselbe wie bei einer neuen Adresse – so lässt sich nicht erfragen, welche Adressen ein Konto haben.
+
+**Drosselung:**
+
+| Grenze | Wert | Schlüssel |
+|---|---|---|
+| Registrieren je IP | 5 pro Minute | Limiter `userauth-registrieren` |
+| Link erneut anfordern je IP | 5 pro Minute | Limiter `userauth-registrierung-link` |
+| Neuer Link je E-Mail | höchstens 1 pro 60 Sekunden | eigene Sperre im Paket |
+
+**Audit-Log** (falls `USERAUTH_AUDIT_LOG_ENABLED=true`): `registered` beim Anlegen (nicht bei doppelter E-Mail), `email_verified` beim ersten gültigen Aufruf des Links. Das Laravel-Event `Illuminate\Auth\Events\Registered` wird bewusst nicht ausgelöst (Laravel würde sonst bei `MustVerifyEmail`-Models eine zweite Mail schicken).
+
+**Upgrade:** Die Registrierung bringt die neue Migration `2026_11_03_000000_add_self_registered_to_users_table` mit – nach dem Update `php artisan migrate` ausführen. Bestehende Konten bekommen `self_registered = 0` und sind nicht betroffen. Veröffentlichte Login-Views übernehmen den Link „Registrieren“ aus `login/tailwind.blade.php` bzw. `login/bootstrap.blade.php` (Variable `$registrierungAktiv`).
+
 ## Zwei-Faktor-Anmeldung
 
 Entscheidung 0009 (Projekt `packages_dev`, Ordner `.project/doku/decisions/`). Aktivierung: `USERAUTH_2FA_ENABLED=true`. Die Zwei-Faktor-Anmeldung gilt für Passwort-Login und Social Login gleichermaßen.
@@ -326,6 +386,7 @@ Vor bestandener 2FA sind Seiten hinter `auth` nicht erreichbar. Die Routen `veri
 | `2026_10_23_000000_make_role_id_nullable_on_users_table` | `role_id` nullable, ohne Standardwert Admin. Nutzer ohne Rolle sind nicht privilegiert. Bestehende Zuordnungen bleiben. | ohne Wirkung |
 | `2026_10_23_100000_create_password_reset_tokens_table` | legt `password_reset_tokens` an, wenn sie fehlt | ohne Wirkung |
 | `2026_10_23_200000_clear_remember_tokens_on_users_table` | leert **einmalig** `remember_token` aller Nutzer, auch gelöschter | ohne Wirkung |
+| `2026_11_03_000000_add_self_registered_to_users_table` | ergänzt `users.self_registered` (Konto aus der Selbstregistrierung), wenn die Spalte fehlt | ohne Wirkung |
 
 **Keine Rückbau-Migrationen:** Ob das Paket eine Tabelle angelegt oder nur ergänzt hat, ist beim Zurückrollen nicht feststellbar. Ein Löschen würde die Nutzer des Hosts vernichten. Der alte Zustand (`role_id` mit Admin als Default) wäre die geschlossene Sicherheitslücke. Die geleerten Angemeldet-bleiben-Tokens lassen sich nicht wiederherstellen (Entscheidungen 0007 und 0009, Projekt `packages_dev`).
 
@@ -342,6 +403,10 @@ Siehe [Voraussetzungen und Abhängigkeiten](#voraussetzungen-und-abhängigkeiten
 ## Upgrade-Hinweise (nach 3.0.0, unveröffentlicht)
 
 Diese Punkte gelten für Hosts, die den aktuellen Stand des Pakets nutzen. Eine Version nach 3.0.0 gibt es noch nicht.
+
+**Selbstregistrierung (neue Migration)**
+1. `php artisan migrate` ausführen: `2026_11_03_000000_add_self_registered_to_users_table` ergänzt `users.self_registered`. Die Registrierung ist standardmäßig aus; Einschalten und Pflichten siehe [Registrierung](#registrierung).
+2. Die ungenutzten Laravel-UI-Reste (Views `register`/`verify` unter `views/auth`, Schemas dazu) sind entfernt. Veröffentlichte Kopien im Host können gelöscht werden.
 
 **Logout und Impersonate nur per POST**
 1. `logout`, `userauth.impersonate` und `userauth.impersonate.leave` nehmen nur `POST` mit gültigem CSRF-Token an. Die Routennamen sind unverändert. Ein GET ergibt 405, in Hosts mit einer Catch-all-Fallback-Route (z. B. Paket `pages`) 404. Ohne gültiges Token antwortet die Anwendung mit 419 und ändert nichts.
