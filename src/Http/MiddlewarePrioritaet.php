@@ -11,6 +11,7 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use ITHilbert\UserAuth\Http\Middleware\EnforcePasswordPolicy;
 use ITHilbert\UserAuth\Http\Middleware\EnsureRegistrationEnabled;
+use ITHilbert\UserAuth\Http\Middleware\EnsureSocialLoginEnabled;
 use ITHilbert\UserAuth\Http\Middleware\hasPermission;
 use ITHilbert\UserAuth\Http\Middleware\hasPermissionAnd;
 use ITHilbert\UserAuth\Http\Middleware\hasPermissionOr;
@@ -26,7 +27,7 @@ use ITHilbert\UserAuth\Http\Middleware\TwoFactorMiddleware;
  * (404 statt Ablehnung), welche IDs existieren. Die Vorprüfungen, die userauth in die Gruppe `web` einträgt
  * (Passwort-Ablauf, Abmelden alter Sitzungen ohne 2FA-Markierung), laufen weiterhin vor der Rechteprüfung.
  *
- * Die Schalter-Middlewares (z. B. Registrierung aus → 404) laufen direkt nach dem Sitzungsstart und damit vor der
+ * Die Schalter-Middlewares (z. B. Registrierung oder Social Login aus → 404) laufen direkt nach dem Sitzungsstart und damit vor der
  * CSRF-Prüfung der Gruppe `web` (die nicht in der Priorität steht): Eine abgeschaltete Funktion antwortet auf
  * jede Methode mit 404 statt mit 419.
  */
@@ -36,7 +37,7 @@ final class MiddlewarePrioritaet
     public const VORPRUEFUNGEN = [EnforcePasswordPolicy::class, TwoFactorMiddleware::class];
 
     /** @var list<class-string> Middlewares, die eine abgeschaltete Funktion mit 404 beantworten */
-    public const SCHALTER = [EnsureRegistrationEnabled::class];
+    public const SCHALTER = [EnsureRegistrationEnabled::class, EnsureSocialLoginEnabled::class];
 
     /** @var list<class-string> */
     public const RECHTE = [hasPermission::class, hasPermissionAnd::class, hasPermissionOr::class, hasRole::class, isAdmin::class, isDev::class];
