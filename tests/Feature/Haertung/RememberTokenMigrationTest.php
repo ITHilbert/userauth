@@ -38,6 +38,9 @@ final class RememberTokenMigrationTest extends TestCase
         '2026_10_23_100000_create_password_reset_tokens_table',
     ];
 
+    /** Alles ab diesem Namen (lexikografisch) ist jünger als die Remember-Token-Migration 2026_10_23_200000. */
+    private const ERSTE_SPAETERE_MIGRATION = '2026_10_23_200001';
+
     protected function defineDatabaseMigrations(): void
     {
         // bewusst leer: der Test steuert die Migrationsreihenfolge selbst
@@ -90,7 +93,11 @@ final class RememberTokenMigrationTest extends TestCase
     {
         $this->paketMigrationenAusfuehren();
 
-        $neu = DB::table('migrations')->whereNotIn('migration', self::BEKANNTE_MIGRATIONEN)->pluck('migration');
+        // Spätere Paket-Migrationen (Zeitstempel nach der von AK14a) gehören nicht zum Stand "vor dem Update".
+        $neu = DB::table('migrations')
+            ->whereNotIn('migration', self::BEKANNTE_MIGRATIONEN)
+            ->where('migration', '<', self::ERSTE_SPAETERE_MIGRATION)
+            ->pluck('migration');
         $this->assertCount(1, $neu, 'Es muss genau eine neue Paket-Migration für AK14a geben, gefunden: '.$neu->implode(', '));
         DB::table('migrations')->whereIn('migration', $neu->all())->delete();
 

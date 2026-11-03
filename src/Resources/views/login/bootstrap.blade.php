@@ -1,3 +1,4 @@
+@use('ITHilbert\UserAuth\Http\Formular\AlteEingabe')
 @extends('userauth::layouts.beforeLogin')
 
 @section('main')
@@ -19,12 +20,12 @@
                     <!--/.bg-holder-->
 
                     <div class="position-relative px-4 px-lg-7 pt-7 pb-7 pb-sm-5 text-center text-md-start pb-lg-7 pb-md-7">
-                      <h3 class="mb-3 text-black fs-1">Phoenix Authentication</h3>
-                      <p class="text-700">Give yourself some hassle-free development process with the uniqueness of Phoenix!</p>
+                      <h3 class="mb-3 text-black fs-1">@lang('userauth::login.seite_titel')</h3>
+                      <p class="text-700">@lang('userauth::login.seite_text')</p>
                       <ul class="list-unstyled mb-0 w-max-content w-md-auto mx-auto">
-                        <li class="d-flex align-items-center"><span class="uil uil-check-circle text-success me-2"></span><span class="text-700 fw-semi-bold">Fast</span></li>
-                        <li class="d-flex align-items-center"><span class="uil uil-check-circle text-success me-2"></span><span class="text-700 fw-semi-bold">Simple</span></li>
-                        <li class="d-flex align-items-center"><span class="uil uil-check-circle text-success me-2"></span><span class="text-700 fw-semi-bold">Responsive</span></li>
+                        <li class="d-flex align-items-center"><span class="uil uil-check-circle text-success me-2"></span><span class="text-700 fw-semi-bold">@lang('userauth::login.merkmal_schnell')</span></li>
+                        <li class="d-flex align-items-center"><span class="uil uil-check-circle text-success me-2"></span><span class="text-700 fw-semi-bold">@lang('userauth::login.merkmal_einfach')</span></li>
+                        <li class="d-flex align-items-center"><span class="uil uil-check-circle text-success me-2"></span><span class="text-700 fw-semi-bold">@lang('userauth::login.merkmal_responsiv')</span></li>
                       </ul>
                     </div>
                     <div class="position-relative z-index--1 mb-6 d-none d-md-block text-center mt-md-15"><img class="auth-title-box-img d-dark-none" src="{{ asset('assets/img/spot-illustrations/auth.png') }}" alt="" />
@@ -49,6 +50,9 @@
                           @endforeach
                         </div>
                       @endif
+                      @if (session('userauth_bestaetigung_offen') && ($registrierungAktiv ?? false))
+                        <div class="text-center mb-3"><a href="{{ route('register.bestaetigung') }}">@lang('userauth::registrierung.link_erneut_anfordern')</a></div>
+                      @endif
                       @if (in_array('google', $availableSocialProviders ?? [], true))
                         <a class="btn btn-phoenix-secondary w-100 mb-3 d-inline-flex align-items-center justify-content-center gap-2" href="{{ route('userauth.social.redirect', 'google') }}">
                           @include('userauth::partials.google-logo')
@@ -69,7 +73,7 @@
                       <div class="mb-3 text-start">
                         <label class="form-label" for="email">Email address</label>
                         <div class="form-icon-container">
-                            <input type="email" class="form-control form-icon-input" id="email" name="email" class="@error('email') is-invalid @enderror" value="{{ old('email') }}" required autocomplete="email" autofocus><span class="fas fa-user text-900 fs--1 form-icon"></span>
+                            <input type="email" class="form-control form-icon-input" id="email" name="email" class="@error('email') is-invalid @enderror" value="{{ AlteEingabe::text('email') }}" required autocomplete="email" autofocus><span class="fas fa-user text-900 fs--1 form-icon"></span>
                         </div>
                       </div>
                       {{-- Password --}}
@@ -95,7 +99,9 @@
                         </div>
                       </div>
                       <button class="btn btn-primary w-100 mb-3">Login</button>
-                      {{-- <div class="text-center"><a class="fs--1 fw-bold" href="../../../pages/authentication/card/sign-up.html">Create an account</a></div> --}}
+                      @if ($registrierungAktiv ?? false)
+                        <div class="text-center">@lang('userauth::registrierung.noch_kein_konto') <a class="fs--1 fw-bold" href="{{ route('register') }}">@lang('userauth::registrierung.registrieren')</a></div>
+                      @endif
                     </div>
                   </div>
                 </div>
