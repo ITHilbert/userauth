@@ -239,7 +239,7 @@ final class PermissionController extends Controller
 
             // CRUD Rechte
             if ($group->is_group === 0) {
-                $permissions = Permission::where('group_id', $id)->get();
+                $permissions = Permission::withTrashed()->where('group_id', $id)->get();
                 foreach ($permissions as $perm) {
                     if ($perm->crud == 'create') {
                         $perm->permission_display = $group_display.' '.__('userauth::permission.create');
