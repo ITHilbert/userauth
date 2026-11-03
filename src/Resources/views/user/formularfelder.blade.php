@@ -66,6 +66,9 @@
         <label for="email" class="col-md-4 col-form-label text-md-right">@lang('userauth::user.email') *</label>
         <div class="col-md-6">
             <x-kit::input-email name="email" :value="AlteEingabe::text('email', $user?->email)" required />
+            @error('email')
+                <div class="text-danger small mt-1">{{ $message }}</div>
+            @enderror
         </div>
     </div>
 @endif

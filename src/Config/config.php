@@ -41,6 +41,11 @@ return [
     // Leer oder nicht gesetzt: Der Seeder erzeugt ein Zufallspasswort und gibt es einmal auf der Konsole aus.
     'admin_passwort' => env('USERAUTH_ADMIN_PASSWORT'),
 
+    // E-Mail eines gelöschten Benutzers bei einer Neuanlage (Admin-Anlage, Social-Registrierung):
+    // 'sperren' (Default) = Neuanlage abgelehnt, 'reaktivieren' = gelöschtes Konto wiederhergestellt und bereinigt,
+    // 'neu' = gelöschtes Konto endgültig entfernt, danach normale Neuanlage. Jeder andere Wert wirkt wie 'sperren'.
+    'geloeschte_email' => env('USERAUTH_GELOESCHTE_EMAIL', 'sperren'),
+
     // Aktiviert das Audit Log
     'audit_log_enabled' => env('USERAUTH_AUDIT_LOG_ENABLED', false),
     // Aktiviert 2-Faktor-Authentifizierung

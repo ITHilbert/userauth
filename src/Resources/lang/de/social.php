@@ -5,6 +5,7 @@ declare(strict_types=1);
 return [
     'login_with' => 'Mit :provider anmelden',
     'or' => 'oder',
+    'hinweis_geloeschtes_konto' => 'Gab es zu Ihrer E-Mail-Adresse ein gelöschtes Konto, wird es bei der Registrierung endgültig entfernt. Wenn Sie das nicht möchten, wenden Sie sich bitte an den Support.',
 
     'errors' => [
         'email_not_verified' => 'Die E-Mail-Adresse Ihres Kontos beim Anbieter ist nicht bestätigt. Eine Anmeldung ist deshalb nicht möglich.',

@@ -53,4 +53,7 @@ return [
     'MsgAddSuccess' => 'Add user successfull.',
     'MsgEditSuccess' => 'Add edit successfull.',
     'MsgDeleteSuccess' => 'Add delte successfull.',
+    'MsgReaktiviert' => 'The deleted user has been restored.',
+    'MsgEntferntUndAngelegt' => 'A deleted account with this e-mail address has been permanently removed and the user has been created again.',
+    'email_geloeschter_benutzer' => 'This e-mail address belongs to a deleted user.',
 ];

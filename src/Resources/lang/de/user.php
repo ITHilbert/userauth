@@ -53,4 +53,7 @@ return [
     'MsgAddSuccess' => 'Der Benutzer wurde erfolgreich angelegt.',
     'MsgEditSuccess' => 'Der Benutzer wurde erfolgreich angepasst',
     'MsgDeleteSuccess' => 'Der Benutzer wurde erfolgreich gelöscht',
+    'MsgReaktiviert' => 'Der gelöschte Benutzer wurde wiederhergestellt.',
+    'MsgEntferntUndAngelegt' => 'Ein gelöschtes Konto mit dieser E-Mail-Adresse wurde endgültig entfernt und der Benutzer neu angelegt.',
+    'email_geloeschter_benutzer' => 'Diese E-Mail-Adresse gehört zu einem gelöschten Benutzer.',
 ];

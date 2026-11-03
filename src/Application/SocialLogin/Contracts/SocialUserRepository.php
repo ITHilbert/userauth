@@ -15,9 +15,13 @@ interface SocialUserRepository
      */
     public function findActiveByEmail(string $email): ?LocalUser;
 
-    public function existsDeletedWithEmail(string $email): bool;
-
     public function createVerified(?string $name, string $email, string $roleKey): LocalUser;
+
+    /**
+     * Übernimmt ein eben wiederhergestelltes Konto für die Social-Registrierung: Rolle aus `$roleKey`,
+     * E-Mail als bestätigt; Passwort-Hash und übrige Felder bleiben.
+     */
+    public function adoptReactivated(int|string $id, string $roleKey): LocalUser;
 
     public function markEmailVerified(int|string $id): void;
 }
