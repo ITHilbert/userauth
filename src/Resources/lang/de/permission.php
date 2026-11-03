@@ -28,7 +28,7 @@ return [
     'read' => 'lesen',
     'edit' => 'ändern',
     'create' => 'erstellen',
-    'delete' => 'delete',
+    'delete' => 'löschen',
 
     'group_name' => 'Rechtname intern',
     'group_display' => 'Rechtname',
