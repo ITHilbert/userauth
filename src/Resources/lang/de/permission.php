@@ -36,6 +36,7 @@ return [
 
     // Meldungen
     'NameVergeben' => 'Dieser interne Name ist bereits vergeben oder kommt mehrfach vor.',
+    'NameLeer' => 'Der interne Name darf nicht leer sein.',
     'MsgAddSuccess' => 'Das Recht wurde erfolgreich angelegt.',
     'MsgEditSuccess' => 'Das Recht wurde erfolgreich angepasst',
     'MsgDeleteSuccess' => 'Das Recht wurde erfolgreich gelöscht',

@@ -25,6 +25,10 @@ final class GruppenNamenPruefung
      */
     public function pruefen(string $name, bool $crud, ?int $gruppeId = null): void
     {
+        if ($name === '') {
+            throw ValidationException::withMessages(['group_name' => __('userauth::permission.NameLeer')]);
+        }
+
         $gruppeBelegt = PermissionGroup::withTrashed()
             ->where('group_name', $name)
             ->when($gruppeId !== null, fn ($abfrage) => $abfrage->where('id', '!=', $gruppeId))

@@ -66,5 +66,6 @@
 @stop
 
 @push('userauth-scripts')
+    <script defer src="{{ asset('vendor/userauth/js/rechtename.js') }}"></script>
     <script defer src="{{ asset('vendor/userauth/js/permission.js') }}"></script>
 @endpush

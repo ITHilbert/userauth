@@ -404,6 +404,12 @@ mountInseln({
 15. Die Verwaltungsseiten legen ihre Skripte in den Stack `userauth-scripts`; `userauth::layouts.afterLogin` bringt sie in Stack `scripts` und Section `js` des Host-Layouts (siehe [Verwaltungsseiten](#verwaltungsseiten-benutzer-rollen-rechte-passwort-benutzerbild)). Ein Nachstarter im Host-Layout für diese Skripte kann entfallen. Das Host-Layout gibt den Stack bzw. die Section nach dem Bundle mit jQuery und DataTables aus.
 16. Hosts mit veröffentlichtem `layouts/afterLogin.blade.php` oder veröffentlichten Verwaltungs-Views unter `resources/views/vendor/userauth/` übernehmen die neue Fassung (neu veröffentlichen, siehe Punkt 11). Eine alte `afterLogin` ohne Brücke gibt die Skripte der neuen Views nicht aus; alte Views mit `@section('js')` laufen weiter wie bisher.
 
+**Interne Namen: eine Regel**
+17. Server und Browser bilden den internen Namen (Rolle, Rechtegruppe, Einzelrecht) aus der Anzeige nach derselben Regel, in dieser Reihenfolge: (1) Kleinbuchstaben, auch Umlaute; (2) `ä`→`ae`, `ö`→`oe`, `ü`→`ue`, `ß`→`ss`; (3) die Zeichen `;` `:` `"` `'` `` ` `` `~` `<` `>` `|` entfallen; (4) Leerraum am Anfang und Ende entfällt; (5) jede Folge von Leerraum im Innern wird zu genau einem `_`. Andere Zeichen (`-`, `.`, Ziffern, `é`) bleiben stehen. Beispiele: `Bericht Lesen` → `bericht_lesen`, `Export Ä` → `export_ae`, `Größe : Ändern` → `groesse_aendern`, `kunde_read` bleibt `kunde_read`.
+18. Ist der interne Name nach dieser Regel leer (z. B. Anzeige `: ;`), gibt es einen Validierungsfehler am Feld des internen Namens (`group_name`, `permission_new_<n>`, `permission_<id>`), gespeichert wird nichts.
+19. Assets neu veröffentlichen: `php artisan vendor:publish --provider="ITHilbert\UserAuth\UserAuthServiceProvider" --force` (neue gemeinsame Datei `public/vendor/userauth/js/rechtename.js`, `permission.js` und `role.js` nutzen sie). `--force` überschreibt auch Config, Views und Sprachdateien (siehe Punkt 11).
+20. Gespeicherte Namen mit großen Umlauten (z. B. `exportÄ`) bleiben unverändert, bis zum nächsten Speichern der Gruppe; dann werden sie nach der Regel neu gebildet (`export_ae`).
+
 ## Upgrade-Hinweise (3.0.0)
 
 Diese Punkte gelten für Hosts, die auf 3.0.0 aktualisieren. Sie sind nach dem Code geprüft.
