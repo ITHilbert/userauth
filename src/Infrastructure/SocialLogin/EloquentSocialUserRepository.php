@@ -12,6 +12,7 @@ use ITHilbert\UserAuth\Application\SocialLogin\Contracts\SocialUserRepository;
 use ITHilbert\UserAuth\Application\SocialLogin\LocalUser;
 use ITHilbert\UserAuth\Entities\Role;
 use ITHilbert\UserAuth\Infrastructure\Auth\UserModel;
+use ITHilbert\UserAuth\Infrastructure\Registrierung\EloquentRegistrierungsKonten;
 
 final class EloquentSocialUserRepository implements SocialUserRepository
 {
@@ -56,9 +57,28 @@ final class EloquentSocialUserRepository implements SocialUserRepository
         return $this->toLocalUser($user);
     }
 
+    /**
+     * Konto mit „Bestätigung offen“ aus der Selbstregistrierung: Das dort gesetzte Passwort und Angemeldet-bleiben-
+     * Tokens verfallen im selben Schritt (AK17 – sonst übernimmt, wer die Adresse vorab registriert hat, das Konto
+     * des echten Inhabers). Andere Konten behalten ihr Passwort.
+     */
     public function markEmailVerified(int|string $id): void
     {
-        $this->query()->whereKey($id)->whereNull('email_verified_at')->update(['email_verified_at' => now()]);
+        $offen = $this->query()->whereKey($id)->whereNull('email_verified_at')->lockForUpdate()->first();
+
+        if ($offen === null) {
+            return;
+        }
+
+        $aenderungen = ['email_verified_at' => now()];
+
+        // getAttributes(): Fehlt die Spalte (Migration noch nicht gelaufen), gilt das Konto als nicht registriert
+        if ((bool) ($offen->getAttributes()[EloquentRegistrierungsKonten::SPALTE] ?? false)) {
+            $aenderungen['password'] = Hash::make(Str::random(64));
+            $aenderungen['remember_token'] = Str::random(60);
+        }
+
+        $this->query()->whereKey($id)->whereNull('email_verified_at')->update($aenderungen);
     }
 
     /**

@@ -19,7 +19,8 @@ use ITHilbert\UserAuth\Infrastructure\Auth\UserModel;
  */
 final class EloquentRegistrierungsKonten implements RegistrierungsKonten
 {
-    private const SPALTE = 'self_registered';
+    /** Auch vom Social Login gelesen (AK17: Bestätigung über den Social Login verwirft das Passwort). */
+    public const SPALTE = 'self_registered';
 
     public function __construct(private readonly UserModel $userModel) {}
 

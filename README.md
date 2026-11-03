@@ -303,7 +303,7 @@ In `config/userauth.php` (Gruppe `registration`):
 
 | Schlüssel | Default | Wirkung |
 |---|---|---|
-| `enabled` | `env('USERAUTH_REGISTRATION', false)` | Routen der Registrierung an/aus |
+| `enabled` | `env('USERAUTH_REGISTRATION', false)` | Registrierung an/aus (aus: jede Registrierungs-Route antwortet mit 404, die Login-Seite zeigt keinen Link) |
 | `role` | `env('USERAUTH_REGISTRATION_ROLE')` | Rolle neuer Konten; leer = keine Rolle |
 | `verify_ttl_minutes` | `60` | Gültigkeit des Bestätigungslinks in Minuten; leer oder ungültig = 60 |
 
@@ -317,7 +317,8 @@ Hosts mit veröffentlichter Config ergänzen die Gruppe `registration`; fehlende
 2. **`APP_URL` richtig:** Der Bestätigungslink entsteht aus `APP_URL` und ist für genau diese Adresse signiert. Zeigt `APP_URL` auf einen anderen Host als den, unter dem die Seite aufgerufen wird, gilt jeder Link als ungültig.
 3. **`php artisan migrate`:** Die Migration `2026_11_03_000000_add_self_registered_to_users_table` ergänzt die Spalte `users.self_registered`.
 4. **Cache-Store** nicht `array` (Drosselung, siehe Pflichten oben).
-5. **Routen-Cache:** Nach dem Ein- oder Ausschalten `php artisan route:cache` neu ausführen (die Routen werden nur bei eingeschalteter Registrierung registriert).
+
+Die Routen der Registrierung sind immer registriert; ob sie antworten, entscheidet `EnsureRegistrationEnabled` bei jeder Anfrage. Ein- und Ausschalten wirkt deshalb ohne neuen Routen-Cache (bei `config:cache` wie jede Config-Änderung erst nach neuem Config-Cache). Ausgeschaltet antworten `GET` und `POST` auf alle Pfade unter `register` mit 404 – auch in einem Host mit GET-Fallback-Route (`Route::fallback`, z. B. Paket `pages`) und vor der CSRF-Prüfung (die Middleware steht in der Middleware-Priorität vor `ShareErrorsFromSession`).
 
 ### Ablauf
 
@@ -327,6 +328,7 @@ Hosts mit veröffentlichter Config ergänzen die Gruppe `registration`; fehlende
 4. **Bestätigen:** Gültiger Link → `email_verified_at` gesetzt, Weiterleitung auf die Login-Seite mit Erfolgsmeldung. Ein zweiter Aufruf ändert nichts und zeigt dieselbe Meldung. Abgelaufener, veränderter Link, gelöschtes Konto oder geänderte E-Mail → Hinweis „Link ungültig oder abgelaufen“ mit Formular für einen neuen Link.
 5. **Vor der Bestätigung:** Anmeldung mit richtigem Passwort wird abgelehnt, mit Hinweis und Link „Bestätigungslink erneut anfordern“; auch kein 2FA-Code. Konten, die nicht über die Registrierung entstanden sind (Admin, Seeder, Social Login), melden sich an wie bisher – auch mit leerem `email_verified_at`.
 6. **Link erneut anfordern:** `GET register/bestaetigung` (Name `register.bestaetigung`) zeigt das Formular, `POST register/bestaetigung` (Name `register.erneut`) verschickt den Link – nur, wenn zu der E-Mail ein Konto mit offener Bestätigung existiert. Die Antwort ist für jede Eingabe dieselbe.
+7. **Bestätigung über den Social Login:** Meldet sich jemand per Social Login mit derselben (beim Anbieter bestätigten) Adresse an und bestätigt die Verknüpfung per Mail-Link, ist die Bestätigung erledigt. Zugleich verfällt das bei der Registrierung gesetzte Passwort (Anmeldung damit scheitert wie mit falschem Passwort) und alle Angemeldet-bleiben-Tokens des Kontos – sonst könnte, wer eine fremde Adresse vorab registriert hat, das Konto nach der Verknüpfung durch den echten Inhaber mitbenutzen. Anmelden per Social Login und ein neues Passwort über „Passwort vergessen“ funktionieren. Konten ohne offene Bestätigung behalten ihr Passwort wie bisher.
 
 **Doppelte E-Mail:** Ist die Adresse bereits vergeben (auch soft-gelöscht, Groß-/Kleinschreibung egal), entsteht kein zweites Konto, das bestehende bleibt unverändert, und es geht keine Mail raus. Die Antwort ist dieselbe wie bei einer neuen Adresse – so lässt sich nicht erfragen, welche Adressen ein Konto haben.
 
@@ -660,7 +662,7 @@ Die Views (Login, Profil) erhalten vom View-Composer `AvailableSocialProvidersCo
 
 #### Bestätigungsablauf (Unverifiziierte E-Mail)
 - **GET** `auth/social/confirm/{token}` — zeigt Bestätigungsseite (keine Login).
-- **POST** `auth/social/confirm/{token}` — verknüpft das Konto, setzt `email_verified_at`, loggt NICHT ein.
+- **POST** `auth/social/confirm/{token}` — verknüpft das Konto, setzt `email_verified_at`, loggt NICHT ein. Bei einem Konto mit offener Bestätigung aus der Selbstregistrierung verfallen dabei Passwort und Angemeldet-bleiben-Tokens (siehe „Registrierung“, Ablauf 7).
 - Token ist einmalig gültig, mit konfigurierbarer Gültigkeitsdauer (Default: 60 Minuten).
 
 #### 2FA nach Social Login
