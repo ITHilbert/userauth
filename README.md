@@ -513,7 +513,7 @@ mountInseln({
 
 **E-Mail eines gelöschten Benutzers**
 22. Neue Option `USERAUTH_GELOESCHTE_EMAIL` (siehe [E-Mail eines gelöschten Benutzers](#e-mail-eines-gelöschten-benutzers)). Der Standard `sperren` ändert am Verhalten nichts: Die E-Mail eines gelöschten Benutzers bleibt belegt. Neu ist nur die Meldung bei der Admin-Anlage – statt des allgemeinen Fehlers „bereits vergeben“ heißt es „Diese E-Mail-Adresse gehört zu einem gelöschten Benutzer.“ (Sprachschlüssel `userauth::user.email_geloeschter_benutzer`).
-23. Hosts mit veröffentlichten Views oder Sprachdateien übernehmen die neuen Stellen (neu veröffentlichen, siehe Punkt 11): `user/formularfelder` zeigt den Fehler am Feld `email`, `login/tailwind` und `login/bootstrap` den Hinweis bei Option `neu`; neue Sprachschlüssel in `user.php` (`email_geloeschter_benutzer`, `MsgReaktiviert`, `MsgEntferntUndAngelegt`) und `social.php` (`hinweis_geloeschtes_konto`).
+23. Hosts mit veröffentlichten Views oder Sprachdateien übernehmen die neuen Stellen (neu veröffentlichen, siehe Punkt 11): `login/tailwind` und `login/bootstrap` den Hinweis bei Option `neu`; neue Sprachschlüssel in `user.php` (`email_geloeschter_benutzer`, `MsgReaktiviert`, `MsgEntferntUndAngelegt`) und `social.php` (`hinweis_geloeschtes_konto`).
 24. Wer `SocialUserRepository` selbst implementiert: `existsDeletedWithEmail()` entfällt (die Prüfung liegt im Anwendungsfall `GeloeschteEmailAufloesen`), neu ist `adoptReactivated()`.
 
 ## Upgrade-Hinweise (3.0.0)
