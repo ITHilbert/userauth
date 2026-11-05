@@ -31,4 +31,5 @@ return [
     'MsgEditSuccess' => 'Role edit successfull',
     'MsgDeleteSuccess' => 'Role delete successfull',
     'MsgDeleteRoot' => 'Not allowed.',
+    'MsgEditRoot' => 'Not allowed.',
 ];

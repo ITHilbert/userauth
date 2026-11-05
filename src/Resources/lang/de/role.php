@@ -31,4 +31,5 @@ return [
     'MsgEditSuccess' => 'Die Rolle wurde erfolgreich angepasst',
     'MsgDeleteSuccess' => 'Die Rolle wurde erfolgreich gelöscht',
     'MsgDeleteRoot' => 'Die Rolle Admin kann nicht gelöscht werden.',
+    'MsgEditRoot' => 'Die Rolle Admin kann nicht geändert werden.',
 ];
