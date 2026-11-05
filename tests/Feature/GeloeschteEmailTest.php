@@ -355,9 +355,11 @@ final class GeloeschteEmailTest extends SocialLoginTestCase
         $this->actingAs($admin)->from($formular)->post(route('user.store'), $this->daten())->assertSessionHasErrors('email');
         $meldung = session('errors')->first('email');
 
-        $this->actingAs($admin)->from($formular)->followingRedirects()
+        $antwort = $this->actingAs($admin)->from($formular)->followingRedirects()
             ->post(route('user.store'), $this->daten())
             ->assertSee(e($meldung), false);
+
+        $this->assertSame(1, substr_count($antwort->getContent(), e($meldung)), 'Meldung genau einmal in der Seite');
     }
 
     // ---------------------------------------------------------------- AK3
