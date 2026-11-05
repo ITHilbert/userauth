@@ -255,7 +255,7 @@ Privilegiert (hat jedes Recht, erfüllt jede Rolle und jede Gate-Prüfung) ist n
 
 - Jede andere Rolle hat nur ihre eigenen Rechte und erfüllt nur ihren eigenen Rollennamen, auch eine Rolle mit dem Schlüssel `dev` und auch eine Rolle mit der ID 1 oder 2.
 - Andere Schreibweisen (`Admin`, ` admin `) sind nicht privilegiert. Gibt es mehrere Rollen mit dem Schlüssel `admin`, ist jede nicht gelöschte privilegiert.
-- Die Rolle `admin` lässt sich in der Rollenverwaltung weder ändern noch löschen; alle anderen Rollen schon.
+- Die Rolle `admin` hat in der Rollenverwaltung keine Schaltflächen zum Ändern und Löschen, und das Löschen ist serverseitig gesperrt; alle anderen Rollen lassen sich ändern und löschen.
 - Mit Teams gilt die Rolle des **aktiven Teams** für alle Prüfungen (Gate, Middleware, `isAdmin`/`isDev`, Impersonation). Ohne Teamrolle gilt die globale `role_id`.
 - Fehlt die Rolle (`role_id` ist `null`), ist ungültig (`0`, negativ) oder zeigt auf eine gelöschte oder nicht vorhandene Rolle, ist der Nutzer **nicht** privilegiert und hat keine Rechte (fail-closed).
 
@@ -447,6 +447,7 @@ Diese Punkte gelten für Hosts, die den aktuellen Stand des Pakets nutzen. Eine 
 3. Der Middleware-Alias `isDev` bleibt als Übergang registriert und wirkt genau wie `isAdmin`. Routen des Hosts mit `isDev` können auf `isAdmin` umgestellt werden.
 4. Veröffentlichte Host-Config: Steht in `routes.permissions_middleware` noch `hasRole:dev`, auf `hasRole:admin` umstellen (neue Paket-Vorgabe). Funktional bleibt es auch ohne Umstellung, denn `admin` erfüllt jede Rolle.
 5. Die Seeder legen nur noch die Rollen `admin` und `user` an; `UsersTableSeeder` gibt `admin@admin.com` die Rolle `admin`.
+6. Hosts mit veröffentlichten Sprachdateien (`resources/lang/vendor/userauth/de/role.php` bzw. `lang/vendor/userauth/de/role.php`) übernehmen `MsgDeleteRoot` = „Die Rolle Admin kann nicht gelöscht werden.“ (bisher „Die Rollen Developer und Admin können nicht gelöscht werden.“).
 
 **Selbstregistrierung (neue Migration)**
 1. `php artisan migrate` ausführen: `2026_11_03_000000_add_self_registered_to_users_table` ergänzt `users.self_registered`. Die Registrierung ist standardmäßig aus; Einschalten und Pflichten siehe [Registrierung](#registrierung).
