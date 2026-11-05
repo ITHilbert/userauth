@@ -121,7 +121,7 @@ Weitere Anforderungen an den Host:
 
 ### Auth-View-Theme (Login & Passwort-Reset)
 
-Die Auth-Views (Login, Passwort-vergessen/-zurücksetzen) liegen in zwei Theme-Varianten vor und werden über `config('userauth.theme')` gewählt:
+Die Auth-Views (Login, Passwort-vergessen/-zurücksetzen) liegen in zwei Theme-Varianten vor und werden über `config('userauth.theme')` gewählt. Ist der Wert `null` oder leer (z. B. `env('USERAUTH_THEME')` ohne Vorgabe in einer veröffentlichten Config), gilt der Paket-Standard `tailwind`:
 
 - **`tailwind`** (Default) — Tailwind CSS. Das Package liefert eine vorkompilierte CSS mit (Route `userauth.assets.css`, erreichbar unter `/userauth/assets/userauth.css?v=<hash>`). Der Host-Browser cached diese mit `Cache-Control: immutable`. Neue Projekte brauchen **nichts** zu konfigurieren — weder Tailwind, noch `@source`, noch `vendor:publish`.
 - **`bootstrap`** — das ältere Phoenix/Bootstrap-Markup. In bestehenden Bootstrap-Projekten per `USERAUTH_THEME=bootstrap` in der `.env` aktivieren. **Wichtig:** Das Package liefert kein Bootstrap oder Phoenix mit. Daher ist eine Konfiguration erforderlich (siehe unten unter *Auth-Assets-Konfiguration*).

@@ -1,1 +1,1 @@
-@include('userauth::login.' . config('userauth.theme', 'bootstrap'))
+@include('userauth::login.' . $userauthTheme)

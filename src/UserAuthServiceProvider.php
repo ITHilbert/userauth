@@ -59,6 +59,7 @@ use ITHilbert\UserAuth\Http\Middleware\isDev;
 use ITHilbert\UserAuth\Http\MiddlewarePrioritaet;
 use ITHilbert\UserAuth\Http\ViewComposers\AvailableSocialProvidersComposer;
 use ITHilbert\UserAuth\Http\ViewComposers\RegistrierungComposer;
+use ITHilbert\UserAuth\Http\ViewComposers\ThemeComposer;
 use ITHilbert\UserAuth\Infrastructure\Auth\GuardAnmeldedaten;
 use ITHilbert\UserAuth\Infrastructure\Auth\GuardSitzungsanmeldung;
 use ITHilbert\UserAuth\Infrastructure\Auth\HmacZweiFaktorCodeHasher;
@@ -127,6 +128,16 @@ class UserAuthServiceProvider extends ServiceProvider
             AvailableSocialProvidersComposer::class
         );
         View::composer('userauth::login.*', RegistrierungComposer::class);
+        View::composer([
+            'userauth::login',
+            'userauth::password.editwithtoken',
+            'userauth::password.forgotten',
+            'userauth::password.tokensend',
+            'userauth::registrierung.formular',
+            'userauth::registrierung.bestaetigung',
+            'userauth::social.confirm',
+            'userauth::social.accounts',
+        ], ThemeComposer::class);
 
         $this->registerGates();
     }
