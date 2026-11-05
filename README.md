@@ -549,7 +549,7 @@ Unterstützt werden Laravel 12 und 13. `ithilbert/laravel-kit` wird ab `^1.2` be
 1. `/users` verlangt `user_read` (an der Route). Rollen ohne dieses Recht verlieren den Zugriff auf die Nutzerliste.
 2. Die JSON-Nutzerliste enthält nur noch `id`, `name`, `email`, `RoleName` und `action`.
 3. Model-Serialisierung (`toArray`, `toJson`) blendet `password`, `remember_token`, `two_factor_code`, `two_factor_expires_at`, `edit_pw_token` und `edit_pw_token_end` aus. Ein eigenes `$hidden` des Hosts bleibt erhalten.
-4. Dev und Admin gelten nur noch mit ID 1 + Schlüssel `dev` bzw. ID 2 + Schlüssel `admin`. Umbenannte Rollen 1 oder 2 verlieren ihre Privilegien. Mit Teams gilt die Rolle des aktiven Teams.
+4. Dev und Admin gelten nur noch mit ID 1 + Schlüssel `dev` bzw. ID 2 + Schlüssel `admin`. Umbenannte Rollen 1 oder 2 verlieren ihre Privilegien. Mit Teams gilt die Rolle des aktiven Teams. *(Überholt durch #357: privilegiert ist nur noch die Rolle mit dem Schlüssel `admin`, unabhängig von der ID – siehe „Nur noch `admin` ist privilegiert“.)*
 5. `role_id` ist nullable, ohne Default Admin. Neue Nutzer ohne Rolle haben keine Rechte.
 6. Trait-Methoden `hasPermissionAnd` und `hasPermissionOr` erwarten `string|array`. Mehrere Argumente (`('a', 'b')`) sind weiterhin möglich.
 
