@@ -1,1 +1,1 @@
-@include('userauth::password.tokensend.' . config('userauth.theme', 'bootstrap'))
+@include('userauth::password.tokensend.' . $userauthTheme)

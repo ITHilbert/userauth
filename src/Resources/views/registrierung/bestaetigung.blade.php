@@ -1,1 +1,1 @@
-@include('userauth::registrierung.bestaetigung.' . config('userauth.theme', 'bootstrap'))
+@include('userauth::registrierung.bestaetigung.' . $userauthTheme)
