@@ -11,7 +11,7 @@ use ITHilbert\UserAuth\Http\Responses\ZugriffVerweigert;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Route nur für Dev und Admin (gültige, nicht gelöschte Rolle 1 oder 2).
+ * Route nur für Admin (gültige, nicht gelöschte Rolle mit dem Schlüssel `admin`, unabhängig von der ID).
  */
 final class isAdmin
 {

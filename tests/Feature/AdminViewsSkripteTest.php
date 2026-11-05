@@ -45,7 +45,7 @@ final class AdminViewsSkripteTest extends TestCase
         config(['laravelkit.theme' => 'tailwind']);
 
         $jetzt = now();
-        foreach ([[1, 'dev', 'Dev'], [self::ROLLE_EDITOR, 'editor', 'Editor']] as [$id, $name, $anzeige]) {
+        foreach ([[1, 'admin', 'Admin'], [self::ROLLE_EDITOR, 'editor', 'Editor']] as [$id, $name, $anzeige]) {
             DB::table('roles')->insert(['id' => $id, 'role' => $name, 'role_display' => $anzeige, 'created_at' => $jetzt, 'updated_at' => $jetzt]);
         }
         DB::table('permissions_groups')->insert([

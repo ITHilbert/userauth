@@ -151,7 +151,7 @@ final class RechtePrioritaetTest extends TestCase
             'hasPermissionOr' => ['hasPermissionOr:x,y', self::ROLLE_NUR_X],
             'hasRole' => ['hasRole:redakteur', self::ROLLE_REDAKTEUR],
             'isAdmin' => ['isAdmin', 2],
-            'isDev' => ['isDev', 1],
+            'isDev' => ['isDev', 2],
         ];
     }
 

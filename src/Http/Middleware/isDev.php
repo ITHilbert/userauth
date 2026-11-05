@@ -6,32 +6,18 @@ namespace ITHilbert\UserAuth\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use ITHilbert\UserAuth\Application\Zugriff\Zugriffspruefung;
-use ITHilbert\UserAuth\Http\Responses\ZugriffVerweigert;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Route nur für Dev (gültige, nicht gelöschte Rolle 1).
+ * Übergangs-Alias für Hosts mit `isDev` in ihren Routen: wirkt genau wie `isAdmin`
+ * (Entscheidung 0011). Eine eigene Dev-Prüfung gibt es nicht mehr.
  */
 final class isDev
 {
-    public function __construct(
-        private readonly Zugriffspruefung $zugriffspruefung,
-        private readonly ZugriffVerweigert $verweigert,
-    ) {}
+    public function __construct(private readonly isAdmin $isAdmin) {}
 
     public function handle(Request $request, Closure $next): Response
     {
-        $user = $request->user();
-
-        if ($user === null) {
-            return $this->verweigert->nichtAngemeldet();
-        }
-
-        if ($this->zugriffspruefung->istDev($user)) {
-            return $next($request);
-        }
-
-        return $this->verweigert->fehlendesRecht();
+        return $this->isAdmin->handle($request, $next);
     }
 }

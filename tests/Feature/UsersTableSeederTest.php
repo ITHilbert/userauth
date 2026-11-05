@@ -20,13 +20,13 @@ use PHPUnit\Framework\Attributes\DataProvider;
  *  - Passwort (AK5): eine eigene Zeile `Passwort: <wert>` (genau einmal).
  *  - Kein Konto (AK3, Randfälle): Zeile mit `Kein Admin-Konto angelegt` und dem Grund `.lan`
  *    (z. B. `Kein Admin-Konto angelegt: keine .lan-Domain`).
- *  - Rolle dev fehlt: Zeile mit `Kein Admin-Konto angelegt` und `dev`.
+ *  - Rolle admin fehlt: Zeile mit `Kein Admin-Konto angelegt` und `admin`.
  */
 final class UsersTableSeederTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const DEV_ID = 7;
+    private const ADMIN_ID = 7;
 
     protected function setUp(): void
     {
@@ -41,8 +41,8 @@ final class UsersTableSeederTest extends TestCase
     private function rollenAnlegen(): void
     {
         DB::table('roles')->insert([
-            ['id' => 1, 'role' => 'admin', 'role_display' => 'Admin'],
-            ['id' => self::DEV_ID, 'role' => 'dev', 'role_display' => 'Developer'],
+            ['id' => 1, 'role' => 'dev', 'role_display' => 'Developer'],
+            ['id' => self::ADMIN_ID, 'role' => 'admin', 'role_display' => 'Admin'],
         ]);
     }
 
@@ -161,7 +161,7 @@ final class UsersTableSeederTest extends TestCase
 
     // AK2
     #[DataProvider('lokaleUrls')]
-    public function test_lokales_konto_hat_email_name_und_rolle_dev(string $url): void
+    public function test_lokales_konto_hat_email_name_und_rolle_admin(string $url): void
     {
         $this->rollenAnlegen();
         config(['app.url' => $url]);
@@ -172,7 +172,7 @@ final class UsersTableSeederTest extends TestCase
         $this->assertNotNull($benutzer);
         $this->assertSame('admin@admin.com', $benutzer->email);
         $this->assertSame('admin', $benutzer->name);
-        $this->assertSame(self::DEV_ID, (int) $benutzer->role_id);
+        $this->assertSame(self::ADMIN_ID, (int) $benutzer->role_id);
     }
 
     // AK2
@@ -189,7 +189,7 @@ final class UsersTableSeederTest extends TestCase
     }
 
     // AK2
-    public function test_admin_konto_hat_die_rolle_dev_ueber_roles_role_nicht_ueber_feste_id(): void
+    public function test_admin_konto_hat_die_rolle_admin_ueber_roles_role_nicht_ueber_feste_id(): void
     {
         $this->rollenAnlegen();
 
@@ -197,7 +197,7 @@ final class UsersTableSeederTest extends TestCase
 
         $benutzer = DB::table('users')->first();
         $this->assertNotNull($benutzer);
-        $this->assertSame(self::DEV_ID, (int) $benutzer->role_id);
+        $this->assertSame(self::ADMIN_ID, (int) $benutzer->role_id);
         $this->assertNotSame(1, (int) $benutzer->role_id);
     }
 
@@ -515,9 +515,9 @@ final class UsersTableSeederTest extends TestCase
     }
 
     // Randfall 6
-    public function test_fehlende_rolle_dev_legt_kein_konto_an_ohne_fehler(): void
+    public function test_fehlende_rolle_admin_legt_kein_konto_an_ohne_fehler(): void
     {
-        DB::table('roles')->insert([['id' => 1, 'role' => 'admin', 'role_display' => 'Admin']]);
+        DB::table('roles')->insert([['id' => 1, 'role' => 'dev', 'role_display' => 'Developer']]);
 
         [$exit, $ausgabe] = $this->seederLaufen();
 
@@ -527,14 +527,15 @@ final class UsersTableSeederTest extends TestCase
     }
 
     // Randfall 6
-    public function test_fehlende_rolle_dev_gibt_hinweis_auf_der_konsole(): void
+    public function test_fehlende_rolle_admin_gibt_hinweis_auf_der_konsole(): void
     {
-        DB::table('roles')->insert([['id' => 1, 'role' => 'admin', 'role_display' => 'Admin']]);
+        DB::table('roles')->insert([['id' => 1, 'role' => 'dev', 'role_display' => 'Developer']]);
 
         [, $ausgabe] = $this->seederLaufen();
 
         $this->assertStringContainsStringIgnoringCase('Kein Admin-Konto angelegt', $ausgabe);
-        $this->assertStringContainsString('dev', $ausgabe);
+        $this->assertStringContainsString('Rolle admin', $ausgabe);
+        $this->assertStringNotContainsString('dev', $ausgabe);
     }
 
     // Randfall 7

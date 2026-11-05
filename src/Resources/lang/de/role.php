@@ -30,5 +30,5 @@ return [
     'MsgAddSuccess' => 'Die Rolle wurde erfolgreich angelegt.',
     'MsgEditSuccess' => 'Die Rolle wurde erfolgreich angepasst',
     'MsgDeleteSuccess' => 'Die Rolle wurde erfolgreich gelöscht',
-    'MsgDeleteRoot' => 'Die Rollen Developer und Admin können nicht gelöscht werden.',
+    'MsgDeleteRoot' => 'Die Rolle Admin kann nicht gelöscht werden.',
 ];

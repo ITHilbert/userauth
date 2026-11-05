@@ -11,7 +11,7 @@ use ITHilbert\UserAuth\Http\Responses\ZugriffVerweigert;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Route mit MINDESTENS EINEM der Rechte: `hasPermissionOr:a,b` (Dev/Admin: immer).
+ * Route mit MINDESTENS EINEM der Rechte: `hasPermissionOr:a,b` (Admin: immer).
  */
 final class hasPermissionOr
 {

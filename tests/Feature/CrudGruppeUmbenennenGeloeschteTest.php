@@ -43,7 +43,7 @@ final class CrudGruppeUmbenennenGeloeschteTest extends TestCase
         config(['laravelkit.theme' => 'tailwind']);
 
         $jetzt = now();
-        DB::table('roles')->insert(['id' => 1, 'role' => 'dev', 'role_display' => 'Dev', 'created_at' => $jetzt, 'updated_at' => $jetzt]);
+        DB::table('roles')->insert(['id' => 1, 'role' => 'admin', 'role_display' => 'Admin', 'created_at' => $jetzt, 'updated_at' => $jetzt]);
         foreach ([[self::KUNDE, 'kunde', 'Kunde', 0], [self::FREMD, 'fremd', 'Fremd', 1], [self::LAGER, 'lager', 'Lager', 0]] as [$id, $name, $anzeige, $istGruppe]) {
             DB::table('permissions_groups')->insert([
                 'id' => $id, 'group_name' => $name, 'group_display' => $anzeige, 'is_group' => $istGruppe,

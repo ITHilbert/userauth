@@ -91,7 +91,7 @@ final class AdminViewsKitTest extends TestCase
             ['role_id' => self::ROLLE_EDITOR, 'permission_id' => $this->rechte['extras_a']],
         ]);
 
-        $this->admin = User::factory()->create(['role_id' => 1, 'name' => 'Admin Nutzer', 'email' => 'admin@example.test']);
+        $this->admin = User::factory()->create(['role_id' => 2, 'name' => 'Admin Nutzer', 'email' => 'admin@example.test']);
         $this->ziel = User::factory()->create(['role_id' => self::ROLLE_EDITOR, 'name' => 'Ziel Nutzer', 'email' => 'ziel@example.test']);
     }
 

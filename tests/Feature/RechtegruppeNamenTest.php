@@ -71,7 +71,7 @@ final class RechtegruppeNamenTest extends TestCase
         $this->recht('depot_create', 'Depot anlegen', self::EINZEL, '2020-01-02 03:04:05');
         $this->recht('silo_delete', 'Silo löschen', self::EINZEL, '2020-01-02 03:04:05');
 
-        $this->dev = User::factory()->create(['role_id' => 1, 'name' => 'Dev Nutzer', 'email' => 'dev@example.test']);
+        $this->dev = User::factory()->create(['role_id' => 2, 'name' => 'Dev Nutzer', 'email' => 'dev@example.test']);
     }
 
     private function recht(string $intern, string $anzeige, int $gruppe, ?string $geloescht = null, string $crud = 'single'): int

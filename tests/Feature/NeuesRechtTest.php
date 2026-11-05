@@ -42,7 +42,7 @@ final class NeuesRechtTest extends TestCase
             'crud' => 'single', 'created_at' => $jetzt, 'updated_at' => $jetzt,
         ]);
 
-        $this->dev = User::factory()->create(['role_id' => 1, 'name' => 'Dev Nutzer', 'email' => 'dev@example.test']);
+        $this->dev = User::factory()->create(['role_id' => 2, 'name' => 'Dev Nutzer', 'email' => 'dev@example.test']);
     }
 
     /**

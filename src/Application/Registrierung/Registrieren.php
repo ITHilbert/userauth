@@ -20,6 +20,12 @@ use ITHilbert\UserAuth\Domain\Zugriff\Rolle;
  */
 final class Registrieren
 {
+    /**
+     * Schlüssel, die nie an selbst registrierte Konten gehen: `admin` (privilegiert) und `dev`
+     * (früher privilegiert, Entscheidung 0011 – bleibt gesperrt, solange Hosts die Rolle noch führen).
+     */
+    private const array GESPERRTE_SCHLUESSEL = [Rolle::NAME_ADMIN, 'dev'];
+
     public function __construct(
         private readonly RegistrierungsEinstellungen $einstellungen,
         private readonly RegistrierungsKonten $konten,
@@ -64,14 +70,14 @@ final class Registrieren
             return null;
         }
 
-        if (in_array(mb_strtolower($schluessel), [Rolle::NAME_DEV, Rolle::NAME_ADMIN], true)) {
+        if (in_array(mb_strtolower($schluessel), self::GESPERRTE_SCHLUESSEL, true)) {
             throw RegistrierungFalschKonfiguriertException::privilegierteRolle($schluessel);
         }
 
         $rolle = $this->rollen->rolleZumSchluessel($schluessel)
             ?? throw RegistrierungFalschKonfiguriertException::unbekannteRolle($schluessel);
 
-        if ($rolle->istPrivilegiert() || in_array(mb_strtolower($rolle->name), [Rolle::NAME_DEV, Rolle::NAME_ADMIN], true)) {
+        if ($rolle->istPrivilegiert() || in_array(mb_strtolower($rolle->name), self::GESPERRTE_SCHLUESSEL, true)) {
             throw RegistrierungFalschKonfiguriertException::privilegierteRolle($schluessel);
         }
 

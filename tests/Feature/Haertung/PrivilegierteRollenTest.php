@@ -14,7 +14,8 @@ use ITHilbert\UserAuth\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
- * Privilegierte Rollen: Dev nur Rolle 1 mit Schlüssel `dev`, Admin nur Rolle 2 mit Schlüssel `admin` (AK12);
+ * Privilegierte Rolle: nur die Rolle mit dem Schlüssel `admin`, unabhängig von der ID; `dev` ist eine gewöhnliche Rolle
+ * (AK12 userauth-haertung, fachlich geändert durch userauth-nur-admin AK1);
  * bei aktivierten Teams gilt die Rolle des aktiven Teams (AK12a) – für Middlewares, Gate, Blade `@can`,
  * `isAdmin`/`isDev` und Impersonation.
  *
@@ -79,13 +80,13 @@ final class PrivilegierteRollenTest extends TestCase
     }
 
     /**
-     * Admin: wie Dev, nur `isDev` bleibt verschlossen.
+     * Admin: alle Prüfungen, auch `isDev` (wirkt wie `isAdmin`).
      *
      * @return array<string, bool>
      */
     private function adminErlaubt(): array
     {
-        return array_merge($this->alleErlaubt(), ['dev' => false]);
+        return $this->alleErlaubt();
     }
 
     /**
@@ -172,11 +173,10 @@ final class PrivilegierteRollenTest extends TestCase
     public static function scheinprivilegierteRollen(): array
     {
         return [
+            'Rolle 1 (dev) unverändert' => [1, [], []],
             'Rolle 1 umbenannt' => [1, [[1, 'editor']], []],
             'Rolle 2 umbenannt' => [2, [[2, 'chef']], []],
-            'Schlüssel dev bei ID 5' => [5, [[1, 'entwickler']], [[5, 'dev']]],
-            'Schlüssel admin bei ID 6' => [6, [[2, 'verwalter']], [[6, 'admin']]],
-            'Rolle 1 mit Schlüssel admin' => [1, [[2, 'verwalter'], [1, 'admin']], []],
+            'Schlüssel dev bei ID 5' => [5, [], [[5, 'entwickler']]],
             'Rolle 2 mit Schlüssel dev' => [2, [[1, 'entwickler'], [2, 'dev']], []],
         ];
     }
@@ -195,16 +195,16 @@ final class PrivilegierteRollenTest extends TestCase
         }
     }
 
-    // AK12
+    // AK1 (userauth-nur-admin; ersetzt AK12 userauth-haertung)
     #[DataProvider('scheinprivilegierteRollen')]
-    public function test_nur_id_und_schluessel_zusammen_sind_privilegiert_auf_routen_gate_und_can(int $roleId, array $umbenennungen, array $neueRollen): void
+    public function test_nur_der_schluessel_admin_ist_privilegiert_auf_routen_gate_und_can(int $roleId, array $umbenennungen, array $neueRollen): void
     {
         $dev = $this->nutzerMitRolle(self::ROLLE_DEV);
         $admin = $this->nutzerMitRolle(self::ROLLE_ADMIN);
         $scheinprivilegiert = $this->nutzerMitRolle(self::ROLLE_NORMAL);
 
-        // Gegenprobe: die korrekten Rollen 1 (dev) und 2 (admin) haben Zugriff, Rolle 3 nicht
-        $this->assertPruefungen($this->alleErlaubt(), $dev, 'Gegenprobe Dev');
+        // Gegenprobe: die Rolle admin hat Zugriff, dev und Rolle 3 nicht
+        $this->assertPruefungen($this->nichtsErlaubt(), $dev, 'Gegenprobe Dev');
         $this->assertPruefungen($this->adminErlaubt(), $admin, 'Gegenprobe Admin');
         $this->assertPruefungen($this->nichtsErlaubt(), $scheinprivilegiert, 'Gegenprobe normale Rolle');
 
@@ -214,18 +214,18 @@ final class PrivilegierteRollenTest extends TestCase
         $this->assertPruefungen($this->nichtsErlaubt(), $this->nutzer($scheinprivilegiert->id));
     }
 
-    // AK12
+    // AK1 (userauth-nur-admin; ersetzt AK12 userauth-haertung)
     #[DataProvider('scheinprivilegierteRollen')]
-    public function test_nur_id_und_schluessel_zusammen_duerfen_andere_uebernehmen(int $roleId, array $umbenennungen, array $neueRollen): void
+    public function test_nur_der_schluessel_admin_darf_andere_uebernehmen(int $roleId, array $umbenennungen, array $neueRollen): void
     {
         $ziel = $this->nutzerMitRolle(self::ROLLE_NORMAL);
         $dev = $this->nutzerMitRolle(self::ROLLE_DEV);
         $admin = $this->nutzerMitRolle(self::ROLLE_ADMIN);
         $handelnder = $this->nutzerMitRolle(self::ROLLE_NORMAL);
 
-        // Gegenprobe: die korrekten Rollen 1 und 2 dürfen übernehmen, Rolle 3 ohne das Recht nicht
-        $this->assertSame(302, $this->impersoniere($dev, $ziel), 'Gegenprobe Dev darf übernehmen');
+        // Gegenprobe: die Rolle admin darf übernehmen, dev und Rolle 3 ohne das Recht nicht
         $this->assertSame(302, $this->impersoniere($admin, $ziel), 'Gegenprobe Admin darf übernehmen');
+        $this->assertSame(403, $this->impersoniere($dev, $ziel), 'Gegenprobe Dev darf nicht übernehmen');
         $this->assertSame(403, $this->impersoniere($handelnder, $ziel), 'Gegenprobe normale Rolle darf nicht übernehmen');
 
         $this->rollenAendern($umbenennungen, $neueRollen);
@@ -235,9 +235,9 @@ final class PrivilegierteRollenTest extends TestCase
         $this->assertFalse(session()->has('impersonated_by'), 'Es darf keine Übernahme stattgefunden haben');
     }
 
-    // AK12
+    // AK1 (userauth-nur-admin; ersetzt AK12 userauth-haertung)
     #[DataProvider('scheinprivilegierteRollen')]
-    public function test_nur_id_und_schluessel_zusammen_sind_nicht_uebernehmbar(int $roleId, array $umbenennungen, array $neueRollen): void
+    public function test_nur_der_schluessel_admin_ist_nicht_uebernehmbar(int $roleId, array $umbenennungen, array $neueRollen): void
     {
         $this->rolleNormalDarfUebernehmen();
         $handelnder = $this->nutzerMitRolle(self::ROLLE_NORMAL);
@@ -245,9 +245,9 @@ final class PrivilegierteRollenTest extends TestCase
         $admin = $this->nutzerMitRolle(self::ROLLE_ADMIN);
         $ziel = $this->nutzerMitRolle(self::ROLLE_NORMAL);
 
-        // Gegenprobe: der Handelnde darf eine normale Rolle übernehmen, aber weder Dev noch Admin
+        // Gegenprobe: der Handelnde darf eine normale Rolle und dev übernehmen, aber nicht Admin
         $this->assertSame(302, $this->impersoniere($handelnder, $ziel), 'Gegenprobe normales Ziel');
-        $this->assertSame(403, $this->impersoniere($handelnder, $dev), 'Gegenprobe Dev ist nicht übernehmbar');
+        $this->assertSame(302, $this->impersoniere($handelnder, $dev), 'Gegenprobe Dev ist übernehmbar');
         $this->assertSame(403, $this->impersoniere($handelnder, $admin), 'Gegenprobe Admin ist nicht übernehmbar');
 
         $this->rollenAendern($umbenennungen, $neueRollen);
@@ -265,32 +265,26 @@ final class PrivilegierteRollenTest extends TestCase
     {
         $this->rolleNormalDarfUebernehmen();
         $globalAdmin = $this->nutzerMitRolle(self::ROLLE_ADMIN, self::ROLLE_NORMAL);
-        $globalDev = $this->nutzerMitRolle(self::ROLLE_DEV, self::ROLLE_NORMAL);
 
         // Gegenprobe: ohne Teams gilt die globale Rolle
         $this->teamsAktivieren(false);
         $this->assertPruefungen($this->adminErlaubt(), $this->nutzer($globalAdmin->id), 'Gegenprobe Teams aus: Admin');
-        $this->assertPruefungen($this->alleErlaubt(), $this->nutzer($globalDev->id), 'Gegenprobe Teams aus: Dev');
 
         $this->teamsAktivieren(true);
         $this->assertPruefungen($this->nichtsErlaubt(), $this->nutzer($globalAdmin->id), 'Teams an: globaler Admin, Teamrolle normal');
-        $this->assertPruefungen($this->nichtsErlaubt(), $this->nutzer($globalDev->id), 'Teams an: globaler Dev, Teamrolle normal');
     }
 
     // AK12a
     public function test_bei_teams_gewaehrt_die_privilegierte_teamrolle_zugriff_trotz_normaler_globaler_rolle(): void
     {
         $teamAdmin = $this->nutzerMitRolle(self::ROLLE_NORMAL, self::ROLLE_ADMIN);
-        $teamDev = $this->nutzerMitRolle(self::ROLLE_NORMAL, self::ROLLE_DEV);
 
         // Gegenprobe: ohne Teams gilt die globale Rolle 3 – kein Zugriff
         $this->teamsAktivieren(false);
         $this->assertPruefungen($this->nichtsErlaubt(), $this->nutzer($teamAdmin->id), 'Gegenprobe Teams aus: Team-Admin');
-        $this->assertPruefungen($this->nichtsErlaubt(), $this->nutzer($teamDev->id), 'Gegenprobe Teams aus: Team-Dev');
 
         $this->teamsAktivieren(true);
         $this->assertPruefungen($this->adminErlaubt(), $this->nutzer($teamAdmin->id), 'Teams an: Team-Admin');
-        $this->assertPruefungen($this->alleErlaubt(), $this->nutzer($teamDev->id), 'Teams an: Team-Dev');
     }
 
     // AK12a

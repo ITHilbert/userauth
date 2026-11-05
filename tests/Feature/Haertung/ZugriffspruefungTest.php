@@ -77,7 +77,6 @@ final class ZugriffspruefungTest extends TestCase
     public static function privilegierteRollen(): array
     {
         return [
-            'Dev (1)' => [1],
             'Admin (2)' => [2],
         ];
     }
@@ -194,7 +193,7 @@ final class ZugriffspruefungTest extends TestCase
 
     // AK12
     #[DataProvider('privilegierteRollen')]
-    public function test_dev_und_admin_haben_zugriff_auf_alle_geschuetzten_routen(int $roleId): void
+    public function test_admin_haben_zugriff_auf_alle_geschuetzten_routen(int $roleId): void
     {
         $user = $this->nutzerMitRolle($roleId);
 
@@ -205,7 +204,7 @@ final class ZugriffspruefungTest extends TestCase
 
     // AK12
     #[DataProvider('privilegierteRollen')]
-    public function test_dev_und_admin_bestehen_gate_pruefungen(int $roleId): void
+    public function test_admin_bestehen_gate_pruefungen(int $roleId): void
     {
         $this->actingAs($this->nutzerMitRolle($roleId));
 
@@ -214,7 +213,7 @@ final class ZugriffspruefungTest extends TestCase
 
     // AK12
     #[DataProvider('privilegierteRollen')]
-    public function test_dev_und_admin_bestehen_blade_can(int $roleId): void
+    public function test_admin_bestehen_blade_can(int $roleId): void
     {
         $ausgabe = $this->rendere("@can('beliebig') JA @else NEIN @endcan", $this->nutzerMitRolle($roleId));
 
