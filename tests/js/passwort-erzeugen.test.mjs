@@ -109,6 +109,7 @@ function laden(opt = {}, antworten = []) {
     const aufrufe = [];
     const geschrieben = [];
     const timer = [];
+    const timerDauer = [];
     const fetch = (url, optionen) => {
         aufrufe.push({ url, optionen });
         const a = antworten[Math.min(aufrufe.length - 1, antworten.length - 1)];
@@ -121,7 +122,7 @@ function laden(opt = {}, antworten = []) {
         fetch,
         navigator,
         console,
-        setTimeout: (f) => { timer.push(f); return timer.length; },
+        setTimeout: (f, ms) => { timer.push(f); timerDauer.push(ms); return timer.length; },
         clearTimeout() {},
         Promise,
         URL,
@@ -130,7 +131,7 @@ function laden(opt = {}, antworten = []) {
     ctx.document.defaultView = ctx;
     vm.runInContext(fs.readFileSync(skript, 'utf8'), ctx, { filename: 'passwort-erzeugen.js' });
 
-    return { ...seite, aufrufe, geschrieben, timer, ctx };
+    return { ...seite, aufrufe, geschrieben, timer, timerDauer, ctx };
 }
 
 const flush = async () => { for (let i = 0; i < 8; i++) await new Promise((r) => setImmediate(r)); };
@@ -226,6 +227,37 @@ test('Nach dem Kopieren erscheint „Kopiert“ am Feld', async () => {
     await klick(s.el.kopieren);
 
     assert.equal(s.el.hinweis.textContent, KOPIERT);
+});
+
+// AK5
+test('„Kopiert“ wird nach kurzer Zeit über einen Timer wieder geleert', async () => {
+    const s = laden({ password: 'Von-Hand-1!' });
+
+    await klick(s.el.kopieren);
+
+    assert.equal(s.el.hinweis.textContent, KOPIERT, 'Aufbau: „Kopiert“ steht');
+    assert.equal(s.timer.length, 1, 'ein Timer zum Zurücksetzen ist geplant');
+    assert.ok(s.timerDauer[0] > 0 && s.timerDauer[0] <= 5000, 'kurze Dauer, höchstens 5000 ms');
+
+    s.timer[0]();
+
+    assert.equal(s.el.hinweis.textContent, '');
+});
+
+// AK5
+test('Läuft der Timer ab und steht ein anderer Hinweis da bleibt dieser stehen', async () => {
+    const s = laden({ password: 'Von-Hand-1!' }, [antwort({}, 500)]);
+
+    await klick(s.el.kopieren);
+    assert.equal(s.el.hinweis.textContent, KOPIERT, 'Aufbau: „Kopiert“ steht');
+    assert.equal(s.timer.length, 1, 'Aufbau: Timer geplant');
+
+    await klick(s.el.erzeugen);
+    assert.equal(s.el.hinweis.textContent, FEHLER, 'Aufbau: Fehlerhinweis ersetzt „Kopiert“');
+
+    s.timer[0]();
+
+    assert.equal(s.el.hinweis.textContent, FEHLER);
 });
 
 // ---------------------------------------------------------------- AK6
