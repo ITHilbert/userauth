@@ -11,7 +11,7 @@ return [
         'roles_prefix' => 'roles',
         'roles_middleware' => ['auth', 'hasPermission:role_read', TwoFactorMiddleware::class],
         'permissions_prefix' => 'permissions',
-        'permissions_middleware' => ['auth', 'hasRole:dev', TwoFactorMiddleware::class],
+        'permissions_middleware' => ['auth', 'hasRole:admin', TwoFactorMiddleware::class],
     ],
 
     // Pfad für Redirect nach erfolgreichem Login
@@ -50,7 +50,7 @@ return [
     'audit_log_enabled' => env('USERAUTH_AUDIT_LOG_ENABLED', false),
     // Aktiviert 2-Faktor-Authentifizierung
     'two_factor_enabled' => env('USERAUTH_2FA_ENABLED', false),
-    // Darf ein Admin ("dev" oder "admin") sich temporär als ein anderer Nutzer anmelden?
+    // Darf ein Admin (Rolle "admin") sich temporär als ein anderer Nutzer anmelden?
     'impersonate_enabled' => true,
 
     // Social Login (OAuth). Zugangsdaten liegen in der Host-App unter config('services.google.*')
@@ -74,7 +74,7 @@ return [
     'registration' => [
         // Schaltet Registrierung, Bestätigungslink und „Link erneut anfordern“ ein/aus
         'enabled' => env('USERAUTH_REGISTRATION', false),
-        // Rollen-Key (roles.role) für neue Konten; leer = keine Rolle. Nie 'dev' oder 'admin'.
+        // Rollen-Key (roles.role) für neue Konten; leer = keine Rolle. Nie 'admin' (privilegiert) oder 'dev'.
         'role' => env('USERAUTH_REGISTRATION_ROLE'),
         // Gültigkeit des Bestätigungslinks in Minuten (leer = 60)
         'verify_ttl_minutes' => 60,

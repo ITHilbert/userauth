@@ -153,7 +153,7 @@ class UserAuthServiceProvider extends ServiceProvider
     }
 
     /**
-     * Dev/Admin und Inhaber des gleichnamigen Rechts bestehen jede Gate-Prüfung (`@can`, `Gate::allows`).
+     * Admin und Inhaber des gleichnamigen Rechts bestehen jede Gate-Prüfung (`@can`, `Gate::allows`).
      * Sonst null: andere Gates/Policies entscheiden (fail-closed bei ungültiger Rolle).
      */
     protected function registerGates(): void

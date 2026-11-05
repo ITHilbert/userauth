@@ -164,8 +164,8 @@ trait UserAuth
     }
 
     /**
-     * Prüft die Rolle (Dev erfüllt jede, Admin jede außer `dev`, sonst der eigene Rollenname).
-     * Kein Text (z. B. Array) → nur Dev/Admin.
+     * Prüft die Rolle (Admin erfüllt jede, auch `dev`, sonst der eigene Rollenname).
+     * Kein Text (z. B. Array) → nur Admin.
      */
     public function hasRole(mixed $role): bool
     {
@@ -177,7 +177,7 @@ trait UserAuth
     }
 
     /**
-     * Prüft, ob der User eine der Rollen trägt (ohne Sonderstellung für Dev/Admin).
+     * Prüft, ob der User eine der Rollen trägt (ohne Sonderstellung für Admin).
      *
      * @param  string|array<array-key, mixed>  $roles  Komma-Liste oder Array
      */
@@ -194,7 +194,7 @@ trait UserAuth
     }
 
     /**
-     * Prüft, ob der User das Recht hat (Dev/Admin: immer).
+     * Prüft, ob der User das Recht hat (Admin: immer).
      */
     public function hasPermission(string $permission): bool
     {
@@ -277,7 +277,7 @@ trait UserAuth
     }
 
     /**
-     * Prüft, ob der aktuelle User andere Nutzer übernehmen darf (Dev/Admin oder Recht `impersonate_users`).
+     * Prüft, ob der aktuelle User andere Nutzer übernehmen darf (Admin oder Recht `impersonate_users`).
      */
     public function canImpersonate(): bool
     {
@@ -286,7 +286,7 @@ trait UserAuth
 
     /**
      * Prüft, ob DIESER User von jemand anderem übernommen werden darf:
-     * nicht man selbst, nur mit gültiger Rolle und nie Dev/Admin.
+     * nicht man selbst, nur mit gültiger Rolle und nie Admin.
      */
     public function canBeImpersonated(): bool
     {

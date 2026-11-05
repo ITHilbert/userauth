@@ -75,7 +75,7 @@ USERAUTH_THEME=bootstrap
 ```
 
 ### Admin-Konto per Seeder
-Der `UsersTableSeeder` löscht keine Benutzer. Er legt `admin@admin.com` (Rolle `dev`) nur an, wenn die Tabelle `users` komplett leer ist (auch ohne soft-gelöschte Zeilen) und der Host von `APP_URL` auf `.lan` endet oder `localhost`, `127.0.0.1` oder `::1` ist (lokale Hosts zählen wie eine `.lan`-Domain). Sonst gibt er `Kein Admin-Konto angelegt` mit Grund aus. Das Passwort kommt aus `USERAUTH_ADMIN_PASSWORT`; ist es leer oder nicht gesetzt, erzeugt der Seeder ein Zufallspasswort und gibt es einmal auf der Konsole aus.
+Der `UsersTableSeeder` löscht keine Benutzer. Er legt `admin@admin.com` (Rolle mit dem Schlüssel `admin`, egal mit welcher ID) nur an, wenn die Tabelle `users` komplett leer ist (auch ohne soft-gelöschte Zeilen) und der Host von `APP_URL` auf `.lan` endet oder `localhost`, `127.0.0.1` oder `::1` ist (lokale Hosts zählen wie eine `.lan`-Domain). Sonst gibt er `Kein Admin-Konto angelegt` mit Grund aus. Das Passwort kommt aus `USERAUTH_ADMIN_PASSWORT`; ist es leer oder nicht gesetzt, erzeugt der Seeder ein Zufallspasswort und gibt es einmal auf der Konsole aus.
 
 ### Pflichten des Hosts
 
@@ -247,14 +247,15 @@ Passwort-Historie (`user_password_histories`) und Audit-Log (`user_auth_audit_lo
 
 ### Privilegierte Rollen
 
-Eine Rolle ist privilegiert (hat jedes Recht, erfüllt jede Gate-Prüfung) nur in diesen Fällen:
+Privilegiert (hat jedes Recht, erfüllt jede Rolle und jede Gate-Prüfung) ist nur eine Rolle (Entscheidung 0011, Projekt `packages_dev`):
 
 | Rolle | Bedingung | Bedeutung |
 |---|---|---|
-| Dev | Rolle mit ID `1` **und** Schlüssel `dev` | Erfüllt jede Rolle und jedes Recht |
-| Admin | Rolle mit ID `2` **und** Schlüssel `admin` | Erfüllt jedes Recht und jede Rolle außer `dev` |
+| Admin | Rolle mit dem Schlüssel `admin` (`roles.role`, exakter Vergleich), egal mit welcher ID | Erfüllt jedes Recht und jede Rolle, auch `hasRole:dev` |
 
-- Eine umbenannte Rolle 1 oder 2 ist nicht privilegiert. Eine Rolle mit Schlüssel `admin` und anderer ID ist ebenfalls nicht privilegiert.
+- Jede andere Rolle hat nur ihre eigenen Rechte und erfüllt nur ihren eigenen Rollennamen, auch eine Rolle mit dem Schlüssel `dev` und auch eine Rolle mit der ID 1 oder 2.
+- Andere Schreibweisen (`Admin`, ` admin `) sind nicht privilegiert. Gibt es mehrere Rollen mit dem Schlüssel `admin`, ist jede nicht gelöschte privilegiert.
+- Die Rolle `admin` lässt sich in der Rollenverwaltung weder ändern noch löschen; alle anderen Rollen schon.
 - Mit Teams gilt die Rolle des **aktiven Teams** für alle Prüfungen (Gate, Middleware, `isAdmin`/`isDev`, Impersonation). Ohne Teamrolle gilt die globale `role_id`.
 - Fehlt die Rolle (`role_id` ist `null`), ist ungültig (`0`, negativ) oder zeigt auf eine gelöschte oder nicht vorhandene Rolle, ist der Nutzer **nicht** privilegiert und hat keine Rechte (fail-closed).
 
@@ -262,21 +263,23 @@ Eine Rolle ist privilegiert (hat jedes Recht, erfüllt jede Gate-Prüfung) nur i
 
 Entscheidung 0006 (Projekt `packages_dev`, Ordner `.project/doku/decisions/`):
 
-- Wer `user_create` oder `user_edit` hat, kann **jede** existierende Rolle vergeben, auch Dev und Admin, auch an sich selbst.
+- Wer `user_create` oder `user_edit` hat, kann **jede** existierende Rolle vergeben, auch Admin, auch an sich selbst.
 - Wer `role_create` oder `role_edit` hat, kann einer Rolle **beliebige** Rechte geben, auch solche, die er selbst nicht hat.
 - Es gibt keine Hierarchie-Prüfung.
 - Ausgewählt werden können nur existierende, nicht gelöschte Rollen. Rechte-IDs müssen existieren. Eine Rolle wird mit ihren Rechten in einer Transaktion gespeichert: alles oder nichts.
 
-**Konsequenz:** Ein Inhaber von `user_edit` oder `role_edit` kann sich selbst zum Dev machen und das Passwort jedes Nutzers setzen. Diese Rechte wie Admin-Rechte behandeln und nur Vertrauenspersonen geben.
+**Konsequenz:** Ein Inhaber von `user_edit` oder `role_edit` kann sich selbst zum Admin machen und das Passwort jedes Nutzers setzen. Diese Rechte wie Admin-Rechte behandeln und nur Vertrauenspersonen geben.
 
 ### Rechte in Routen und Views
 
 | Prüfung | Verhalten |
 |---|---|
-| Route `hasPermission:a` | Recht `a` oder Dev/Admin |
-| Route `hasPermissionAnd:a,b` | Rechte `a` **und** `b` (Dev/Admin: immer erlaubt) |
+| Route `hasPermission:a` | Recht `a` oder Admin |
+| Route `hasPermissionAnd:a,b` | Rechte `a` **und** `b` (Admin: immer erlaubt) |
 | Route `hasPermissionOr:a,b` | Recht `a` **oder** `b` |
-| Route `hasRole:x` | Rollenname `x` (Dev erfüllt jede Rolle, Admin jede außer `dev`) |
+| Route `hasRole:x` | Rollenname `x` (Admin erfüllt jede Rolle, auch `dev`) |
+| Route `isAdmin` | nur Admin |
+| Route `isDev` | wie `isAdmin` (Übergang, keine eigene Dev-Prüfung) |
 | Blade `@hasPermissionAnd('a,b')` / `@hasPermissionOr(['a','b'])` | Komma-Liste und Array sind gleichwertig |
 | Gate `@can('a')`, `Gate::allows('a')` | wie `hasPermission` |
 
@@ -340,7 +343,7 @@ In `config/userauth.php` (Gruppe `registration`):
 
 Hosts mit veröffentlichter Config ergänzen die Gruppe `registration`; fehlende Schlüssel bekommen die Werte aus der Tabelle.
 
-**Rolle:** Die Rolle darf keine privilegierte sein. Steht in `USERAUTH_REGISTRATION_ROLE` `dev` oder `admin` oder ein Schlüssel, zu dem es keine Rolle gibt, legt die Registrierung kein Konto an und wirft `RegistrierungFalschKonfiguriertException` (Text nennt `userauth.registration.role`).
+**Rolle:** Die Rolle darf keine privilegierte sein. Steht in `USERAUTH_REGISTRATION_ROLE` `admin` oder `dev` (früher privilegiert) oder ein Schlüssel, zu dem es keine Rolle gibt, legt die Registrierung kein Konto an und wirft `RegistrierungFalschKonfiguriertException` (Text nennt `userauth.registration.role`).
 
 ### Pflichten des Hosts
 
@@ -420,6 +423,7 @@ Vor bestandener 2FA sind Seiten hinter `auth` nicht erreichbar. Die Routen `veri
 | `2026_10_23_100000_create_password_reset_tokens_table` | legt `password_reset_tokens` an, wenn sie fehlt | ohne Wirkung |
 | `2026_10_23_200000_clear_remember_tokens_on_users_table` | leert **einmalig** `remember_token` aller Nutzer, auch gelöschter | ohne Wirkung |
 | `2026_11_03_000000_add_self_registered_to_users_table` | ergänzt `users.self_registered` (Konto aus der Selbstregistrierung), wenn die Spalte fehlt | ohne Wirkung |
+| `2026_11_05_000000_move_dev_users_to_admin_role` | stellt **einmalig** alle Nutzer (auch gelöschte) und `team_user.role_id` von der Rolle `dev` auf die nicht gelöschte Rolle `admin` mit der kleinsten ID um; ohne Rolle `admin` ändert sie nichts. Die Rolle `dev` bleibt stehen. | ohne Wirkung |
 
 **Keine Rückbau-Migrationen:** Ob das Paket eine Tabelle angelegt oder nur ergänzt hat, ist beim Zurückrollen nicht feststellbar. Ein Löschen würde die Nutzer des Hosts vernichten. Der alte Zustand (`role_id` mit Admin als Default) wäre die geschlossene Sicherheitslücke. Die geleerten Angemeldet-bleiben-Tokens lassen sich nicht wiederherstellen (Entscheidungen 0007 und 0009, Projekt `packages_dev`).
 
@@ -436,6 +440,13 @@ Siehe [Voraussetzungen und Abhängigkeiten](#voraussetzungen-und-abhängigkeiten
 ## Upgrade-Hinweise (nach 3.0.0, unveröffentlicht)
 
 Diese Punkte gelten für Hosts, die den aktuellen Stand des Pakets nutzen. Eine Version nach 3.0.0 gibt es noch nicht.
+
+**Nur noch `admin` ist privilegiert (neue Migration, Entscheidung 0011)**
+1. `php artisan migrate` ausführen: `2026_11_05_000000_move_dev_users_to_admin_role` stellt alle Nutzer mit der Rolle `dev` (auch gelöschte) und alle Team-Mitgliedschaften mit `dev` auf die Rolle `admin` um. Gibt es im Host keine (nicht gelöschte) Rolle `admin`, ändert die Migration nichts: dann die Rolle `admin` anlegen und den Nutzern von Hand zuweisen. Bis zur Umstellung haben Nutzer mit `dev` keine Privilegien mehr.
+2. Die Rolle `dev` bleibt als gewöhnliche Rolle stehen (nur ihre eigenen Rechte, nur ihr eigener Rollenname) und kann in der Rollenverwaltung gelöscht werden. Privilegiert ist allein die Rolle mit dem Schlüssel `admin`, unabhängig von ihrer ID.
+3. Der Middleware-Alias `isDev` bleibt als Übergang registriert und wirkt genau wie `isAdmin`. Routen des Hosts mit `isDev` können auf `isAdmin` umgestellt werden.
+4. Veröffentlichte Host-Config: Steht in `routes.permissions_middleware` noch `hasRole:dev`, auf `hasRole:admin` umstellen (neue Paket-Vorgabe). Funktional bleibt es auch ohne Umstellung, denn `admin` erfüllt jede Rolle.
+5. Die Seeder legen nur noch die Rollen `admin` und `user` an; `UsersTableSeeder` gibt `admin@admin.com` die Rolle `admin`.
 
 **Selbstregistrierung (neue Migration)**
 1. `php artisan migrate` ausführen: `2026_11_03_000000_add_self_registered_to_users_table` ergänzt `users.self_registered`. Die Registrierung ist standardmäßig aus; Einschalten und Pflichten siehe [Registrierung](#registrierung).

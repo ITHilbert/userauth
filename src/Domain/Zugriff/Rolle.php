@@ -12,19 +12,14 @@ use InvalidArgumentException;
  * gelöschte Rolle; wer keine solche Rolle hat, hat gar keine (null) und damit weder
  * Privilegien noch Rechte (fail-closed).
  *
- * Privilegiert sind Dev und Admin: Sie haben jedes Recht. Dev ist die Rolle 1 mit dem Schlüssel
- * `dev`, Admin die Rolle 2 mit dem Schlüssel `admin` (Seeder) – ID **und** Schlüssel müssen passen,
- * sonst ist die Rolle nicht privilegiert (z. B. eine Rolle `editor`, die zufällig ID 1 hat).
- * Für Rollenabfragen gilt wie bisher: Dev erfüllt jede Rolle, Admin jede außer `dev`.
+ * Privilegiert ist nur Admin: die Rolle mit dem Schlüssel `admin` (exakter Vergleich), egal welche
+ * ID sie hat (Entscheidung 0011). Sie hat jedes Recht und erfüllt jede Rolle. Jede andere Rolle –
+ * auch eine mit dem Schlüssel `dev` oder mit ID 1 oder 2 – hat nur ihre eigenen Rechte und erfüllt
+ * nur ihren eigenen Rollennamen.
  */
 final readonly class Rolle
 {
-    public const int DEV = 1;
-
-    public const int ADMIN = 2;
-
-    public const string NAME_DEV = 'dev';
-
+    /** Schlüssel (`roles.role`) der privilegierten Rolle. */
     public const string NAME_ADMIN = 'admin';
 
     /**
@@ -56,19 +51,18 @@ final readonly class Rolle
         return is_int($wert) && $wert >= 1 ? $wert : null;
     }
 
-    public function istDev(): bool
+    /**
+     * Ist ein Rollen-Schlüssel (`roles.role`) der privilegierte – exakter Vergleich, ohne trim
+     * oder andere Schreibung.
+     */
+    public static function istPrivilegierterSchluessel(string $schluessel): bool
     {
-        return $this->id === self::DEV && $this->name === self::NAME_DEV;
-    }
-
-    public function istAdmin(): bool
-    {
-        return $this->id === self::ADMIN && $this->name === self::NAME_ADMIN;
+        return $schluessel === self::NAME_ADMIN;
     }
 
     public function istPrivilegiert(): bool
     {
-        return $this->istDev() || $this->istAdmin();
+        return self::istPrivilegierterSchluessel($this->name);
     }
 
     public function hatRecht(string $recht): bool
@@ -117,18 +111,14 @@ final readonly class Rolle
     }
 
     /**
-     * Rollenabfrage (`hasRole`): Dev erfüllt jede Rolle, Admin jede außer `dev`,
-     * alle anderen nur ihren eigenen Rollennamen.
+     * Rollenabfrage (`hasRole`): Admin erfüllt jede Rolle (auch `dev`), alle anderen nur
+     * ihren eigenen Rollennamen.
      */
     public function erfuelltRolle(string $rolle): bool
     {
         $rolle = trim($rolle);
 
-        if ($this->istDev()) {
-            return true;
-        }
-
-        if ($this->istAdmin() && $rolle !== self::NAME_DEV) {
+        if ($this->istPrivilegiert()) {
             return true;
         }
 
@@ -136,7 +126,7 @@ final readonly class Rolle
     }
 
     /**
-     * Trägt die Rolle einen der Namen (`hasRoleOr`) – ohne Sonderstellung für Dev/Admin.
+     * Trägt die Rolle einen der Namen (`hasRoleOr`) – ohne Sonderstellung für Admin.
      */
     public function traegtEinenDerNamen(Namensliste $rollen): bool
     {

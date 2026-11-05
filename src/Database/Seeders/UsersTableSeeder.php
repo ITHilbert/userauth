@@ -8,6 +8,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use ITHilbert\UserAuth\Domain\Zugriff\Rolle;
 
 /**
  * Legt ein Admin-Konto nur an, wenn die Tabelle users komplett leer ist (auch ohne soft-gelöschte
@@ -27,10 +28,16 @@ class UsersTableSeeder extends Seeder
             return;
         }
 
-        $rolleId = DB::table('roles')->where('role', 'dev')->value('id');
+        // Privilegiert über den Schlüssel, nicht über die ID (Entscheidung 0011); nur eine nicht
+        // gelöschte Rolle macht das Konto privilegiert, bei mehreren die mit der kleinsten ID
+        $rolleId = DB::table('roles')
+            ->where('role', Rolle::NAME_ADMIN)
+            ->whereNull('deleted_at')
+            ->orderBy('id')
+            ->value('id');
 
         if ($rolleId === null) {
-            $this->meldeKeinKonto('Rolle dev fehlt');
+            $this->meldeKeinKonto('Rolle admin fehlt');
 
             return;
         }
@@ -72,6 +79,6 @@ class UsersTableSeeder extends Seeder
 
     private function meldeKeinKonto(string $grund): void
     {
-        $this->command?->warn('Kein Admin-Konto angelegt: '.$grund.' (Konto nur unter einer .lan-Domain oder einem lokalen Host, Rolle dev vorausgesetzt).');
+        $this->command?->warn('Kein Admin-Konto angelegt: '.$grund.' (Konto nur unter einer .lan-Domain oder einem lokalen Host, Rolle admin vorausgesetzt).');
     }
 }

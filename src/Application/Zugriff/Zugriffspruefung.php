@@ -26,16 +26,11 @@ final class Zugriffspruefung
     }
 
     /**
-     * Dev (1) oder Admin (2).
+     * Wirksame Rolle mit dem Schlüssel `admin` (unabhängig von ihrer ID).
      */
     public function istPrivilegiert(?Authenticatable $nutzer): bool
     {
         return $this->aktiveRolle($nutzer)?->istPrivilegiert() ?? false;
-    }
-
-    public function istDev(?Authenticatable $nutzer): bool
-    {
-        return $this->aktiveRolle($nutzer)?->istDev() ?? false;
     }
 
     public function hatRecht(?Authenticatable $nutzer, ?string $recht): bool
@@ -64,7 +59,7 @@ final class Zugriffspruefung
     }
 
     /**
-     * Dev erfüllt jede Rolle, Admin jede außer `dev`, sonst nur der eigene Rollenname.
+     * Admin erfüllt jede Rolle (auch `dev`), sonst nur der eigene Rollenname.
      */
     public function hatRolle(?Authenticatable $nutzer, ?string $rolle): bool
     {
@@ -76,7 +71,7 @@ final class Zugriffspruefung
     }
 
     /**
-     * Rollenname ist einer der genannten (ohne Sonderstellung für Dev/Admin).
+     * Rollenname ist einer der genannten (ohne Sonderstellung für Admin).
      *
      * @param  mixed  ...$rollen  einzeln, Komma-Liste oder Array
      */
