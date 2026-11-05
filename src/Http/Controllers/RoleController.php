@@ -111,6 +111,11 @@ final class RoleController extends Controller
     public function edit($id)
     {
         $role = Role::findOrFail($id);
+
+        if ($this->istGeschuetzt($role)) {
+            return redirect()->route('role')->withErrors(Lang::get('userauth::role.MsgEditRoot'));
+        }
+
         $permissionsgroups = PermissionGroup::fuerRollenformular()->get();
 
         $breadcrumb = new Breadcrumb;
@@ -129,6 +134,11 @@ final class RoleController extends Controller
     public function update(RolleSpeichernRequest $request, $id)
     {
         $role = Role::findOrFail($id);
+
+        if ($this->istGeschuetzt($role)) {
+            return redirect()->route('role')->withErrors(Lang::get('userauth::role.MsgEditRoot'));
+        }
+
         $daten = $request->validated();
 
         DB::transaction(function () use ($role, $daten): void {

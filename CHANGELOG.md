@@ -1,6 +1,12 @@
 # Changelog
 
-## Unveröffentlicht
+## 3.2.1 – 2026-11-05
+
+### Behoben
+- Die Rolle `admin` lässt sich über `role.edit`/`role.update` nicht mehr ändern. Der Aufruf leitet auf die Rollenliste zurück, mit der Meldung „Die Rolle Admin kann nicht geändert werden.“ (Sprachschlüssel `MsgEditRoot`, #662).
+- Benutzerformular: Der Passwortfehler erscheint nur noch einmal (#660).
+
+## 3.2.0 – 2026-11-05
 
 ### Hinzugefügt
 - E-Mail eines gelöschten Benutzers: Die Option `USERAUTH_GELOESCHTE_EMAIL` (`sperren` als Standard, `reaktivieren`, `neu`) regelt Admin-Anlage und Social-Registrierung, wenn zur E-Mail nur ein gelöschter Benutzer existiert. Bei `neu` zeigt die Login-Seite bei den Social-Schaltflächen einen Hinweis. Audit-Ereignisse `user_reactivated` und `user_purged` (bei aktivem Audit-Log). Details: README, Abschnitt „E-Mail eines gelöschten Benutzers“, Upgrade-Hinweise (nach 3.0.0, unveröffentlicht), Punkte 22–24.

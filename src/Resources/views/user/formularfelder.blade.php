@@ -92,9 +92,6 @@
                 <span class="small" data-passwort-hinweis role="status"></span>
             </div>
         @endif
-        @error('password')
-            <div class="text-danger small mt-1">{{ $message }}</div>
-        @enderror
     </div>
 </div>
 
