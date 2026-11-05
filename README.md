@@ -63,6 +63,8 @@ USERAUTH_PASSWORD_POLICY_ENABLED=true
 # Mandantenfähigkeit (Teams)
 USERAUTH_TEAMS_ENABLED=true
 
+# E-Mail eines gelöschten Benutzers bei einer Neuanlage: sperren (Default) | reaktivieren | neu
+USERAUTH_GELOESCHTE_EMAIL=sperren
 # Selbstregistrierung (siehe Abschnitt „Registrierung“)
 USERAUTH_REGISTRATION=false
 USERAUTH_REGISTRATION_ROLE=
@@ -211,6 +213,35 @@ Wird das Flag `USERAUTH_TEAMS_ENABLED=true` gesetzt, liest das System Rechte (ha
         'enabled' => env('USERAUTH_TEAMS_ENABLED', false),
     ],
 ```
+
+#### E-Mail eines gelöschten Benutzers
+Benutzer werden weich gelöscht (`deleted_at`), ihre E-Mail-Adresse bleibt in der Tabelle `users`. Was passiert, wenn ein Admin (Route `user.store`) oder eine Social-Registrierung (`social.allow_registration`) einen Benutzer mit dieser E-Mail anlegen will, regelt `USERAUTH_GELOESCHTE_EMAIL`. Groß-/Kleinschreibung der E-Mail spielt keine Rolle.
+```php
+    'geloeschte_email' => env('USERAUTH_GELOESCHTE_EMAIL', 'sperren'),
+```
+
+| Wert | Admin-Anlage | Social-Registrierung |
+|---|---|---|
+| `sperren` (Default) | Validierungsfehler am Feld `email`: „Diese E-Mail-Adresse gehört zu einem gelöschten Benutzer.“ Es wird nichts angelegt. | Fehler „Dieses Konto ist deaktiviert oder gelöscht.“ (wie bisher) |
+| `reaktivieren` | Die gelöschte Zeile wird wiederhergestellt (gleiche `id`). Name, Profilfelder, Rolle, Bild und Passwort kommen aus dem Formular wie bei einer Neuanlage, die Passwortregeln gelten. Meldung: „Der gelöschte Benutzer wurde wiederhergestellt.“ | Die gelöschte Zeile wird wiederhergestellt, Rolle aus `social.default_role`, E-Mail gilt als bestätigt, der Passwort-Hash bleibt. Danach wird das Anbieter-Konto verknüpft und der Benutzer angemeldet. |
+| `neu` | Die gelöschte Zeile wird endgültig entfernt, der Benutzer normal neu angelegt (neue `id`). Meldung: „Ein gelöschtes Konto mit dieser E-Mail-Adresse wurde endgültig entfernt und der Benutzer neu angelegt.“ | Die gelöschte Zeile wird endgültig entfernt, danach normale Social-Registrierung. Die Login-Seite zeigt bei den Social-Schaltflächen einen Hinweis darauf (ohne konkrete E-Mail). |
+
+Jeder andere Wert (auch leer oder anders geschrieben, z. B. `Neu`) wirkt wie `sperren`. Ist `social.allow_registration` aus, bleibt die Social-Anmeldung mit der E-Mail eines gelöschten Kontos in jeder Option abgelehnt. Ein aktiver Benutzer mit derselben E-Mail blockiert die Admin-Anlage immer (Fehler „bereits vergeben“).
+
+**Beim Reaktivieren bereinigt** (in derselben Transaktion wie die Anlage – scheitert ein Schritt, z. B. weil das Passwort abgelehnt wird, bleibt alles wie vorher):
+- alle Social-Konten (`user_social_accounts`) und offenen Verknüpfungen (`user_pending_social_links`) des Benutzers gelöscht,
+- alle Team-Mitgliedschaften (`team_user`) entfernt, `current_team_id` geleert; die Teams selbst bleiben bestehen,
+- `remember_token` neu erzeugt (alte „Angemeldet bleiben“-Cookies gelten nicht mehr),
+- Passwort-Reset-Tokens zur E-Mail (`password_reset_tokens`) gelöscht,
+- `two_factor_code` und `two_factor_expires_at` geleert.
+
+Passwort-Historie (`user_password_histories`) und Audit-Log (`user_auth_audit_logs`) bleiben erhalten. Bei der Social-Reaktivierung bleibt das Bild der Zeile erhalten. Gibt es mehrere gelöschte Zeilen mit derselben E-Mail (Altbestand), wird die zuletzt gelöschte wiederhergestellt, die übrigen bleiben gelöscht.
+
+**Beim endgültigen Löschen entfernt** (in derselben Transaktion wie die Neuanlage – scheitert sie, bleibt die alte Zeile erhalten): alle gelöschten Zeilen mit dieser E-Mail samt Social-Konten, offenen Verknüpfungen, Team-Mitgliedschaften, Passwort-Historie und Passwort-Reset-Tokens zur E-Mail. Die Einträge im Audit-Log bleiben unverändert stehen.
+
+**Bilddatei der alten Zeile:** Verweist nach dem Vorgang keine Zeile in `users` mehr auf die Bilddatei des gelöschten Benutzers (`neu`; `reaktivieren` über die Admin-Anlage mit neuem oder ohne Bild), wird sie von der Disk `public` gelöscht – erst nach erfolgreichem Abschluss; scheitert der Vorgang, bleibt sie. Dieselbe Regel gilt beim Ersetzen eines Bildes (Bearbeiten, Benutzerbild): Die alte Datei wird nur gelöscht, wenn keine andere Zeile (auch keine gelöschte) mehr auf sie verweist.
+
+**Audit-Log** (falls `USERAUTH_AUDIT_LOG_ENABLED=true`): `user_reactivated` beim Wiederherstellen, `user_purged` je endgültig gelöschter Zeile, jeweils mit `user_id` und E-Mail der alten Zeile.
 
 ## Rollen und Rechte
 
@@ -480,6 +511,11 @@ mountInseln({
 **Englische Erfolgsmeldungen**
 21. Die englischen Erfolgsmeldungen `MsgAddSuccess`, `MsgEditSuccess` und `MsgDeleteSuccess` in `lang/en/user.php` sind korrigiert. Hosts mit veröffentlichten Sprachdateien (`resources/lang/vendor/userauth/en/user.php` bzw. `lang/vendor/userauth/en/user.php`) übernehmen die drei Zeilen.
 
+**E-Mail eines gelöschten Benutzers**
+22. Neue Option `USERAUTH_GELOESCHTE_EMAIL` (siehe [E-Mail eines gelöschten Benutzers](#e-mail-eines-gelöschten-benutzers)). Der Standard `sperren` ändert am Verhalten nichts: Die E-Mail eines gelöschten Benutzers bleibt belegt. Neu ist nur die Meldung bei der Admin-Anlage – statt des allgemeinen Fehlers „bereits vergeben“ heißt es „Diese E-Mail-Adresse gehört zu einem gelöschten Benutzer.“ (Sprachschlüssel `userauth::user.email_geloeschter_benutzer`).
+23. Hosts mit veröffentlichten Views oder Sprachdateien übernehmen die neuen Stellen (neu veröffentlichen, siehe Punkt 11): `login/tailwind` und `login/bootstrap` den Hinweis bei Option `neu`; neue Sprachschlüssel in `user.php` (`email_geloeschter_benutzer`, `MsgReaktiviert`, `MsgEntferntUndAngelegt`) und `social.php` (`hinweis_geloeschtes_konto`).
+24. Wer `SocialUserRepository` selbst implementiert: `existsDeletedWithEmail()` entfällt (die Prüfung liegt im Anwendungsfall `GeloeschteEmailAufloesen`), neu ist `adoptReactivated()`.
+
 ## Upgrade-Hinweise (3.0.0)
 
 Diese Punkte gelten für Hosts, die auf 3.0.0 aktualisieren. Sie sind nach dem Code geprüft.
@@ -661,7 +697,7 @@ Die Views (Login, Profil) erhalten vom View-Composer `AvailableSocialProvidersCo
    - Keine lokale E-Mail:
      - `allow_registration = true` → **neuer User** (zufälliges Passwort-Hash, Standard-Rolle, Login).
      - `allow_registration = false` → **Fehler** mit verständlicher Meldung.
-5. **Gelöschter User:** Hat jemand einen Account mit dieser E-Mail gelöscht, wird ein neuer Social-Nutzer nicht automatisch wiederverknüpft.
+5. **Gelöschter User:** Gibt es zur E-Mail nur ein gelöschtes Konto, entscheidet `USERAUTH_GELOESCHTE_EMAIL` (Default `sperren`: Anmeldung abgelehnt; `reaktivieren`: Konto wiederhergestellt und bereinigt, dann verknüpft; `neu`: altes Konto endgültig entfernt, dann normale Registrierung), siehe [E-Mail eines gelöschten Benutzers](#e-mail-eines-gelöschten-benutzers). Ohne `allow_registration` bleibt die Anmeldung abgelehnt.
 
 #### Bestätigungsablauf (Unverifiziierte E-Mail)
 - **GET** `auth/social/confirm/{token}` — zeigt Bestätigungsseite (keine Login).
@@ -684,6 +720,7 @@ Wenn der User `two_factor_enabled` hat, wird nach dem Google-Login der Code-Flow
 **Audit-Log** (falls `USERAUTH_AUDIT_LOG_ENABLED=true`):
 - Event `social_linked` — neue Verknüpfung.
 - Event `social_unlinked` — Verknüpfung entfernt.
+- Event `user_reactivated` / `user_purged` — gelöschtes Konto bei der Registrierung wiederhergestellt bzw. endgültig entfernt.
 
 ### Wichtig: Queue-Worker & Scheduler
 

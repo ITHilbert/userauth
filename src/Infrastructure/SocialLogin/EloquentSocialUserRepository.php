@@ -32,24 +32,28 @@ final class EloquentSocialUserRepository implements SocialUserRepository
         return $user === null ? null : $this->toLocalUser($user);
     }
 
-    public function existsDeletedWithEmail(string $email): bool
-    {
-        return $this->query()
-            ->withTrashed()
-            ->whereRaw('LOWER(email) = ?', [mb_strtolower($email)])
-            ->exists();
-    }
-
     public function createVerified(?string $name, string $email, string $roleKey): LocalUser
     {
-        $roleId = Role::query()->where('role', $roleKey)->value('id')
-            ?? throw new SocialLoginMisconfiguredException("Role '{$roleKey}' (userauth.social.default_role) does not exist.");
+        $roleId = $this->roleId($roleKey);
 
         $user = $this->userModel->newInstance();
         $user->forceFill([
             'name' => $name,
             'email' => $email,
             'password' => Hash::make(Str::random(64)),
+            'role_id' => $roleId,
+            'email_verified_at' => now(),
+        ])->save();
+
+        return $this->toLocalUser($user);
+    }
+
+    public function adoptReactivated(int|string $id, string $roleKey): LocalUser
+    {
+        $roleId = $this->roleId($roleKey);
+
+        $user = $this->query()->whereKey($id)->firstOrFail();
+        $user->forceFill([
             'role_id' => $roleId,
             'email_verified_at' => now(),
         ])->save();
@@ -79,6 +83,15 @@ final class EloquentSocialUserRepository implements SocialUserRepository
         }
 
         $this->query()->whereKey($id)->whereNull('email_verified_at')->update($aenderungen);
+    }
+
+    /**
+     * @throws SocialLoginMisconfiguredException
+     */
+    private function roleId(string $roleKey): mixed
+    {
+        return Role::query()->where('role', $roleKey)->value('id')
+            ?? throw new SocialLoginMisconfiguredException("Role '{$roleKey}' (userauth.social.default_role) does not exist.");
     }
 
     /**

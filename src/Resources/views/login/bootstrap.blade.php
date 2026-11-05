@@ -58,6 +58,9 @@
                           @include('userauth::partials.google-logo')
                           @lang('userauth::social.login_with', ['provider' => 'Google'])
                         </a>
+                        @if ($geloeschteEmailHinweis ?? false)
+                          <p class="text-700 fs--1 mb-3">@lang('userauth::social.hinweis_geloeschtes_konto')</p>
+                        @endif
                         <div class="position-relative">
                           <hr class="bg-200 mt-4 mb-4" />
                           <div class="divider-content-center bg-white">@lang('userauth::social.or')</div>
