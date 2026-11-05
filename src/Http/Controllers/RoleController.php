@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
 use ITHilbert\LaravelKit\Helpers\Breadcrumb;
 use ITHilbert\LaravelKit\Helpers\HButton;
+use ITHilbert\UserAuth\Domain\Zugriff\Rolle;
 use ITHilbert\UserAuth\Entities\PermissionGroup;
 use ITHilbert\UserAuth\Entities\Role;
 use ITHilbert\UserAuth\Http\Requests\RolleSpeichernRequest;
@@ -38,7 +39,7 @@ final class RoleController extends Controller
                     }) */
                 ->addColumn('action', function ($row) use ($user) {
                     $ausgabe = '<div style="white-space: nowrap;">';
-                    if ($row->id > 2) {
+                    if (! $this->istGeschuetzt($row)) {
                         if ($user->hasPermission('role_edit')) {
                             $ausgabe .= HButton::edit(route('role.edit', $row->id), '');
                         }
@@ -170,16 +171,26 @@ final class RoleController extends Controller
      */
     public function delete($id)
     {
-        if ($id < 3) {
+        $role = Role::findOrFail($id);
+
+        if ($this->istGeschuetzt($role)) {
             return redirect()->route('role')->withErrors(Lang::get('userauth::role.MsgDeleteRoot'));
         }
 
-        $role = Role::findOrFail($id);
         $role->delete();
 
         return redirect()->route('role')->with([
             'message' => Lang::get('userauth::role.MsgDeleteSuccess'),
             'alert-type' => 'success',
         ]);
+    }
+
+    /**
+     * Die privilegierte Rolle (Schlüssel `admin`, unabhängig von der ID) lässt sich in der
+     * Verwaltung weder ändern noch löschen (Entscheidung 0011); `dev` ist eine gewöhnliche Rolle.
+     */
+    private function istGeschuetzt(Role $role): bool
+    {
+        return Rolle::istPrivilegierterSchluessel((string) $role->getAttribute('role'));
     }
 }

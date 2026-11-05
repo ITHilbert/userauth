@@ -5,6 +5,7 @@ declare(strict_types=1);
 return [
     'login_with' => 'Sign in with :provider',
     'or' => 'or',
+    'hinweis_geloeschtes_konto' => 'If there was a deleted account for your e-mail address, it will be permanently removed when you register. If you do not want this, please contact support.',
 
     'errors' => [
         'email_not_verified' => 'The email address of your account at the provider is not verified. Sign-in is therefore not possible.',

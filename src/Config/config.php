@@ -11,7 +11,7 @@ return [
         'roles_prefix' => 'roles',
         'roles_middleware' => ['auth', 'hasPermission:role_read', TwoFactorMiddleware::class],
         'permissions_prefix' => 'permissions',
-        'permissions_middleware' => ['auth', 'hasRole:dev', TwoFactorMiddleware::class],
+        'permissions_middleware' => ['auth', 'hasRole:admin', TwoFactorMiddleware::class],
     ],
 
     // Pfad für Redirect nach erfolgreichem Login
@@ -20,6 +20,10 @@ return [
     'redirect_after_logout' => '/',
     // Route wenn Rechte fehlen: Weiterleitung zur Login-Seite ('login') oder zur Fehlerseite ('no-permission')
     'redirect_on_no_permission' => 'login',
+
+    // Adresse (absolut oder ab /) eines Passwort-Generators des Hosts für den Button „Passwort erzeugen“ in der
+    // Benutzerverwaltung; Antwort: JSON {"passwort": "…"}. Leer = kein Button.
+    'passwort_generator_url' => env('USERAUTH_PASSWORT_GENERATOR_URL'),
 
     // Theme-Auswahl der Auth-Views: 'tailwind' (Default) oder 'bootstrap' (Phoenix/Bootstrap).
     // Neue Projekte brauchen nichts zu setzen. Ältere Bootstrap-Projekte setzen
@@ -41,11 +45,16 @@ return [
     // Leer oder nicht gesetzt: Der Seeder erzeugt ein Zufallspasswort und gibt es einmal auf der Konsole aus.
     'admin_passwort' => env('USERAUTH_ADMIN_PASSWORT'),
 
+    // E-Mail eines gelöschten Benutzers bei einer Neuanlage (Admin-Anlage, Social-Registrierung):
+    // 'sperren' (Default) = Neuanlage abgelehnt, 'reaktivieren' = gelöschtes Konto wiederhergestellt und bereinigt,
+    // 'neu' = gelöschtes Konto endgültig entfernt, danach normale Neuanlage. Jeder andere Wert wirkt wie 'sperren'.
+    'geloeschte_email' => env('USERAUTH_GELOESCHTE_EMAIL', 'sperren'),
+
     // Aktiviert das Audit Log
     'audit_log_enabled' => env('USERAUTH_AUDIT_LOG_ENABLED', false),
     // Aktiviert 2-Faktor-Authentifizierung
     'two_factor_enabled' => env('USERAUTH_2FA_ENABLED', false),
-    // Darf ein Admin ("dev" oder "admin") sich temporär als ein anderer Nutzer anmelden?
+    // Darf ein Admin (Rolle "admin") sich temporär als ein anderer Nutzer anmelden?
     'impersonate_enabled' => true,
 
     // Social Login (OAuth). Zugangsdaten liegen in der Host-App unter config('services.google.*')
@@ -69,7 +78,7 @@ return [
     'registration' => [
         // Schaltet Registrierung, Bestätigungslink und „Link erneut anfordern“ ein/aus
         'enabled' => env('USERAUTH_REGISTRATION', false),
-        // Rollen-Key (roles.role) für neue Konten; leer = keine Rolle. Nie 'dev' oder 'admin'.
+        // Rollen-Key (roles.role) für neue Konten; leer = keine Rolle. Nie 'admin' (privilegiert) oder 'dev'.
         'role' => env('USERAUTH_REGISTRATION_ROLE'),
         // Gültigkeit des Bestätigungslinks in Minuten (leer = 60)
         'verify_ttl_minutes' => 60,

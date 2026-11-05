@@ -7,10 +7,13 @@ namespace ITHilbert\UserAuth\Application\SocialLogin;
 use Illuminate\Support\Str;
 use ITHilbert\UserAuth\Application\Auth\CompleteAuthentication;
 use ITHilbert\UserAuth\Application\Auth\Contracts\Sitzungsanmeldung;
+use ITHilbert\UserAuth\Application\Benutzer\GeloeschteEmailAufloesen;
+use ITHilbert\UserAuth\Application\Benutzer\GeloeschteEmailAufloesung;
 use ITHilbert\UserAuth\Application\SocialLogin\Contracts\SocialAccountRepository;
 use ITHilbert\UserAuth\Application\SocialLogin\Contracts\SocialIdentityProvider;
 use ITHilbert\UserAuth\Application\SocialLogin\Contracts\SocialUserRepository;
 use ITHilbert\UserAuth\Application\SocialLogin\Exceptions\SocialProviderUnavailableException;
+use ITHilbert\UserAuth\Domain\Benutzer\Exceptions\EmailGehoertGeloeschtemBenutzerException;
 use ITHilbert\UserAuth\Domain\SocialLogin\AllowedDomainPolicy;
 use ITHilbert\UserAuth\Domain\SocialLogin\Exceptions\AccountDisabledException;
 use ITHilbert\UserAuth\Domain\SocialLogin\Exceptions\EmailNotVerifiedException;
@@ -35,6 +38,7 @@ final class HandleSocialLogin
         private readonly IssueSocialLinkConfirmation $issueConfirmation,
         private readonly Sitzungsanmeldung $sitzung,
         private readonly CompleteAuthentication $completeAuthentication,
+        private readonly GeloeschteEmailAufloesen $geloeschteEmail,
     ) {}
 
     /**
@@ -81,21 +85,33 @@ final class HandleSocialLogin
         return $this->login($user);
     }
 
+    /**
+     * Ohne Registrierung bleibt die E-Mail eines gelöschten Kontos gesperrt; sonst entscheidet die Option
+     * `userauth.geloeschte_email` (sperren | reaktivieren | neu).
+     */
     private function registerOrReject(SocialIdentity $identity): SocialLoginResult
     {
-        if ($this->users->existsDeletedWithEmail($identity->email)) {
+        if (! $this->settings->allowRegistration()) {
+            throw $this->geloeschteEmail->gehoertGeloeschtem($identity->email)
+                ? new AccountDisabledException
+                : new RegistrationDisabledException;
+        }
+
+        try {
+            $user = $this->geloeschteEmail->handle(
+                $identity->email,
+                fn (GeloeschteEmailAufloesung $aufloesung): LocalUser => $aufloesung->reaktivierteId !== null
+                    ? $this->users->adoptReactivated($aufloesung->reaktivierteId, $this->settings->defaultRole())
+                    : $this->users->createVerified(
+                        $identity->name ?? Str::before($identity->email, '@'),
+                        $identity->email,
+                        $this->settings->defaultRole(),
+                    ),
+            );
+        } catch (EmailGehoertGeloeschtemBenutzerException) {
             throw new AccountDisabledException;
         }
 
-        if (! $this->settings->allowRegistration()) {
-            throw new RegistrationDisabledException;
-        }
-
-        $user = $this->users->createVerified(
-            $identity->name ?? Str::before($identity->email, '@'),
-            $identity->email,
-            $this->settings->defaultRole(),
-        );
         $this->linkAccount->handle($user, $identity);
 
         return $this->login($user);

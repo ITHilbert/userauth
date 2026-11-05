@@ -21,25 +21,8 @@ use ITHilbert\UserAuth\Tests\TestCase;
  */
 final class RememberTokenMigrationTest extends TestCase
 {
-    /** Migrationen, die diese Aufgabe nicht betreffen (Stand vor AK14a). */
-    private const BEKANNTE_MIGRATIONEN = [
-        '2019_10_12_000000_create_my_users_table',
-        '2020_04_23_133628_create_roles_table',
-        '2020_04_23_133642_create_permissions_table',
-        '2020_04_23_133643_create_permissions_groups_table',
-        '2020_04_23_140937_create_role_permission_table',
-        '2026_02_17_000000_create_user_auth_audit_logs_table',
-        '2026_02_17_100000_add_2fa_columns_to_users_table',
-        '2026_03_28_000000_create_password_policy_tables',
-        '2026_03_28_000001_create_teams_tables',
-        '2026_09_29_000000_create_user_social_accounts_table',
-        '2026_09_29_000001_create_user_pending_social_links_table',
-        '2026_10_23_000000_make_role_id_nullable_on_users_table',
-        '2026_10_23_100000_create_password_reset_tokens_table',
-    ];
-
-    /** Alles ab diesem Namen (lexikografisch) ist jünger als die Remember-Token-Migration 2026_10_23_200000. */
-    private const ERSTE_SPAETERE_MIGRATION = '2026_10_23_200001';
+    /** Die Migration zu AK14a; später hinzugekommene Paket-Migrationen (z. B. dev → admin) sind davon unabhängig. */
+    private const MIGRATION_AK14A = '2026_10_23_200000_clear_remember_tokens_on_users_table';
 
     protected function defineDatabaseMigrations(): void
     {
@@ -93,12 +76,8 @@ final class RememberTokenMigrationTest extends TestCase
     {
         $this->paketMigrationenAusfuehren();
 
-        // Spätere Paket-Migrationen (Zeitstempel nach der von AK14a) gehören nicht zum Stand "vor dem Update".
-        $neu = DB::table('migrations')
-            ->whereNotIn('migration', self::BEKANNTE_MIGRATIONEN)
-            ->where('migration', '<', self::ERSTE_SPAETERE_MIGRATION)
-            ->pluck('migration');
-        $this->assertCount(1, $neu, 'Es muss genau eine neue Paket-Migration für AK14a geben, gefunden: '.$neu->implode(', '));
+        $neu = DB::table('migrations')->where('migration', self::MIGRATION_AK14A)->pluck('migration');
+        $this->assertCount(1, $neu, 'Die Paket-Migration für AK14a fehlt: '.self::MIGRATION_AK14A);
         DB::table('migrations')->whereIn('migration', $neu->all())->delete();
 
         $jetzt = now();

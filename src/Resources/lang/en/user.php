@@ -29,6 +29,10 @@ return [
     'email' => 'E-Mail',
     'password' => 'password',
     'password2' => 'remember password',
+    'password_generate' => 'Generate password',
+    'password_copy' => 'Copy',
+    'password_copied' => 'Copied',
+    'password_generate_failed' => 'Password could not be generated.',
 
     'anrede' => 'anrede',
     'title' => 'title',
@@ -53,4 +57,7 @@ return [
     'MsgAddSuccess' => 'The user has been created.',
     'MsgEditSuccess' => 'The user has been updated.',
     'MsgDeleteSuccess' => 'The user has been deleted.',
+    'MsgReaktiviert' => 'The deleted user has been restored.',
+    'MsgEntferntUndAngelegt' => 'A deleted account with this e-mail address has been permanently removed and the user has been created again.',
+    'email_geloeschter_benutzer' => 'This e-mail address belongs to a deleted user.',
 ];

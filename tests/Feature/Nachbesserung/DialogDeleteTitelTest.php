@@ -56,8 +56,8 @@ final class DialogDeleteTitelTest extends TestCase
 
     private function seiteAbrufen(string $uri): string
     {
-        // Die Rechte-Liste verlangt die Rolle `dev` (permissions_middleware), die übrigen Listen die Rechte der Rolle `user`
-        $user = User::factory()->create(['role_id' => $uri === '/permissions' ? 1 : self::ROLLE_NORMAL]);
+        // Die Rechte-Liste verlangt die Rolle `admin` (permissions_middleware), die übrigen Listen die Rechte der Rolle `user`
+        $user = User::factory()->create(['role_id' => $uri === '/permissions' ? 2 : self::ROLLE_NORMAL]);
 
         return (string) $this->actingAs($user)->get($uri)->assertOk()->getContent();
     }

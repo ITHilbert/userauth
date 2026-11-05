@@ -148,14 +148,16 @@ final class RolePermissionTest extends TestCase
         $this->assertFalse($role->hasPermission('user_delete'));
     }
 
-    public function test_dev_and_admin_have_all_permissions_implicitly(): void
+    // AK1
+    public function test_admin_has_all_permissions_implicitly_but_dev_does_not(): void
     {
         $dev = Role::create(['role' => 'dev', 'role_display' => 'Developer']);
         $admin = Role::create(['role' => 'admin', 'role_display' => 'Administrator']);
 
-        $this->assertTrue($dev->hasPermission('anything_at_all'));
         $this->assertTrue($admin->hasPermission('anything_at_all'));
-        $this->assertTrue($dev->hasPermissionOr('a, b, c'));
         $this->assertTrue($admin->hasPermissionAnd('a, b, c'));
+        $this->assertTrue($admin->hasPermissionOr('a, b, c'));
+        $this->assertFalse($dev->hasPermission('anything_at_all'));
+        $this->assertFalse($dev->hasPermissionOr('a, b, c'));
     }
 }

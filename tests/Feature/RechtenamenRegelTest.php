@@ -62,7 +62,7 @@ final class RechtenamenRegelTest extends TestCase
         $this->rechtLesen = $this->recht('einzel_lesen', 'Einzel lesen', self::EINZEL, 'single');
         $this->rechtPunkt = $this->recht('user.read', 'User lesen', self::EINZEL, 'single');
 
-        $this->dev = User::factory()->create(['role_id' => 1]);
+        $this->dev = User::factory()->create(['role_id' => 2]);
     }
 
     private function recht(string $intern, string $anzeige, int $gruppe, string $crud): int

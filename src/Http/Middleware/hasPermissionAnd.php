@@ -11,7 +11,7 @@ use ITHilbert\UserAuth\Http\Responses\ZugriffVerweigert;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Route nur mit ALLEN Rechten: `hasPermissionAnd:a,b` (Dev/Admin: immer).
+ * Route nur mit ALLEN Rechten: `hasPermissionAnd:a,b` (Admin: immer).
  */
 final class hasPermissionAnd
 {

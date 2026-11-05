@@ -11,7 +11,7 @@ use ITHilbert\UserAuth\Http\Responses\ZugriffVerweigert;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Route nur mit Rolle: `hasRole:name`. Dev und Admin kommen immer durch (auch bei `hasRole:dev`).
+ * Route nur mit Rolle: `hasRole:name`. Admin kommt immer durch (auch bei `hasRole:dev`).
  */
 final class hasRole
 {

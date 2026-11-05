@@ -18,7 +18,7 @@ use ITHilbert\UserAuth\Tests\TestCase;
  */
 final class SeederWunschIdsTest extends TestCase
 {
-    private const ROLLEN = ['dev' => 1, 'admin' => 2, 'user' => 3];
+    private const ROLLEN = ['admin' => 2, 'user' => 3];
 
     private const GRUPPEN = ['user' => 1, 'role' => 2];
 
@@ -233,13 +233,12 @@ final class SeederWunschIdsTest extends TestCase
     }
 
     // AK1
-    public function test_ak1_host_rolle_auf_wunsch_id_von_admin_laesst_dev_und_user_auf_ihren_ids(): void
+    public function test_ak1_host_rolle_auf_wunsch_id_von_admin_laesst_user_auf_seiner_id(): void
     {
         $this->hostRolle(2, 'chef');
 
         $this->seed(RolesTableSeeder::class);
 
-        $this->assertSame(1, $this->id('roles', 'role', 'dev'));
         $this->assertSame(3, $this->id('roles', 'role', 'user'));
         $this->assertNotContains($this->id('roles', 'role', 'admin'), [1, 2, 3]);
         $this->assertSame(2, $this->id('roles', 'role', 'chef'));
@@ -253,7 +252,7 @@ final class SeederWunschIdsTest extends TestCase
         $this->hostRecht(3, 'kunden_read');
         $this->seedAlle();
         $erster = $this->schnappschuss();
-        $this->assertCount(4, $erster['roles']);
+        $this->assertCount(3, $erster['roles']);
 
         $this->seedAlle();
 
@@ -268,7 +267,6 @@ final class SeederWunschIdsTest extends TestCase
 
         $this->seed(DatabaseSeeder::class);
 
-        $this->assertSame(1, $this->id('roles', 'role', 'dev'));
         $this->assertSame(3, $this->id('roles', 'role', 'user'));
         $this->assertNotContains($this->id('roles', 'role', 'admin'), [1, 2, 3]);
         $this->assertSame(2, $this->id('roles', 'role', 'chef'));
@@ -285,15 +283,15 @@ final class SeederWunschIdsTest extends TestCase
         $this->assertSame(3, $this->id('roles', 'role', 'user'));
     }
 
-    // AK2
-    public function test_ak2_chef_auf_id_1_dev_bekommt_eine_freie_id_ungleich_1_bis_3(): void
+    // AK4
+    public function test_ak4_chef_auf_id_1_legt_keine_rolle_dev_an(): void
     {
         $this->hostRolle(1, 'chef');
 
         $this->seed(RolesTableSeeder::class);
 
-        $this->assertNotContains($this->id('roles', 'role', 'dev'), [1, 2, 3]);
-        $this->assertSame(4, DB::table('roles')->count());
+        $this->assertNull($this->zeile('roles', 'role', 'dev'));
+        $this->assertSame(3, DB::table('roles')->count());
     }
 
     // AK2
@@ -400,12 +398,12 @@ final class SeederWunschIdsTest extends TestCase
 
         $this->seed(RolesTableSeeder::class);
 
-        $this->assertSame(6, DB::table('roles')->count());
+        $this->assertSame(5, DB::table('roles')->count());
         $ids = [];
         foreach (array_keys(self::ROLLEN) as $name) {
             $ids[] = $this->id('roles', 'role', $name);
         }
-        $this->assertCount(3, array_unique($ids));
+        $this->assertCount(2, array_unique($ids));
         $this->assertSame([], array_intersect($ids, [1, 2, 3]));
         $this->assertSame($vorher, DB::table('roles')->whereIn('id', [1, 2, 3])->orderBy('id')->get()->map(fn ($r) => (array) $r)->all());
     }

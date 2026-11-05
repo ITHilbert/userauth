@@ -57,7 +57,7 @@ class Role extends Model
     }
 
     /**
-     * Prüft, ob die Rolle das Recht hat (Dev/Admin: immer).
+     * Prüft, ob die Rolle das Recht hat (Admin: immer).
      */
     public function hasPermission(string $permission): bool
     {

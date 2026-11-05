@@ -32,6 +32,8 @@ use ITHilbert\UserAuth\Application\Auth\Contracts\Sitzungsanmeldung;
 use ITHilbert\UserAuth\Application\Auth\Contracts\ZweiFaktorCodeHasher;
 use ITHilbert\UserAuth\Application\Auth\Contracts\ZweiFaktorCodeVersand;
 use ITHilbert\UserAuth\Application\Auth\Events\ZweiFaktorCodeAbgelehnt;
+use ITHilbert\UserAuth\Application\Benutzer\Contracts\Benutzerbilder;
+use ITHilbert\UserAuth\Application\Benutzer\Contracts\GeloeschteBenutzer;
 use ITHilbert\UserAuth\Application\Contracts\MailLinks;
 use ITHilbert\UserAuth\Application\Passwort\Contracts\PasswortHistorie;
 use ITHilbert\UserAuth\Application\Passwort\Contracts\PasswortKonten;
@@ -46,6 +48,8 @@ use ITHilbert\UserAuth\Application\SocialLogin\Contracts\SocialIdentityProvider;
 use ITHilbert\UserAuth\Application\SocialLogin\Contracts\SocialUserRepository;
 use ITHilbert\UserAuth\Application\Zugriff\Contracts\RollenRepository;
 use ITHilbert\UserAuth\Application\Zugriff\Zugriffspruefung;
+use ITHilbert\UserAuth\Domain\Benutzer\Events\BenutzerEndgueltigGeloescht;
+use ITHilbert\UserAuth\Domain\Benutzer\Events\BenutzerReaktiviert;
 use ITHilbert\UserAuth\Domain\Registrierung\Events\EmailBestaetigt;
 use ITHilbert\UserAuth\Domain\Registrierung\Events\KontoRegistriert;
 use ITHilbert\UserAuth\Domain\SocialLogin\Events\SocialAccountLinked;
@@ -58,6 +62,7 @@ use ITHilbert\UserAuth\Http\Middleware\isAdmin;
 use ITHilbert\UserAuth\Http\Middleware\isDev;
 use ITHilbert\UserAuth\Http\MiddlewarePrioritaet;
 use ITHilbert\UserAuth\Http\ViewComposers\AvailableSocialProvidersComposer;
+use ITHilbert\UserAuth\Http\ViewComposers\GeloeschteEmailHinweisComposer;
 use ITHilbert\UserAuth\Http\ViewComposers\RegistrierungComposer;
 use ITHilbert\UserAuth\Http\ViewComposers\ThemeComposer;
 use ITHilbert\UserAuth\Infrastructure\Auth\GuardAnmeldedaten;
@@ -65,6 +70,8 @@ use ITHilbert\UserAuth\Infrastructure\Auth\GuardSitzungsanmeldung;
 use ITHilbert\UserAuth\Infrastructure\Auth\HmacZweiFaktorCodeHasher;
 use ITHilbert\UserAuth\Infrastructure\Auth\MailZweiFaktorCodeVersand;
 use ITHilbert\UserAuth\Infrastructure\Auth\SessionOffeneAnmeldungen;
+use ITHilbert\UserAuth\Infrastructure\Benutzer\EloquentGeloeschteBenutzer;
+use ITHilbert\UserAuth\Infrastructure\Benutzer\PublicDiskBenutzerbilder;
 use ITHilbert\UserAuth\Infrastructure\Mail\AppUrlMailLinks;
 use ITHilbert\UserAuth\Infrastructure\Passwort\DatenbankPasswortHistorie;
 use ITHilbert\UserAuth\Infrastructure\Passwort\EloquentPasswortKonten;
@@ -78,6 +85,7 @@ use ITHilbert\UserAuth\Infrastructure\SocialLogin\EloquentSocialUserRepository;
 use ITHilbert\UserAuth\Infrastructure\SocialLogin\SocialiteIdentityProvider;
 use ITHilbert\UserAuth\Infrastructure\Zugriff\EloquentRollenRepository;
 use ITHilbert\UserAuth\Listeners\LogAuthenticationAttempt;
+use ITHilbert\UserAuth\Listeners\LogGeloeschteEmailAufloesung;
 use ITHilbert\UserAuth\Listeners\LogSocialAccountChange;
 use ITHilbert\UserAuth\Listeners\SendSocialAccountLinkedMail;
 use ITHilbert\UserAuth\Listeners\SitzungsgebundeneAnmeldungMarkieren;
@@ -122,11 +130,13 @@ class UserAuthServiceProvider extends ServiceProvider
 
         Event::listen(SocialAccountLinked::class, [SendSocialAccountLinkedMail::class, 'handle']);
         Event::listen([SocialAccountLinked::class, SocialAccountUnlinked::class], LogSocialAccountChange::class);
+        Event::listen([BenutzerReaktiviert::class, BenutzerEndgueltigGeloescht::class], LogGeloeschteEmailAufloesung::class);
 
         View::composer(
             ['userauth::login.*', 'userauth::social.accounts.*'],
             AvailableSocialProvidersComposer::class
         );
+        View::composer('userauth::login.*', GeloeschteEmailHinweisComposer::class);
         View::composer('userauth::login.*', RegistrierungComposer::class);
         View::composer([
             'userauth::login',
@@ -143,7 +153,7 @@ class UserAuthServiceProvider extends ServiceProvider
     }
 
     /**
-     * Dev/Admin und Inhaber des gleichnamigen Rechts bestehen jede Gate-Prüfung (`@can`, `Gate::allows`).
+     * Admin und Inhaber des gleichnamigen Rechts bestehen jede Gate-Prüfung (`@can`, `Gate::allows`).
      * Sonst null: andere Gates/Policies entscheiden (fail-closed bei ungültiger Rolle).
      */
     protected function registerGates(): void
@@ -258,6 +268,16 @@ class UserAuthServiceProvider extends ServiceProvider
         $this->registerZugriffspruefung();
         $this->registerPasswort();
         $this->registerAnmeldung();
+        $this->registerBenutzer();
+    }
+
+    /**
+     * Port-Bindings der Benutzerverwaltung: gelöschte Benutzer (Neuanlage mit ihrer E-Mail) und Benutzerbilder.
+     */
+    protected function registerBenutzer(): void
+    {
+        $this->app->bind(GeloeschteBenutzer::class, EloquentGeloeschteBenutzer::class);
+        $this->app->bind(Benutzerbilder::class, PublicDiskBenutzerbilder::class);
         $this->registerRegistrierung();
     }
 

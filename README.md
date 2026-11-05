@@ -63,6 +63,8 @@ USERAUTH_PASSWORD_POLICY_ENABLED=true
 # Mandantenfähigkeit (Teams)
 USERAUTH_TEAMS_ENABLED=true
 
+# E-Mail eines gelöschten Benutzers bei einer Neuanlage: sperren (Default) | reaktivieren | neu
+USERAUTH_GELOESCHTE_EMAIL=sperren
 # Selbstregistrierung (siehe Abschnitt „Registrierung“)
 USERAUTH_REGISTRATION=false
 USERAUTH_REGISTRATION_ROLE=
@@ -73,7 +75,7 @@ USERAUTH_THEME=bootstrap
 ```
 
 ### Admin-Konto per Seeder
-Der `UsersTableSeeder` löscht keine Benutzer. Er legt `admin@admin.com` (Rolle `dev`) nur an, wenn die Tabelle `users` komplett leer ist (auch ohne soft-gelöschte Zeilen) und der Host von `APP_URL` auf `.lan` endet oder `localhost`, `127.0.0.1` oder `::1` ist (lokale Hosts zählen wie eine `.lan`-Domain). Sonst gibt er `Kein Admin-Konto angelegt` mit Grund aus. Das Passwort kommt aus `USERAUTH_ADMIN_PASSWORT`; ist es leer oder nicht gesetzt, erzeugt der Seeder ein Zufallspasswort und gibt es einmal auf der Konsole aus.
+Der `UsersTableSeeder` löscht keine Benutzer. Er legt `admin@admin.com` (Rolle mit dem Schlüssel `admin`, egal mit welcher ID) nur an, wenn die Tabelle `users` komplett leer ist (auch ohne soft-gelöschte Zeilen) und der Host von `APP_URL` auf `.lan` endet oder `localhost`, `127.0.0.1` oder `::1` ist (lokale Hosts zählen wie eine `.lan`-Domain). Sonst gibt er `Kein Admin-Konto angelegt` mit Grund aus. Das Passwort kommt aus `USERAUTH_ADMIN_PASSWORT`; ist es leer oder nicht gesetzt, erzeugt der Seeder ein Zufallspasswort und gibt es einmal auf der Konsole aus.
 
 ### Pflichten des Hosts
 
@@ -212,18 +214,57 @@ Wird das Flag `USERAUTH_TEAMS_ENABLED=true` gesetzt, liest das System Rechte (ha
     ],
 ```
 
+#### E-Mail eines gelöschten Benutzers
+Benutzer werden weich gelöscht (`deleted_at`), ihre E-Mail-Adresse bleibt in der Tabelle `users`. Was passiert, wenn ein Admin (Route `user.store`) oder eine Social-Registrierung (`social.allow_registration`) einen Benutzer mit dieser E-Mail anlegen will, regelt `USERAUTH_GELOESCHTE_EMAIL`. Groß-/Kleinschreibung der E-Mail spielt keine Rolle.
+```php
+    'geloeschte_email' => env('USERAUTH_GELOESCHTE_EMAIL', 'sperren'),
+```
+
+| Wert | Admin-Anlage | Social-Registrierung |
+|---|---|---|
+| `sperren` (Default) | Validierungsfehler am Feld `email`: „Diese E-Mail-Adresse gehört zu einem gelöschten Benutzer.“ Es wird nichts angelegt. | Fehler „Dieses Konto ist deaktiviert oder gelöscht.“ (wie bisher) |
+| `reaktivieren` | Die gelöschte Zeile wird wiederhergestellt (gleiche `id`). Name, Profilfelder, Rolle, Bild und Passwort kommen aus dem Formular wie bei einer Neuanlage, die Passwortregeln gelten. Meldung: „Der gelöschte Benutzer wurde wiederhergestellt.“ | Die gelöschte Zeile wird wiederhergestellt, Rolle aus `social.default_role`, E-Mail gilt als bestätigt, der Passwort-Hash bleibt. Danach wird das Anbieter-Konto verknüpft und der Benutzer angemeldet. |
+| `neu` | Die gelöschte Zeile wird endgültig entfernt, der Benutzer normal neu angelegt (neue `id`). Meldung: „Ein gelöschtes Konto mit dieser E-Mail-Adresse wurde endgültig entfernt und der Benutzer neu angelegt.“ | Die gelöschte Zeile wird endgültig entfernt, danach normale Social-Registrierung. Die Login-Seite zeigt bei den Social-Schaltflächen einen Hinweis darauf (ohne konkrete E-Mail). |
+
+Jeder andere Wert (auch leer oder anders geschrieben, z. B. `Neu`) wirkt wie `sperren`. Ist `social.allow_registration` aus, bleibt die Social-Anmeldung mit der E-Mail eines gelöschten Kontos in jeder Option abgelehnt. Ein aktiver Benutzer mit derselben E-Mail blockiert die Admin-Anlage immer (Fehler „bereits vergeben“).
+
+**Beim Reaktivieren bereinigt** (in derselben Transaktion wie die Anlage – scheitert ein Schritt, z. B. weil das Passwort abgelehnt wird, bleibt alles wie vorher):
+- alle Social-Konten (`user_social_accounts`) und offenen Verknüpfungen (`user_pending_social_links`) des Benutzers gelöscht,
+- alle Team-Mitgliedschaften (`team_user`) entfernt, `current_team_id` geleert; die Teams selbst bleiben bestehen,
+- `remember_token` neu erzeugt (alte „Angemeldet bleiben“-Cookies gelten nicht mehr),
+- Passwort-Reset-Tokens zur E-Mail (`password_reset_tokens`) gelöscht,
+- `two_factor_code` und `two_factor_expires_at` geleert.
+
+Passwort-Historie (`user_password_histories`) und Audit-Log (`user_auth_audit_logs`) bleiben erhalten. Bei der Social-Reaktivierung bleibt das Bild der Zeile erhalten. Gibt es mehrere gelöschte Zeilen mit derselben E-Mail (Altbestand), wird die zuletzt gelöschte wiederhergestellt, die übrigen bleiben gelöscht.
+
+**Beim endgültigen Löschen entfernt** (in derselben Transaktion wie die Neuanlage – scheitert sie, bleibt die alte Zeile erhalten): alle gelöschten Zeilen mit dieser E-Mail samt Social-Konten, offenen Verknüpfungen, Team-Mitgliedschaften, Passwort-Historie und Passwort-Reset-Tokens zur E-Mail. Die Einträge im Audit-Log bleiben unverändert stehen.
+
+**Bilddatei der alten Zeile:** Verweist nach dem Vorgang keine Zeile in `users` mehr auf die Bilddatei des gelöschten Benutzers (`neu`; `reaktivieren` über die Admin-Anlage mit neuem oder ohne Bild), wird sie von der Disk `public` gelöscht – erst nach erfolgreichem Abschluss; scheitert der Vorgang, bleibt sie. Dieselbe Regel gilt beim Ersetzen eines Bildes (Bearbeiten, Benutzerbild): Die alte Datei wird nur gelöscht, wenn keine andere Zeile (auch keine gelöschte) mehr auf sie verweist.
+
+**Audit-Log** (falls `USERAUTH_AUDIT_LOG_ENABLED=true`): `user_reactivated` beim Wiederherstellen, `user_purged` je endgültig gelöschter Zeile, jeweils mit `user_id` und E-Mail der alten Zeile.
+
+### Passwort erzeugen (Benutzerverwaltung)
+Optional zeigt die Benutzerverwaltung (Anlegen und Bearbeiten) beim Feld „Passwort“ die Buttons „Passwort erzeugen“ und „Kopieren“. Dafür stellt der Host einen Generator bereit und trägt seine Adresse (absolut oder ab `/`) in die `.env` ein:
+
+```dotenv
+USERAUTH_PASSWORT_GENERATOR_URL=/passwort/erzeugen
+```
+
+Config-Schlüssel: `userauth.passwort_generator_url` (Standard leer = kein Button, kein Skript). Der Browser ruft die Adresse per `GET` (gleiche Herkunft, Cookies, `Accept: application/json`) auf und erwartet die Antwort `{"passwort": "…"}` (weitere Felder werden ignoriert). Das Passwort wird in beide Felder eingetragen und im Klartext gezeigt; gesendet wird es erst mit dem Formular, Validierung und Passwortrichtlinie gelten unverändert. Schlägt der Abruf fehl, erscheint „Passwort konnte nicht erzeugt werden.“ und die Felder bleiben unverändert. Beispiel: deploy bietet `/passwort/erzeugen`. Der Generator sollte die Passwortrichtlinie des Pakets erfüllen, sonst lehnt das Formular das Passwort ab.
+
 ## Rollen und Rechte
 
 ### Privilegierte Rollen
 
-Eine Rolle ist privilegiert (hat jedes Recht, erfüllt jede Gate-Prüfung) nur in diesen Fällen:
+Privilegiert (hat jedes Recht, erfüllt jede Rolle und jede Gate-Prüfung) ist nur eine Rolle (Entscheidung 0011, Projekt `packages_dev`):
 
 | Rolle | Bedingung | Bedeutung |
 |---|---|---|
-| Dev | Rolle mit ID `1` **und** Schlüssel `dev` | Erfüllt jede Rolle und jedes Recht |
-| Admin | Rolle mit ID `2` **und** Schlüssel `admin` | Erfüllt jedes Recht und jede Rolle außer `dev` |
+| Admin | Rolle mit dem Schlüssel `admin` (`roles.role`, exakter Vergleich), egal mit welcher ID | Erfüllt jedes Recht und jede Rolle, auch `hasRole:dev` |
 
-- Eine umbenannte Rolle 1 oder 2 ist nicht privilegiert. Eine Rolle mit Schlüssel `admin` und anderer ID ist ebenfalls nicht privilegiert.
+- Jede andere Rolle hat nur ihre eigenen Rechte und erfüllt nur ihren eigenen Rollennamen, auch eine Rolle mit dem Schlüssel `dev` und auch eine Rolle mit der ID 1 oder 2.
+- Andere Schreibweisen (`Admin`, ` admin `) sind nicht privilegiert. Gibt es mehrere Rollen mit dem Schlüssel `admin`, ist jede nicht gelöschte privilegiert.
+- Die Rolle `admin` hat in der Rollenverwaltung keine Schaltflächen zum Ändern und Löschen, und das Löschen ist serverseitig gesperrt; alle anderen Rollen lassen sich ändern und löschen.
 - Mit Teams gilt die Rolle des **aktiven Teams** für alle Prüfungen (Gate, Middleware, `isAdmin`/`isDev`, Impersonation). Ohne Teamrolle gilt die globale `role_id`.
 - Fehlt die Rolle (`role_id` ist `null`), ist ungültig (`0`, negativ) oder zeigt auf eine gelöschte oder nicht vorhandene Rolle, ist der Nutzer **nicht** privilegiert und hat keine Rechte (fail-closed).
 
@@ -231,21 +272,23 @@ Eine Rolle ist privilegiert (hat jedes Recht, erfüllt jede Gate-Prüfung) nur i
 
 Entscheidung 0006 (Projekt `packages_dev`, Ordner `.project/doku/decisions/`):
 
-- Wer `user_create` oder `user_edit` hat, kann **jede** existierende Rolle vergeben, auch Dev und Admin, auch an sich selbst.
+- Wer `user_create` oder `user_edit` hat, kann **jede** existierende Rolle vergeben, auch Admin, auch an sich selbst.
 - Wer `role_create` oder `role_edit` hat, kann einer Rolle **beliebige** Rechte geben, auch solche, die er selbst nicht hat.
 - Es gibt keine Hierarchie-Prüfung.
 - Ausgewählt werden können nur existierende, nicht gelöschte Rollen. Rechte-IDs müssen existieren. Eine Rolle wird mit ihren Rechten in einer Transaktion gespeichert: alles oder nichts.
 
-**Konsequenz:** Ein Inhaber von `user_edit` oder `role_edit` kann sich selbst zum Dev machen und das Passwort jedes Nutzers setzen. Diese Rechte wie Admin-Rechte behandeln und nur Vertrauenspersonen geben.
+**Konsequenz:** Ein Inhaber von `user_edit` oder `role_edit` kann sich selbst zum Admin machen und das Passwort jedes Nutzers setzen. Diese Rechte wie Admin-Rechte behandeln und nur Vertrauenspersonen geben.
 
 ### Rechte in Routen und Views
 
 | Prüfung | Verhalten |
 |---|---|
-| Route `hasPermission:a` | Recht `a` oder Dev/Admin |
-| Route `hasPermissionAnd:a,b` | Rechte `a` **und** `b` (Dev/Admin: immer erlaubt) |
+| Route `hasPermission:a` | Recht `a` oder Admin |
+| Route `hasPermissionAnd:a,b` | Rechte `a` **und** `b` (Admin: immer erlaubt) |
 | Route `hasPermissionOr:a,b` | Recht `a` **oder** `b` |
-| Route `hasRole:x` | Rollenname `x` (Dev erfüllt jede Rolle, Admin jede außer `dev`) |
+| Route `hasRole:x` | Rollenname `x` (Admin erfüllt jede Rolle, auch `dev`) |
+| Route `isAdmin` | nur Admin |
+| Route `isDev` | wie `isAdmin` (Übergang, keine eigene Dev-Prüfung) |
 | Blade `@hasPermissionAnd('a,b')` / `@hasPermissionOr(['a','b'])` | Komma-Liste und Array sind gleichwertig |
 | Gate `@can('a')`, `Gate::allows('a')` | wie `hasPermission` |
 
@@ -309,7 +352,7 @@ In `config/userauth.php` (Gruppe `registration`):
 
 Hosts mit veröffentlichter Config ergänzen die Gruppe `registration`; fehlende Schlüssel bekommen die Werte aus der Tabelle.
 
-**Rolle:** Die Rolle darf keine privilegierte sein. Steht in `USERAUTH_REGISTRATION_ROLE` `dev` oder `admin` oder ein Schlüssel, zu dem es keine Rolle gibt, legt die Registrierung kein Konto an und wirft `RegistrierungFalschKonfiguriertException` (Text nennt `userauth.registration.role`).
+**Rolle:** Die Rolle darf keine privilegierte sein. Steht in `USERAUTH_REGISTRATION_ROLE` `admin` oder `dev` (früher privilegiert) oder ein Schlüssel, zu dem es keine Rolle gibt, legt die Registrierung kein Konto an und wirft `RegistrierungFalschKonfiguriertException` (Text nennt `userauth.registration.role`).
 
 ### Pflichten des Hosts
 
@@ -389,6 +432,7 @@ Vor bestandener 2FA sind Seiten hinter `auth` nicht erreichbar. Die Routen `veri
 | `2026_10_23_100000_create_password_reset_tokens_table` | legt `password_reset_tokens` an, wenn sie fehlt | ohne Wirkung |
 | `2026_10_23_200000_clear_remember_tokens_on_users_table` | leert **einmalig** `remember_token` aller Nutzer, auch gelöschter | ohne Wirkung |
 | `2026_11_03_000000_add_self_registered_to_users_table` | ergänzt `users.self_registered` (Konto aus der Selbstregistrierung), wenn die Spalte fehlt | ohne Wirkung |
+| `2026_11_05_000000_move_dev_users_to_admin_role` | stellt **einmalig** alle Nutzer (auch gelöschte) und `team_user.role_id` von der Rolle `dev` auf die nicht gelöschte Rolle `admin` mit der kleinsten ID um; ohne Rolle `admin` ändert sie nichts. Die Rolle `dev` bleibt stehen. | ohne Wirkung |
 
 **Keine Rückbau-Migrationen:** Ob das Paket eine Tabelle angelegt oder nur ergänzt hat, ist beim Zurückrollen nicht feststellbar. Ein Löschen würde die Nutzer des Hosts vernichten. Der alte Zustand (`role_id` mit Admin als Default) wäre die geschlossene Sicherheitslücke. Die geleerten Angemeldet-bleiben-Tokens lassen sich nicht wiederherstellen (Entscheidungen 0007 und 0009, Projekt `packages_dev`).
 
@@ -405,6 +449,14 @@ Siehe [Voraussetzungen und Abhängigkeiten](#voraussetzungen-und-abhängigkeiten
 ## Upgrade-Hinweise (nach 3.0.0, unveröffentlicht)
 
 Diese Punkte gelten für Hosts, die den aktuellen Stand des Pakets nutzen. Eine Version nach 3.0.0 gibt es noch nicht.
+
+**Nur noch `admin` ist privilegiert (neue Migration, Entscheidung 0011)**
+1. `php artisan migrate` ausführen: `2026_11_05_000000_move_dev_users_to_admin_role` stellt alle Nutzer mit der Rolle `dev` (auch gelöschte) und alle Team-Mitgliedschaften mit `dev` auf die Rolle `admin` um. Gibt es im Host keine (nicht gelöschte) Rolle `admin`, ändert die Migration nichts: dann die Rolle `admin` anlegen und den Nutzern von Hand zuweisen. Bis zur Umstellung haben Nutzer mit `dev` keine Privilegien mehr.
+2. Die Rolle `dev` bleibt als gewöhnliche Rolle stehen (nur ihre eigenen Rechte, nur ihr eigener Rollenname) und kann in der Rollenverwaltung gelöscht werden. Privilegiert ist allein die Rolle mit dem Schlüssel `admin`, unabhängig von ihrer ID.
+3. Der Middleware-Alias `isDev` bleibt als Übergang registriert und wirkt genau wie `isAdmin`. Routen des Hosts mit `isDev` können auf `isAdmin` umgestellt werden.
+4. Veröffentlichte Host-Config: Steht in `routes.permissions_middleware` noch `hasRole:dev`, auf `hasRole:admin` umstellen (neue Paket-Vorgabe). Funktional bleibt es auch ohne Umstellung, denn `admin` erfüllt jede Rolle.
+5. Die Seeder legen nur noch die Rollen `admin` und `user` an; `UsersTableSeeder` gibt `admin@admin.com` die Rolle `admin`.
+6. Hosts mit veröffentlichten Sprachdateien (`resources/lang/vendor/userauth/de/role.php` bzw. `lang/vendor/userauth/de/role.php`) übernehmen `MsgDeleteRoot` = „Die Rolle Admin kann nicht gelöscht werden.“ (bisher „Die Rollen Developer und Admin können nicht gelöscht werden.“).
 
 **Selbstregistrierung (neue Migration)**
 1. `php artisan migrate` ausführen: `2026_11_03_000000_add_self_registered_to_users_table` ergänzt `users.self_registered`. Die Registrierung ist standardmäßig aus; Einschalten und Pflichten siehe [Registrierung](#registrierung).
@@ -480,6 +532,13 @@ mountInseln({
 **Englische Erfolgsmeldungen**
 21. Die englischen Erfolgsmeldungen `MsgAddSuccess`, `MsgEditSuccess` und `MsgDeleteSuccess` in `lang/en/user.php` sind korrigiert. Hosts mit veröffentlichten Sprachdateien (`resources/lang/vendor/userauth/en/user.php` bzw. `lang/vendor/userauth/en/user.php`) übernehmen die drei Zeilen.
 
+**E-Mail eines gelöschten Benutzers**
+22. Neue Option `USERAUTH_GELOESCHTE_EMAIL` (siehe [E-Mail eines gelöschten Benutzers](#e-mail-eines-gelöschten-benutzers)). Der Standard `sperren` ändert am Verhalten nichts: Die E-Mail eines gelöschten Benutzers bleibt belegt. Neu ist nur die Meldung bei der Admin-Anlage – statt des allgemeinen Fehlers „bereits vergeben“ heißt es „Diese E-Mail-Adresse gehört zu einem gelöschten Benutzer.“ (Sprachschlüssel `userauth::user.email_geloeschter_benutzer`).
+23. Hosts mit veröffentlichten Views oder Sprachdateien übernehmen die neuen Stellen (neu veröffentlichen, siehe Punkt 11): `login/tailwind` und `login/bootstrap` den Hinweis bei Option `neu`; neue Sprachschlüssel in `user.php` (`email_geloeschter_benutzer`, `MsgReaktiviert`, `MsgEntferntUndAngelegt`) und `social.php` (`hinweis_geloeschtes_konto`).
+24. Wer `SocialUserRepository` selbst implementiert: `existsDeletedWithEmail()` entfällt (die Prüfung liegt im Anwendungsfall `GeloeschteEmailAufloesen`), neu ist `adoptReactivated()`.
+
+25. Neue Option `USERAUTH_PASSWORT_GENERATOR_URL` (siehe [Passwort erzeugen](#passwort-erzeugen-benutzerverwaltung)). Assets neu veröffentlichen (`php artisan vendor:publish --provider="ITHilbert\UserAuth\UserAuthServiceProvider" --force`): neue Datei `public/vendor/userauth/js/passwort-erzeugen.js`. Hosts mit veröffentlichten Views übernehmen die neuen Stellen in `user/formularfelder`, `user/create` und `user/edit` sowie die Sprachschlüssel `password_generate`, `password_copy`, `password_copied`, `password_generate_failed`. Ohne die Option ändert sich nichts.
+
 ## Upgrade-Hinweise (3.0.0)
 
 Diese Punkte gelten für Hosts, die auf 3.0.0 aktualisieren. Sie sind nach dem Code geprüft.
@@ -490,7 +549,7 @@ Unterstützt werden Laravel 12 und 13. `ithilbert/laravel-kit` wird ab `^1.2` be
 1. `/users` verlangt `user_read` (an der Route). Rollen ohne dieses Recht verlieren den Zugriff auf die Nutzerliste.
 2. Die JSON-Nutzerliste enthält nur noch `id`, `name`, `email`, `RoleName` und `action`.
 3. Model-Serialisierung (`toArray`, `toJson`) blendet `password`, `remember_token`, `two_factor_code`, `two_factor_expires_at`, `edit_pw_token` und `edit_pw_token_end` aus. Ein eigenes `$hidden` des Hosts bleibt erhalten.
-4. Dev und Admin gelten nur noch mit ID 1 + Schlüssel `dev` bzw. ID 2 + Schlüssel `admin`. Umbenannte Rollen 1 oder 2 verlieren ihre Privilegien. Mit Teams gilt die Rolle des aktiven Teams.
+4. Dev und Admin gelten nur noch mit ID 1 + Schlüssel `dev` bzw. ID 2 + Schlüssel `admin`. Umbenannte Rollen 1 oder 2 verlieren ihre Privilegien. Mit Teams gilt die Rolle des aktiven Teams. *(Überholt durch #357: privilegiert ist nur noch die Rolle mit dem Schlüssel `admin`, unabhängig von der ID – siehe „Nur noch `admin` ist privilegiert“.)*
 5. `role_id` ist nullable, ohne Default Admin. Neue Nutzer ohne Rolle haben keine Rechte.
 6. Trait-Methoden `hasPermissionAnd` und `hasPermissionOr` erwarten `string|array`. Mehrere Argumente (`('a', 'b')`) sind weiterhin möglich.
 
@@ -661,7 +720,7 @@ Die Views (Login, Profil) erhalten vom View-Composer `AvailableSocialProvidersCo
    - Keine lokale E-Mail:
      - `allow_registration = true` → **neuer User** (zufälliges Passwort-Hash, Standard-Rolle, Login).
      - `allow_registration = false` → **Fehler** mit verständlicher Meldung.
-5. **Gelöschter User:** Hat jemand einen Account mit dieser E-Mail gelöscht, wird ein neuer Social-Nutzer nicht automatisch wiederverknüpft.
+5. **Gelöschter User:** Gibt es zur E-Mail nur ein gelöschtes Konto, entscheidet `USERAUTH_GELOESCHTE_EMAIL` (Default `sperren`: Anmeldung abgelehnt; `reaktivieren`: Konto wiederhergestellt und bereinigt, dann verknüpft; `neu`: altes Konto endgültig entfernt, dann normale Registrierung), siehe [E-Mail eines gelöschten Benutzers](#e-mail-eines-gelöschten-benutzers). Ohne `allow_registration` bleibt die Anmeldung abgelehnt.
 
 #### Bestätigungsablauf (Unverifiziierte E-Mail)
 - **GET** `auth/social/confirm/{token}` — zeigt Bestätigungsseite (keine Login).
@@ -684,6 +743,7 @@ Wenn der User `two_factor_enabled` hat, wird nach dem Google-Login der Code-Flow
 **Audit-Log** (falls `USERAUTH_AUDIT_LOG_ENABLED=true`):
 - Event `social_linked` — neue Verknüpfung.
 - Event `social_unlinked` — Verknüpfung entfernt.
+- Event `user_reactivated` / `user_purged` — gelöschtes Konto bei der Registrierung wiederhergestellt bzw. endgültig entfernt.
 
 ### Wichtig: Queue-Worker & Scheduler
 
