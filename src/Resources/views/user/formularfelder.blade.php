@@ -85,6 +85,13 @@
     <label for="password" class="col-md-4 col-form-label text-md-right">@lang('userauth::user.password'){{ $user === null ? ' *' : '' }}</label>
     <div class="col-md-6">
         <x-kit::input-password name="password" value="" autocomplete="new-password" />
+        @if (trim((string) config('userauth.passwort_generator_url')) !== '')
+            <div class="mt-1">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-passwort-erzeugen="{{ trim((string) config('userauth.passwort_generator_url')) }}" data-fehler="{{ __('userauth::user.password_generate_failed') }}">@lang('userauth::user.password_generate')</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-passwort-kopieren data-kopiert="{{ __('userauth::user.password_copied') }}">@lang('userauth::user.password_copy')</button>
+                <span class="small" data-passwort-hinweis role="status"></span>
+            </div>
+        @endif
         @error('password')
             <div class="text-danger small mt-1">{{ $message }}</div>
         @enderror

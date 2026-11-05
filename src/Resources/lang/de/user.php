@@ -29,6 +29,10 @@ return [
     'email' => 'E-Mail',
     'password' => 'Passwort',
     'password2' => 'Passwort wiederholen',
+    'password_generate' => 'Passwort erzeugen',
+    'password_copy' => 'Kopieren',
+    'password_copied' => 'Kopiert',
+    'password_generate_failed' => 'Passwort konnte nicht erzeugt werden.',
 
     'anrede' => 'Anrede',
     'title' => 'Titel',

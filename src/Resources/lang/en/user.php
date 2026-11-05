@@ -29,6 +29,10 @@ return [
     'email' => 'E-Mail',
     'password' => 'password',
     'password2' => 'remember password',
+    'password_generate' => 'Generate password',
+    'password_copy' => 'Copy',
+    'password_copied' => 'Copied',
+    'password_generate_failed' => 'Password could not be generated.',
 
     'anrede' => 'anrede',
     'title' => 'title',

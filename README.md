@@ -243,6 +243,15 @@ Passwort-Historie (`user_password_histories`) und Audit-Log (`user_auth_audit_lo
 
 **Audit-Log** (falls `USERAUTH_AUDIT_LOG_ENABLED=true`): `user_reactivated` beim Wiederherstellen, `user_purged` je endgültig gelöschter Zeile, jeweils mit `user_id` und E-Mail der alten Zeile.
 
+### Passwort erzeugen (Benutzerverwaltung)
+Optional zeigt die Benutzerverwaltung (Anlegen und Bearbeiten) beim Feld „Passwort“ die Buttons „Passwort erzeugen“ und „Kopieren“. Dafür stellt der Host einen Generator bereit und trägt seine Adresse (absolut oder ab `/`) in die `.env` ein:
+
+```dotenv
+USERAUTH_PASSWORT_GENERATOR_URL=/passwort/erzeugen
+```
+
+Config-Schlüssel: `userauth.passwort_generator_url` (Standard leer = kein Button, kein Skript). Der Browser ruft die Adresse per `GET` (gleiche Herkunft, Cookies, `Accept: application/json`) auf und erwartet die Antwort `{"passwort": "…"}` (weitere Felder werden ignoriert). Das Passwort wird in beide Felder eingetragen und im Klartext gezeigt; gesendet wird es erst mit dem Formular, Validierung und Passwortrichtlinie gelten unverändert. Schlägt der Abruf fehl, erscheint „Passwort konnte nicht erzeugt werden.“ und die Felder bleiben unverändert. Beispiel: deploy bietet `/passwort/erzeugen`. Der Generator sollte die Passwortrichtlinie des Pakets erfüllen, sonst lehnt das Formular das Passwort ab.
+
 ## Rollen und Rechte
 
 ### Privilegierte Rollen
@@ -526,6 +535,8 @@ mountInseln({
 22. Neue Option `USERAUTH_GELOESCHTE_EMAIL` (siehe [E-Mail eines gelöschten Benutzers](#e-mail-eines-gelöschten-benutzers)). Der Standard `sperren` ändert am Verhalten nichts: Die E-Mail eines gelöschten Benutzers bleibt belegt. Neu ist nur die Meldung bei der Admin-Anlage – statt des allgemeinen Fehlers „bereits vergeben“ heißt es „Diese E-Mail-Adresse gehört zu einem gelöschten Benutzer.“ (Sprachschlüssel `userauth::user.email_geloeschter_benutzer`).
 23. Hosts mit veröffentlichten Views oder Sprachdateien übernehmen die neuen Stellen (neu veröffentlichen, siehe Punkt 11): `login/tailwind` und `login/bootstrap` den Hinweis bei Option `neu`; neue Sprachschlüssel in `user.php` (`email_geloeschter_benutzer`, `MsgReaktiviert`, `MsgEntferntUndAngelegt`) und `social.php` (`hinweis_geloeschtes_konto`).
 24. Wer `SocialUserRepository` selbst implementiert: `existsDeletedWithEmail()` entfällt (die Prüfung liegt im Anwendungsfall `GeloeschteEmailAufloesen`), neu ist `adoptReactivated()`.
+
+25. Neue Option `USERAUTH_PASSWORT_GENERATOR_URL` (siehe [Passwort erzeugen](#passwort-erzeugen-benutzerverwaltung)). Assets neu veröffentlichen (`php artisan vendor:publish --provider="ITHilbert\UserAuth\UserAuthServiceProvider" --force`): neue Datei `public/vendor/userauth/js/passwort-erzeugen.js`. Hosts mit veröffentlichten Views übernehmen die neuen Stellen in `user/formularfelder`, `user/create` und `user/edit` sowie die Sprachschlüssel `password_generate`, `password_copy`, `password_copied`, `password_generate_failed`. Ohne die Option ändert sich nichts.
 
 ## Upgrade-Hinweise (3.0.0)
 

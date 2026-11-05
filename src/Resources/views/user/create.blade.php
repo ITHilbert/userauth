@@ -28,3 +28,9 @@
         </form>
     </x-kit::card-main>
 @stop
+
+@if (trim((string) config('userauth.passwort_generator_url')) !== '')
+    @push('userauth-scripts')
+        <script defer src="{{ asset('vendor/userauth/js/passwort-erzeugen.js') }}"></script>
+    @endpush
+@endif

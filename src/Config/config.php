@@ -21,6 +21,10 @@ return [
     // Route wenn Rechte fehlen: Weiterleitung zur Login-Seite ('login') oder zur Fehlerseite ('no-permission')
     'redirect_on_no_permission' => 'login',
 
+    // Adresse (absolut oder ab /) eines Passwort-Generators des Hosts für den Button „Passwort erzeugen“ in der
+    // Benutzerverwaltung; Antwort: JSON {"passwort": "…"}. Leer = kein Button.
+    'passwort_generator_url' => env('USERAUTH_PASSWORT_GENERATOR_URL'),
+
     // Theme-Auswahl der Auth-Views: 'tailwind' (Default) oder 'bootstrap' (Phoenix/Bootstrap).
     // Neue Projekte brauchen nichts zu setzen. Ältere Bootstrap-Projekte setzen
     // USERAUTH_THEME=bootstrap in der .env.
