@@ -41,6 +41,11 @@ return [
     // Leer oder nicht gesetzt: Der Seeder erzeugt ein Zufallspasswort und gibt es einmal auf der Konsole aus.
     'admin_passwort' => env('USERAUTH_ADMIN_PASSWORT'),
 
+    // E-Mail eines gelöschten Benutzers bei einer Neuanlage (Admin-Anlage, Social-Registrierung):
+    // 'sperren' (Default) = Neuanlage abgelehnt, 'reaktivieren' = gelöschtes Konto wiederhergestellt und bereinigt,
+    // 'neu' = gelöschtes Konto endgültig entfernt, danach normale Neuanlage. Jeder andere Wert wirkt wie 'sperren'.
+    'geloeschte_email' => env('USERAUTH_GELOESCHTE_EMAIL', 'sperren'),
+
     // Aktiviert das Audit Log
     'audit_log_enabled' => env('USERAUTH_AUDIT_LOG_ENABLED', false),
     // Aktiviert 2-Faktor-Authentifizierung
@@ -63,6 +68,16 @@ return [
         'allowed_domains' => [],
         // Gültigkeit des Bestätigungslinks für das Verknüpfen unbestätigter Konten
         'pending_link_ttl_minutes' => 60,
+    ],
+
+    // Selbstregistrierung per E-Mail und Passwort (Routen /register …; aus = Routen liefern 404)
+    'registration' => [
+        // Schaltet Registrierung, Bestätigungslink und „Link erneut anfordern“ ein/aus
+        'enabled' => env('USERAUTH_REGISTRATION', false),
+        // Rollen-Key (roles.role) für neue Konten; leer = keine Rolle. Nie 'dev' oder 'admin'.
+        'role' => env('USERAUTH_REGISTRATION_ROLE'),
+        // Gültigkeit des Bestätigungslinks in Minuten (leer = 60)
+        'verify_ttl_minutes' => 60,
     ],
 
     // Erweiterte Passwort-Sicherheitsrichtlinien

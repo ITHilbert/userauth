@@ -1,3 +1,4 @@
+@use('ITHilbert\UserAuth\Http\Formular\AlteEingabe')
 @extends('userauth::layouts.auth')
 
 @section('title', 'Login')
@@ -23,6 +24,14 @@
             </div>
         @endif
 
+        @if (session('userauth_bestaetigung_offen') && ($registrierungAktiv ?? false))
+            <div class="mb-6 text-center">
+                <a href="{{ route('register.bestaetigung') }}" class="text-sm text-indigo-600 hover:text-indigo-800 hover:underline transition-colors">
+                    @lang('userauth::registrierung.link_erneut_anfordern')
+                </a>
+            </div>
+        @endif
+
         <form method="POST" action="{{ route('login') }}" novalidate>
             @csrf
 
@@ -35,7 +44,7 @@
                     type="email"
                     id="email"
                     name="email"
-                    value="{{ old('email') }}"
+                    value="{{ AlteEingabe::text('email') }}"
                     required
                     autocomplete="email"
                     autofocus
@@ -92,6 +101,13 @@
             </button>
         </form>
 
+        @if ($registrierungAktiv ?? false)
+            <div class="mt-6 text-center text-sm text-gray-500">
+                @lang('userauth::registrierung.noch_kein_konto')
+                <a href="{{ route('register') }}" class="text-sm text-indigo-600 hover:text-indigo-800 hover:underline transition-colors">@lang('userauth::registrierung.registrieren')</a>
+            </div>
+        @endif
+
         @if (in_array('google', $availableSocialProviders ?? [], true))
             <div class="relative my-6">
                 <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-200"></div></div>
@@ -104,6 +120,9 @@
                 @include('userauth::partials.google-logo')
                 @lang('userauth::social.login_with', ['provider' => 'Google'])
             </a>
+            @if ($geloeschteEmailHinweis ?? false)
+                <p class="mt-3 text-xs text-gray-500">@lang('userauth::social.hinweis_geloeschtes_konto')</p>
+            @endif
         @endif
     </div>
 @endsection

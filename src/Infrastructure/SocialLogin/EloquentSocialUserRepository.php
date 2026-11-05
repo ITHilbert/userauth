@@ -12,6 +12,7 @@ use ITHilbert\UserAuth\Application\SocialLogin\Contracts\SocialUserRepository;
 use ITHilbert\UserAuth\Application\SocialLogin\LocalUser;
 use ITHilbert\UserAuth\Entities\Role;
 use ITHilbert\UserAuth\Infrastructure\Auth\UserModel;
+use ITHilbert\UserAuth\Infrastructure\Registrierung\EloquentRegistrierungsKonten;
 
 final class EloquentSocialUserRepository implements SocialUserRepository
 {
@@ -31,18 +32,9 @@ final class EloquentSocialUserRepository implements SocialUserRepository
         return $user === null ? null : $this->toLocalUser($user);
     }
 
-    public function existsDeletedWithEmail(string $email): bool
-    {
-        return $this->query()
-            ->withTrashed()
-            ->whereRaw('LOWER(email) = ?', [mb_strtolower($email)])
-            ->exists();
-    }
-
     public function createVerified(?string $name, string $email, string $roleKey): LocalUser
     {
-        $roleId = Role::query()->where('role', $roleKey)->value('id')
-            ?? throw new SocialLoginMisconfiguredException("Role '{$roleKey}' (userauth.social.default_role) does not exist.");
+        $roleId = $this->roleId($roleKey);
 
         $user = $this->userModel->newInstance();
         $user->forceFill([
@@ -56,9 +48,50 @@ final class EloquentSocialUserRepository implements SocialUserRepository
         return $this->toLocalUser($user);
     }
 
+    public function adoptReactivated(int|string $id, string $roleKey): LocalUser
+    {
+        $roleId = $this->roleId($roleKey);
+
+        $user = $this->query()->whereKey($id)->firstOrFail();
+        $user->forceFill([
+            'role_id' => $roleId,
+            'email_verified_at' => now(),
+        ])->save();
+
+        return $this->toLocalUser($user);
+    }
+
+    /**
+     * Konto mit „Bestätigung offen“ aus der Selbstregistrierung: Das dort gesetzte Passwort und Angemeldet-bleiben-
+     * Tokens verfallen im selben Schritt (AK17 – sonst übernimmt, wer die Adresse vorab registriert hat, das Konto
+     * des echten Inhabers). Andere Konten behalten ihr Passwort.
+     */
     public function markEmailVerified(int|string $id): void
     {
-        $this->query()->whereKey($id)->whereNull('email_verified_at')->update(['email_verified_at' => now()]);
+        $offen = $this->query()->whereKey($id)->whereNull('email_verified_at')->lockForUpdate()->first();
+
+        if ($offen === null) {
+            return;
+        }
+
+        $aenderungen = ['email_verified_at' => now()];
+
+        // getAttributes(): Fehlt die Spalte (Migration noch nicht gelaufen), gilt das Konto als nicht registriert
+        if ((bool) ($offen->getAttributes()[EloquentRegistrierungsKonten::SPALTE] ?? false)) {
+            $aenderungen['password'] = Hash::make(Str::random(64));
+            $aenderungen['remember_token'] = Str::random(60);
+        }
+
+        $this->query()->whereKey($id)->whereNull('email_verified_at')->update($aenderungen);
+    }
+
+    /**
+     * @throws SocialLoginMisconfiguredException
+     */
+    private function roleId(string $roleKey): mixed
+    {
+        return Role::query()->where('role', $roleKey)->value('id')
+            ?? throw new SocialLoginMisconfiguredException("Role '{$roleKey}' (userauth.social.default_role) does not exist.");
     }
 
     /**

@@ -13,10 +13,14 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use ITHilbert\LaravelKit\Helpers\Breadcrumb;
 use ITHilbert\LaravelKit\Helpers\HButton;
+use ITHilbert\UserAuth\Application\Benutzer\Contracts\Benutzerbilder;
+use ITHilbert\UserAuth\Application\Benutzer\GeloeschteEmailAufloesen;
+use ITHilbert\UserAuth\Application\Benutzer\GeloeschteEmailAufloesung;
 use ITHilbert\UserAuth\Application\Passwort\PasswortSetzen;
+use ITHilbert\UserAuth\Domain\Benutzer\Exceptions\EmailGehoertGeloeschtemBenutzerException;
 use ITHilbert\UserAuth\Entities\Role;
 use ITHilbert\UserAuth\Http\PasswortAblehnung;
 use ITHilbert\UserAuth\Http\Requests\NutzerSpeichernRequest;
@@ -25,7 +29,10 @@ use Yajra\DataTables\Facades\DataTables;
 
 final class UserController extends Controller
 {
-    public function __construct(private readonly UserModel $userModel) {}
+    public function __construct(
+        private readonly UserModel $userModel,
+        private readonly Benutzerbilder $bilder,
+    ) {}
 
     /**
      * Display a listing of the resource.
@@ -79,44 +86,67 @@ final class UserController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Legt einen Benutzer an. Gehört die E-Mail einem gelöschten Benutzer, entscheidet die Option
+     * `userauth.geloeschte_email` (sperren | reaktivieren | neu) – Freimachen, Felder und Passwort in einer Transaktion.
      *
      * @return Response
      */
-    public function store(NutzerSpeichernRequest $request, PasswortSetzen $passwortSetzen)
+    public function store(NutzerSpeichernRequest $request, PasswortSetzen $passwortSetzen, GeloeschteEmailAufloesen $geloeschteEmail)
     {
         $daten = $request->validated();
-
-        $user = $this->userModel->newInstance();
-        $user->name = $this->getName($daten);
-        $user->email = $daten['email'];
-        $user->role_id = $daten['role_id'];
-        // Platzhalter bis PasswortSetzen den Hash speichert (kein gültiger Hash).
-        $user->password = '';
-        $this->profilfelderSetzen($user, $daten);
-
         $bildNeu = $request->hasFile('image') ? $this->bildAblegen($request->file('image')) : null;
-        if ($bildNeu !== null) {
-            $user->image = $bildNeu;
-        }
 
-        $gespeichert = false;
+        $aufloesung = null;
         try {
-            PasswortAblehnung::alsValidierungsfehler(function () use ($user, $passwortSetzen, $daten): void {
-                DB::transaction(function () use ($user, $passwortSetzen, $daten): void {
+            $aufloesung = PasswortAblehnung::alsValidierungsfehler(fn (): GeloeschteEmailAufloesung => $geloeschteEmail->handle(
+                (string) $daten['email'],
+                function (GeloeschteEmailAufloesung $aufloesung) use ($daten, $bildNeu, $passwortSetzen): GeloeschteEmailAufloesung {
+                    $user = $this->anzulegenderNutzer($aufloesung);
+                    $user->name = $this->getName($daten);
+                    $user->email = $daten['email'];
+                    $user->role_id = $daten['role_id'];
+                    $this->profilfelderSetzen($user, $daten, true);
+                    // Wie bei einer Neuanlage: ohne hochgeladenes Bild keins, auch nicht das des gelöschten Benutzers
+                    // (dessen Datei löscht der UseCase nach dem Commit, Randfall 4).
+                    $user->image = $bildNeu;
+
                     $user->save();
                     $passwortSetzen->handle($user, (string) $daten['password']);
-                });
-            });
-            $gespeichert = true;
+
+                    return $aufloesung;
+                },
+            ));
+        } catch (EmailGehoertGeloeschtemBenutzerException) {
+            throw ValidationException::withMessages(['email' => trans('userauth::user.email_geloeschter_benutzer')]);
         } finally {
-            $this->bildAbschliessen($gespeichert, $bildNeu, null);
+            $this->bildAbschliessen($aufloesung !== null, $bildNeu, null);
         }
 
         return redirect()->route('user')->with([
-            'message' => Lang::get('userauth::user.MsgAddSuccess'),
+            'message' => Lang::get(match (true) {
+                $aufloesung->istReaktiviert() => 'userauth::user.MsgReaktiviert',
+                $aufloesung->entfernt => 'userauth::user.MsgEntferntUndAngelegt',
+                default => 'userauth::user.MsgAddSuccess',
+            }),
             'alert-type' => 'success',
         ]);
+    }
+
+    /**
+     * Die wiederhergestellte Zeile (ihr Passwort-Hash bleibt bis PasswortSetzen, damit die Wiederverwendungs-Regel
+     * ihn prüft) oder ein neues Model.
+     */
+    private function anzulegenderNutzer(GeloeschteEmailAufloesung $aufloesung): Model
+    {
+        if ($aufloesung->reaktivierteId !== null) {
+            return $this->userModel->query()->findOrFail($aufloesung->reaktivierteId);
+        }
+
+        $user = $this->userModel->newInstance();
+        // Platzhalter bis PasswortSetzen den Hash speichert (kein gültiger Hash).
+        $user->password = '';
+
+        return $user;
     }
 
     /**
@@ -148,18 +178,19 @@ final class UserController extends Controller
     /**
      * @param  array<string, mixed>  $daten
      */
-    private function profilfelderSetzen(Model $user, array $daten): void
+    private function profilfelderSetzen(Model $user, array $daten, bool $neuanlage): void
     {
         foreach (['firstname', 'lastname', 'smallname', 'title', 'private_email', 'street', 'postcode', 'city', 'country', 'ustid', 'phone', 'phone2', 'mobile', 'fax', 'skype', 'comment'] as $feld) {
             $user->{$feld} = $daten[$feld] ?? '';
         }
         // Spalten decimal NOT NULL bzw. date nullable: leer darf nicht als '' geschrieben werden.
-        // Fehlt das Feld im Request, bleibt der Wert beim Bearbeiten unverändert (beim Anlegen gilt der Vorgabewert).
-        if (array_key_exists('hourly_rate', $daten) || ! $user->exists) {
+        // Fehlt das Feld im Request, bleibt der Wert beim Bearbeiten unverändert (beim Anlegen – auch beim
+        // Wiederherstellen eines gelöschten Benutzers – gilt der Vorgabewert).
+        if (array_key_exists('hourly_rate', $daten) || $neuanlage) {
             $stundensatz = $daten['hourly_rate'] ?? null;
             $user->hourly_rate = ($stundensatz === null || $stundensatz === '') ? 0 : $stundensatz;
         }
-        if (array_key_exists('birthday', $daten) || ! $user->exists) {
+        if (array_key_exists('birthday', $daten) || $neuanlage) {
             $geburtstag = $daten['birthday'] ?? null;
             $user->birthday = ($geburtstag === null || $geburtstag === '') ? null : $geburtstag;
         }
@@ -203,7 +234,7 @@ final class UserController extends Controller
         $user->name = $this->getName($daten);
         $user->email = $daten['email'];
         $user->role_id = $daten['role_id'];
-        $this->profilfelderSetzen($user, $daten);
+        $this->profilfelderSetzen($user, $daten, false);
 
         // Image
         $bildAlt = $user->image;
@@ -305,17 +336,12 @@ final class UserController extends Controller
      */
     private function bildAblegen(?UploadedFile $file): ?string
     {
-        if ($file === null) {
-            return null;
-        }
-
-        $pfad = Storage::disk('public')->putFile('users', $file);
-
-        return $pfad === false ? null : 'storage/'.$pfad;
+        return $file === null ? null : $this->bilder->ablegen($file);
     }
 
     /**
-     * Nach dem Speichern: bei Erfolg das alte Bild löschen, sonst das neue wieder entfernen.
+     * Nach dem Speichern: bei Erfolg das alte Bild löschen, sonst das neue wieder entfernen – jeweils nur, wenn
+     * keine Zeile mehr darauf verweist (gleiche Regel wie für das Bild eines gelöschten Benutzers, Randfall 4).
      */
     private function bildAbschliessen(bool $gespeichert, ?string $bildNeu, ?string $bildAlt): void
     {
@@ -323,28 +349,7 @@ final class UserController extends Controller
             return;
         }
 
-        if (! $gespeichert) {
-            Storage::disk('public')->delete($this->diskPfad($bildNeu));
-
-            return;
-        }
-
-        if ($bildAlt === null || $bildAlt === '') {
-            return;
-        }
-
-        $pfad = $this->diskPfad($bildAlt);
-        if (! str_contains($pfad, '..') && Storage::disk('public')->exists($pfad)) {
-            Storage::disk('public')->delete($pfad);
-        }
-    }
-
-    /**
-     * Wert der Spalte `image` als Pfad auf der Disk `public` (Altdaten ohne Präfix `storage/` gelten relativ zur Disk).
-     */
-    private function diskPfad(string $bild): string
-    {
-        return str_starts_with($bild, 'storage/') ? substr($bild, strlen('storage/')) : $bild;
+        $this->bilder->entfernenWennUnbenutzt($gespeichert ? $bildAlt : $bildNeu);
     }
 
     /**

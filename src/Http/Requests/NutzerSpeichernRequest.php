@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace ITHilbert\UserAuth\Http\Requests;
 
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use ITHilbert\UserAuth\Application\Benutzer\GeloeschteEmailAufloesen;
 
 /**
  * Validierung für Anlegen (ohne Route-Parameter `id`) und Bearbeiten eines Nutzers.
@@ -36,7 +38,10 @@ final class NutzerSpeichernRequest extends FormRequest
 
         $email = ['required', 'email'];
         if ($anlegen) {
-            $email[] = 'unique:users';
+            // Gelöschte Benutzer regelt die Option `userauth.geloeschte_email`; bail: nur eine Meldung je Fall.
+            array_unshift($email, 'bail');
+            $email[] = Rule::unique('users', 'email')->whereNull('deleted_at');
+            $email[] = $this->nichtGesperrtDurchGeloeschtenBenutzer();
         } else {
             $email[] = Rule::unique('users', 'email')->ignore($nutzerId);
         }
@@ -65,5 +70,21 @@ final class NutzerSpeichernRequest extends FormRequest
         $regeln['birthday'] = ['nullable', 'date_format:Y-m-d'];
 
         return $regeln;
+    }
+
+    /**
+     * Option `sperren`: Die E-Mail eines gelöschten Benutzers bleibt belegt (Groß-/Kleinschreibung egal).
+     *
+     * @return Closure(string, mixed, Closure(string): mixed): void
+     */
+    private function nichtGesperrtDurchGeloeschtenBenutzer(): Closure
+    {
+        $geloeschteEmail = $this->container->make(GeloeschteEmailAufloesen::class);
+
+        return static function (string $attribut, mixed $wert, Closure $fail) use ($geloeschteEmail): void {
+            if (is_string($wert) && $geloeschteEmail->istGesperrt($wert)) {
+                $fail(trans('userauth::user.email_geloeschter_benutzer'));
+            }
+        };
     }
 }

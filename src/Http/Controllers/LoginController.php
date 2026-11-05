@@ -12,6 +12,7 @@ use Illuminate\Validation\ValidationException;
 use ITHilbert\UserAuth\Application\Auth\Abmelden;
 use ITHilbert\UserAuth\Application\Auth\AuthenticationNextStep;
 use ITHilbert\UserAuth\Application\Auth\MitPasswortAnmelden;
+use ITHilbert\UserAuth\Domain\Registrierung\Exceptions\EmailNochNichtBestaetigtException;
 use ITHilbert\UserAuth\Traits\Auth\AuthenticatesUsers;
 
 /**
@@ -45,7 +46,16 @@ final class LoginController extends Controller
             $this->sendLockoutResponse($request); // wirft ValidationException (429)
         }
 
-        $schritt = $this->mitPasswortAnmelden->handle($this->credentials($request), $request->filled('remember'));
+        try {
+            $schritt = $this->mitPasswortAnmelden->handle($this->credentials($request), $request->filled('remember'));
+        } catch (EmailNochNichtBestaetigtException) {
+            $this->clearLoginAttempts($request);
+
+            return redirect()->route('login')
+                ->withInput($request->only('email'))
+                ->withErrors(['email' => __('userauth::registrierung.bestaetigung_offen')])
+                ->with('userauth_bestaetigung_offen', true);
+        }
 
         if ($schritt === null) {
             $this->incrementLoginAttempts($request);
