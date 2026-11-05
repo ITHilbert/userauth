@@ -1,1 +1,1 @@
-@include('userauth::password.forgotten.' . config('userauth.theme', 'bootstrap'))
+@include('userauth::password.forgotten.' . $userauthTheme)

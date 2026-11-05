@@ -1,1 +1,1 @@
-@include('userauth::password.editwithtoken.' . config('userauth.theme', 'bootstrap'))
+@include('userauth::password.editwithtoken.' . $userauthTheme)
