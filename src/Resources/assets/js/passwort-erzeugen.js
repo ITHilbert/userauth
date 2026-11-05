@@ -52,7 +52,13 @@
                 return undefined;
             }
             return navigator.clipboard.writeText(feld.value).then(function () {
-                meldung(kopieren.getAttribute('data-kopiert'));
+                var kopiert = kopieren.getAttribute('data-kopiert');
+                meldung(kopiert);
+                setTimeout(function () {
+                    if (hinweis && hinweis.textContent === String(kopiert)) {
+                        meldung('');
+                    }
+                }, 2000);
             }).catch(function () {
                 meldung('');
             });
