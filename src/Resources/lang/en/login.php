@@ -23,4 +23,10 @@ return [
     'password' => 'Password',
     'remember' => 'remember me',
     'pwforgotten' => 'forgotten password',
+
+    'seite_titel' => 'Sign-in',
+    'seite_text' => 'Access your account securely and easily.',
+    'merkmal_schnell' => 'Fast',
+    'merkmal_einfach' => 'Simple',
+    'merkmal_responsiv' => 'Responsive',
 ];

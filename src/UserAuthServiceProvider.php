@@ -38,6 +38,9 @@ use ITHilbert\UserAuth\Application\Contracts\MailLinks;
 use ITHilbert\UserAuth\Application\Passwort\Contracts\PasswortHistorie;
 use ITHilbert\UserAuth\Application\Passwort\Contracts\PasswortKonten;
 use ITHilbert\UserAuth\Application\Passwort\Contracts\ResetLinkVersand;
+use ITHilbert\UserAuth\Application\Registrierung\Contracts\BestaetigungsLinkVersand;
+use ITHilbert\UserAuth\Application\Registrierung\Contracts\RegistrierungsKonten;
+use ITHilbert\UserAuth\Application\Registrierung\Contracts\RegistrierungsRollen;
 use ITHilbert\UserAuth\Application\SocialLogin\Contracts\PendingSocialLinkPruner;
 use ITHilbert\UserAuth\Application\SocialLogin\Contracts\PendingSocialLinkRepository;
 use ITHilbert\UserAuth\Application\SocialLogin\Contracts\SocialAccountRepository;
@@ -47,6 +50,8 @@ use ITHilbert\UserAuth\Application\Zugriff\Contracts\RollenRepository;
 use ITHilbert\UserAuth\Application\Zugriff\Zugriffspruefung;
 use ITHilbert\UserAuth\Domain\Benutzer\Events\BenutzerEndgueltigGeloescht;
 use ITHilbert\UserAuth\Domain\Benutzer\Events\BenutzerReaktiviert;
+use ITHilbert\UserAuth\Domain\Registrierung\Events\EmailBestaetigt;
+use ITHilbert\UserAuth\Domain\Registrierung\Events\KontoRegistriert;
 use ITHilbert\UserAuth\Domain\SocialLogin\Events\SocialAccountLinked;
 use ITHilbert\UserAuth\Domain\SocialLogin\Events\SocialAccountUnlinked;
 use ITHilbert\UserAuth\Http\Middleware\hasPermission;
@@ -58,6 +63,8 @@ use ITHilbert\UserAuth\Http\Middleware\isDev;
 use ITHilbert\UserAuth\Http\MiddlewarePrioritaet;
 use ITHilbert\UserAuth\Http\ViewComposers\AvailableSocialProvidersComposer;
 use ITHilbert\UserAuth\Http\ViewComposers\GeloeschteEmailHinweisComposer;
+use ITHilbert\UserAuth\Http\ViewComposers\RegistrierungComposer;
+use ITHilbert\UserAuth\Http\ViewComposers\ThemeComposer;
 use ITHilbert\UserAuth\Infrastructure\Auth\GuardAnmeldedaten;
 use ITHilbert\UserAuth\Infrastructure\Auth\GuardSitzungsanmeldung;
 use ITHilbert\UserAuth\Infrastructure\Auth\HmacZweiFaktorCodeHasher;
@@ -69,6 +76,9 @@ use ITHilbert\UserAuth\Infrastructure\Mail\AppUrlMailLinks;
 use ITHilbert\UserAuth\Infrastructure\Passwort\DatenbankPasswortHistorie;
 use ITHilbert\UserAuth\Infrastructure\Passwort\EloquentPasswortKonten;
 use ITHilbert\UserAuth\Infrastructure\Passwort\NachAntwortResetLinkVersand;
+use ITHilbert\UserAuth\Infrastructure\Registrierung\EloquentRegistrierungsKonten;
+use ITHilbert\UserAuth\Infrastructure\Registrierung\EloquentRegistrierungsRollen;
+use ITHilbert\UserAuth\Infrastructure\Registrierung\NachAntwortBestaetigungsLinkVersand;
 use ITHilbert\UserAuth\Infrastructure\SocialLogin\EloquentPendingSocialLinkRepository;
 use ITHilbert\UserAuth\Infrastructure\SocialLogin\EloquentSocialAccountRepository;
 use ITHilbert\UserAuth\Infrastructure\SocialLogin\EloquentSocialUserRepository;
@@ -113,7 +123,7 @@ class UserAuthServiceProvider extends ServiceProvider
 
         // Register Event Listeners
         Event::listen(
-            [Login::class, Failed::class, Logout::class, ZweiFaktorCodeAbgelehnt::class],
+            [Login::class, Failed::class, Logout::class, ZweiFaktorCodeAbgelehnt::class, KontoRegistriert::class, EmailBestaetigt::class],
             LogAuthenticationAttempt::class
         );
         Event::listen(Login::class, SitzungsgebundeneAnmeldungMarkieren::class);
@@ -127,6 +137,17 @@ class UserAuthServiceProvider extends ServiceProvider
             AvailableSocialProvidersComposer::class
         );
         View::composer('userauth::login.*', GeloeschteEmailHinweisComposer::class);
+        View::composer('userauth::login.*', RegistrierungComposer::class);
+        View::composer([
+            'userauth::login',
+            'userauth::password.editwithtoken',
+            'userauth::password.forgotten',
+            'userauth::password.tokensend',
+            'userauth::registrierung.formular',
+            'userauth::registrierung.bestaetigung',
+            'userauth::social.confirm',
+            'userauth::social.accounts',
+        ], ThemeComposer::class);
 
         $this->registerGates();
     }
@@ -153,12 +174,13 @@ class UserAuthServiceProvider extends ServiceProvider
     }
 
     /**
-     * Drosselung „Passwort vergessen“: Anfordern und Zurücksetzen je IP 5 Anfragen pro Minute,
+     * Drosselung „Passwort vergessen“ (Anfordern, Zurücksetzen) und Registrierung (Registrieren, Link erneut
+     * anfordern): je IP 5 Anfragen pro Minute,
      * getrennt gezählt (benannte Limiter, sonst teilen sich alle `throttle:x,y`-Routen einen Zähler).
      */
     protected function registerRateLimiters(): void
     {
-        foreach (['userauth-passwort-anfordern', 'userauth-passwort-zuruecksetzen'] as $name) {
+        foreach (['userauth-passwort-anfordern', 'userauth-passwort-zuruecksetzen', 'userauth-registrieren', 'userauth-registrierung-link'] as $name) {
             RateLimiter::for($name, static fn (Request $request): Limit => Limit::perMinute(5)->by((string) $request->ip()));
         }
     }
@@ -241,7 +263,6 @@ class UserAuthServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        /*  $this->app->register(RouteServiceProvider::class); */
         $this->registerBladeExtensions();
         $this->registerSocialLogin();
         $this->registerZugriffspruefung();
@@ -257,6 +278,17 @@ class UserAuthServiceProvider extends ServiceProvider
     {
         $this->app->bind(GeloeschteBenutzer::class, EloquentGeloeschteBenutzer::class);
         $this->app->bind(Benutzerbilder::class, PublicDiskBenutzerbilder::class);
+        $this->registerRegistrierung();
+    }
+
+    /**
+     * Port-Bindings der Selbstregistrierung.
+     */
+    protected function registerRegistrierung(): void
+    {
+        $this->app->bind(RegistrierungsKonten::class, EloquentRegistrierungsKonten::class);
+        $this->app->bind(RegistrierungsRollen::class, EloquentRegistrierungsRollen::class);
+        $this->app->bind(BestaetigungsLinkVersand::class, NachAntwortBestaetigungsLinkVersand::class);
     }
 
     /**

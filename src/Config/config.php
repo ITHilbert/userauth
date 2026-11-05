@@ -70,6 +70,16 @@ return [
         'pending_link_ttl_minutes' => 60,
     ],
 
+    // Selbstregistrierung per E-Mail und Passwort (Routen /register …; aus = Routen liefern 404)
+    'registration' => [
+        // Schaltet Registrierung, Bestätigungslink und „Link erneut anfordern“ ein/aus
+        'enabled' => env('USERAUTH_REGISTRATION', false),
+        // Rollen-Key (roles.role) für neue Konten; leer = keine Rolle. Nie 'dev' oder 'admin'.
+        'role' => env('USERAUTH_REGISTRATION_ROLE'),
+        // Gültigkeit des Bestätigungslinks in Minuten (leer = 60)
+        'verify_ttl_minutes' => 60,
+    ],
+
     // Erweiterte Passwort-Sicherheitsrichtlinien
     'password_policy' => [
         'enabled' => env('USERAUTH_PASSWORD_POLICY_ENABLED', false), // Gibt an, ob Ablauf und Historie forciert werden

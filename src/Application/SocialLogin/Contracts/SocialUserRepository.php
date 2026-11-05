@@ -23,5 +23,9 @@ interface SocialUserRepository
      */
     public function adoptReactivated(int|string $id, string $roleKey): LocalUser;
 
+    /**
+     * Setzt die E-Mail als bestätigt, falls noch offen. Ein Konto mit offener Bestätigung aus der
+     * Selbstregistrierung verliert dabei sein Passwort und seine Angemeldet-bleiben-Tokens (Pre-Account-Takeover).
+     */
     public function markEmailVerified(int|string $id): void;
 }

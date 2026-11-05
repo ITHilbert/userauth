@@ -9,6 +9,8 @@ use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Http\Request;
 use ITHilbert\UserAuth\Application\Auth\Events\ZweiFaktorCodeAbgelehnt;
+use ITHilbert\UserAuth\Domain\Registrierung\Events\EmailBestaetigt;
+use ITHilbert\UserAuth\Domain\Registrierung\Events\KontoRegistriert;
 use ITHilbert\UserAuth\Entities\UserAuthAuditLog;
 
 final class LogAuthenticationAttempt
@@ -62,6 +64,14 @@ final class LogAuthenticationAttempt
             $data['event'] = 'two_factor_failed';
             $data['user_id'] = $event->user->id;
             $data['email'] = $event->user->email;
+        } elseif ($event instanceof KontoRegistriert) {
+            $data['event'] = 'registered';
+            $data['user_id'] = $event->nutzerId;
+            $data['email'] = $event->email;
+        } elseif ($event instanceof EmailBestaetigt) {
+            $data['event'] = 'email_verified';
+            $data['user_id'] = $event->nutzerId;
+            $data['email'] = $event->email;
         } elseif ($event instanceof Logout) {
             $data['event'] = 'logout';
             $data['user_id'] = $event->user ? $event->user->id : null;
