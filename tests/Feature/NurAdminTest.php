@@ -53,6 +53,9 @@ final class NurAdminTest extends TestCase
         '2026_10_23_200000_clear_remember_tokens_on_users_table',
     ];
 
+    /** Die einzige neue Paket-Migration für AK5 (spätere Paket-Migrationen zählen nicht als „neu“). */
+    private const MIGRATION_AK5 = '2026_11_05_000000_move_dev_users_to_admin_role';
+
     /** Prüfungen je Route/Gate/Blade; ein Nutzer besteht sie oder nicht. */
     private const PRUEFUNGEN = ['permission', 'and', 'or', 'role', 'roledev', 'roleadmin', 'admin', 'dev', 'gate', 'can'];
 
@@ -694,7 +697,7 @@ final class NurAdminTest extends TestCase
      */
     private function standVorDemUpdate(): void
     {
-        $neu = DB::table('migrations')->whereNotIn('migration', self::BEKANNTE_MIGRATIONEN)->pluck('migration');
+        $neu = DB::table('migrations')->where('migration', self::MIGRATION_AK5)->pluck('migration');
         $this->assertCount(1, $neu, 'Es muss genau eine neue Paket-Migration für AK5 geben, gefunden: '.$neu->implode(', '));
         DB::table('migrations')->whereIn('migration', $neu->all())->delete();
 
@@ -824,7 +827,7 @@ final class NurAdminTest extends TestCase
 
         $this->paketMigrationenAusfuehren();
 
-        $this->assertSame(1, DB::table('migrations')->whereNotIn('migration', self::BEKANNTE_MIGRATIONEN)->count(), 'Gegenprobe: die Migration ist gelaufen');
+        $this->assertSame(1, DB::table('migrations')->where('migration', self::MIGRATION_AK5)->count(), 'Gegenprobe: die Migration ist gelaufen');
         $this->assertSame($nutzer, $this->nutzerRollen());
         $this->assertSame($teams, $this->teamRollen());
         $this->assertSame($rollen, DB::table('roles')->orderBy('id')->get()->map(fn ($z): array => (array) $z)->all());
@@ -842,7 +845,7 @@ final class NurAdminTest extends TestCase
 
         $this->paketMigrationenAusfuehren();
 
-        $this->assertSame(1, DB::table('migrations')->whereNotIn('migration', self::BEKANNTE_MIGRATIONEN)->count(), 'Gegenprobe: die Migration ist gelaufen');
+        $this->assertSame(1, DB::table('migrations')->where('migration', self::MIGRATION_AK5)->count(), 'Gegenprobe: die Migration ist gelaufen');
         $this->assertSame($nutzer, $this->nutzerRollen());
         $this->assertSame($teams, $this->teamRollen());
     }
@@ -882,7 +885,7 @@ final class NurAdminTest extends TestCase
 
         $this->paketMigrationenZurueckrollen();
 
-        $this->assertSame(0, DB::table('migrations')->whereNotIn('migration', self::BEKANNTE_MIGRATIONEN)->count(), 'Aufbau: die neue Migration wurde zurückgerollt');
+        $this->assertSame(0, DB::table('migrations')->where('migration', self::MIGRATION_AK5)->count(), 'Aufbau: die neue Migration wurde zurückgerollt');
         $this->assertSame($nutzer, $this->nutzerRollen());
         $this->assertSame($teams, $this->teamRollen());
         $this->assertSame($rollen, DB::table('roles')->orderBy('id')->get()->map(fn ($z): array => (array) $z)->all());
@@ -917,7 +920,7 @@ final class NurAdminTest extends TestCase
 
         $this->paketMigrationenAusfuehren();
 
-        $this->assertSame(1, DB::table('migrations')->whereNotIn('migration', self::BEKANNTE_MIGRATIONEN)->count(), 'Gegenprobe: die neue Migration ist gelaufen');
+        $this->assertSame(1, DB::table('migrations')->where('migration', self::MIGRATION_AK5)->count(), 'Gegenprobe: die neue Migration ist gelaufen');
         $this->assertSame(1, (int) DB::table('users')->where('id', 1)->value('role_id'));
     }
 
