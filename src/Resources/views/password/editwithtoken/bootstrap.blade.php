@@ -51,7 +51,7 @@
                                 @endif
 
                                 <input-hidden name="pwtoken" value="{{ $token }}"></input-hidden>
-                                <input-hidden name="email" value="{{ $email }}"></input-hidden>
+                                <input-hidden name="{{ $kennungFeld ?? 'email' }}" value="{{ $email }}"></input-hidden>
 
                                 <div class="form-group row">
                                     <label for="password" class="col-md-4 col-form-label text-md-right">@lang('userauth::password.password-new')</label>

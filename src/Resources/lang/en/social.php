@@ -11,6 +11,7 @@ return [
         'email_not_verified' => 'The email address of your account at the provider is not verified. Sign-in is therefore not possible.',
         'domain_not_allowed' => 'The email domain of your account is not allowed to sign in.',
         'registration_disabled' => 'No account exists for this email address. Registration via this provider is not possible.',
+        'email_not_unique' => 'Sign-in with this provider is not possible because the email address is not unique. Please sign in with your username.',
         'account_disabled' => 'This account is disabled or deleted.',
         'provider_already_connected' => 'A different account of this provider is already linked to this user.',
         'social_account_taken' => 'This provider account is already linked to another user.',

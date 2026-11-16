@@ -50,6 +50,13 @@ return [
     // 'neu' = gelöschtes Konto endgültig entfernt, danach normale Neuanlage. Jeder andere Wert wirkt wie 'sperren'.
     'geloeschte_email' => env('USERAUTH_GELOESCHTE_EMAIL', 'sperren'),
 
+    // Womit sich Benutzer anmelden (Anmeldeseite, „Passwort vergessen“): 'email' (Default) = E-Mail-Adresse,
+    // 'benutzername' = nur Benutzername (Spalte users.benutzername, mehrere Konten dürfen eine E-Mail teilen),
+    // 'beides' = Benutzername oder – bei genau einem Konto – E-Mail. Groß-/Kleinschreibung und Randleerzeichen
+    // zählen nicht, jeder andere Wert wirkt wie 'email'. 'benutzername'/'beides' brauchen die Paket-Migration
+    // add_benutzername_to_users_table; gemeinsame E-Mails zusätzlich den Rückbau des Unique-Index (README).
+    'anmeldung_per' => env('USERAUTH_ANMELDUNG_PER', 'email'),
+
     // Aktiviert das Audit Log
     'audit_log_enabled' => env('USERAUTH_AUDIT_LOG_ENABLED', false),
     // Aktiviert 2-Faktor-Authentifizierung

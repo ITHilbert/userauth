@@ -252,6 +252,48 @@ USERAUTH_PASSWORT_GENERATOR_URL=/passwort/erzeugen
 
 Config-Schlüssel: `userauth.passwort_generator_url` (Standard leer = kein Button, kein Skript). Der Browser ruft die Adresse per `GET` (gleiche Herkunft, Cookies, `Accept: application/json`) auf und erwartet die Antwort `{"passwort": "…"}` (weitere Felder werden ignoriert). Das Passwort wird in beide Felder eingetragen und im Klartext gezeigt; gesendet wird es erst mit dem Formular, Validierung und Passwortrichtlinie gelten unverändert. Schlägt der Abruf fehl, erscheint „Passwort konnte nicht erzeugt werden.“ und die Felder bleiben unverändert. Beispiel: deploy bietet `/passwort/erzeugen`. Der Generator sollte die Passwortrichtlinie des Pakets erfüllen, sonst lehnt das Formular das Passwort ab.
 
+## Anmeldung per E-Mail, Benutzername oder beides
+
+Die Config `anmeldung_per` (env `USERAUTH_ANMELDUNG_PER`, Standard `email`) legt fest, womit sich Benutzer anmelden. Groß-/Kleinschreibung und Randleerzeichen zählen nicht; jeder andere Wert wirkt wie `email`.
+
+```dotenv
+# email (Standard) | benutzername | beides
+USERAUTH_ANMELDUNG_PER=benutzername
+```
+
+| Modus | Kennung auf Anmeldeseite und „Passwort vergessen“ | Formularfeld |
+|---|---|---|
+| `email` | E-Mail (Verhalten wie bisher) | `email` |
+| `benutzername` | Benutzername; mehrere Konten dürfen eine E-Mail teilen | `benutzername` |
+| `beides` | Benutzername, sonst E-Mail (nur bei genau einem Konto mit dieser E-Mail); ein Benutzername hat Vorrang | `login` |
+
+Der Benutzername wird ohne Beachtung der Groß-/Kleinschreibung verglichen. Scheitert die Anmeldung, zeigt die Seite immer denselben Text (unbekannt, falsches Passwort, mehrdeutige E-Mail).
+
+### Einrichtung
+
+1. `php artisan migrate`: Die Paket-Migration legt `users.benutzername` an (`string` 255, nullbar, eindeutig), wenn die Spalte fehlt. Eine vorhandene Spalte bleibt unberührt. Ohne die Spalte meldet das Paket in den Modi `benutzername`/`beides` beim ersten Zugriff einen Konfigurationsfehler mit Hinweis auf die Migration.
+2. Gemeinsame E-Mails: Das Paket lässt den Unique-Index `users_email_unique` auf `users.email` unangetastet (Bestandsprojekte). Sollen mehrere Konten eine E-Mail teilen, entfernt eine Projekt-Migration den Index und legt einen normalen Index an:
+
+```php
+Schema::table('users', function (Blueprint $table) {
+    $table->dropUnique('users_email_unique');
+    $table->index('email');
+});
+```
+
+3. Veröffentlichte Views (`login`, `password/*`) und die statischen Schema-JSON-Dateien (Login, „Passwort vergessen“, Reset) des Hosts müssen nach dem Update neu veröffentlicht werden. Sonst bleibt es beim Feld `email`.
+
+### Verhalten
+
+- **Audit-Log:** Ein fehlgeschlagener Versuch schreibt die eingegebene Kennung (Benutzername oder E-Mail) in die Spalte `email`. Das ist ein Kompromiss: Es gibt keine eigene Audit-Spalte für die Kennung. Erfolgreiche Anmeldungen verweisen auf das Konto.
+- **Drosselung:** je Kennung und IP; die Kennung wird für den Schlüssel kleingeschrieben und bereinigt.
+- **Zwei-Faktor:** Der Code geht an die E-Mail des Kontos.
+- **Reset-Link:** `password/editwithtoken/{token}/{kennung}`. Das Token gilt je Konto: Der Reset für Konto A ändert Konto B mit derselben E-Mail nicht. Ein Moduswechsel oder eine Änderung des Benutzernamens macht offene Links ungültig. Bei mehrdeutiger E-Mail oder unbekannter Kennung geht keine Mail raus; die Antwort bleibt gleich.
+- **Benutzerverwaltung:** In den Modi `benutzername`/`beides` ist `benutzername` ein Pflichtfeld (eindeutig, auch gegenüber gelöschten Konten; höchstens 255 Zeichen; kein `@`, kein `/`). Die E-Mail muss gültig sein, aber nicht eindeutig. Die Sperre/Auflösung `geloeschte_email` entfällt dort.
+- **Selbstregistrierung:** nur im Modus `email`. In den Modi `benutzername`/`beides` antworten alle Registrierungsrouten mit 404, auch bei `registration.enabled`.
+- **Social Login:** Gehören mehrere aktive Konten zur E-Mail des Anbieters (ohne verknüpftes Anbieter-Konto), verknüpft und legt das Paket nichts an. Der Benutzer sieht eine Meldung mit dem Hinweis auf den Benutzernamen. Ein per Social Login neu angelegtes Konto hat keinen Benutzernamen.
+- **Altbestand mit `@` im Benutzernamen:** Konten mit `@` im Benutzernamen bleiben anmeldbar; im Modus `beides` hat der Benutzername Vorrang. Ein Konto ohne Benutzername meldet sich im Modus `benutzername` nicht an und kann dort keinen Reset auslösen.
+
 ## Rollen und Rechte
 
 ### Privilegierte Rollen

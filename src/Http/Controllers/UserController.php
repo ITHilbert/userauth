@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Lang;
 use Illuminate\Validation\ValidationException;
 use ITHilbert\LaravelKit\Helpers\Breadcrumb;
 use ITHilbert\LaravelKit\Helpers\HButton;
+use ITHilbert\UserAuth\Application\Auth\AnmeldeEinstellungen;
 use ITHilbert\UserAuth\Application\Benutzer\Contracts\Benutzerbilder;
 use ITHilbert\UserAuth\Application\Benutzer\GeloeschteEmailAufloesen;
 use ITHilbert\UserAuth\Application\Benutzer\GeloeschteEmailAufloesung;
@@ -32,6 +33,7 @@ final class UserController extends Controller
     public function __construct(
         private readonly UserModel $userModel,
         private readonly Benutzerbilder $bilder,
+        private readonly AnmeldeEinstellungen $anmeldung,
     ) {}
 
     /**
@@ -96,26 +98,29 @@ final class UserController extends Controller
         $daten = $request->validated();
         $bildNeu = $request->hasFile('image') ? $this->bildAblegen($request->file('image')) : null;
 
+        $anlegen = function (GeloeschteEmailAufloesung $aufloesung) use ($daten, $bildNeu, $passwortSetzen): GeloeschteEmailAufloesung {
+            $user = $this->anzulegenderNutzer($aufloesung);
+            $user->name = $this->getName($daten);
+            $user->email = $daten['email'];
+            $user->role_id = $daten['role_id'];
+            $this->benutzernameSetzen($user, $daten);
+            $this->profilfelderSetzen($user, $daten, true);
+            // Wie bei einer Neuanlage: ohne hochgeladenes Bild keins, auch nicht das des gelöschten Benutzers
+            // (dessen Datei löscht der UseCase nach dem Commit, Randfall 4).
+            $user->image = $bildNeu;
+
+            $user->save();
+            $passwortSetzen->handle($user, (string) $daten['password']);
+
+            return $aufloesung;
+        };
+
         $aufloesung = null;
         try {
-            $aufloesung = PasswortAblehnung::alsValidierungsfehler(fn (): GeloeschteEmailAufloesung => $geloeschteEmail->handle(
-                (string) $daten['email'],
-                function (GeloeschteEmailAufloesung $aufloesung) use ($daten, $bildNeu, $passwortSetzen): GeloeschteEmailAufloesung {
-                    $user = $this->anzulegenderNutzer($aufloesung);
-                    $user->name = $this->getName($daten);
-                    $user->email = $daten['email'];
-                    $user->role_id = $daten['role_id'];
-                    $this->profilfelderSetzen($user, $daten, true);
-                    // Wie bei einer Neuanlage: ohne hochgeladenes Bild keins, auch nicht das des gelöschten Benutzers
-                    // (dessen Datei löscht der UseCase nach dem Commit, Randfall 4).
-                    $user->image = $bildNeu;
-
-                    $user->save();
-                    $passwortSetzen->handle($user, (string) $daten['password']);
-
-                    return $aufloesung;
-                },
-            ));
+            // Mit Benutzername dürfen Konten eine E-Mail teilen: keine Sperre/Auflösung für gelöschte E-Mails.
+            $aufloesung = PasswortAblehnung::alsValidierungsfehler(fn (): GeloeschteEmailAufloesung => $this->anmeldung->modus()->brauchtBenutzername()
+                ? $anlegen(GeloeschteEmailAufloesung::frei())
+                : $geloeschteEmail->handle((string) $daten['email'], $anlegen));
         } catch (EmailGehoertGeloeschtemBenutzerException) {
             throw ValidationException::withMessages(['email' => trans('userauth::user.email_geloeschter_benutzer')]);
         } finally {
@@ -130,6 +135,18 @@ final class UserController extends Controller
             }),
             'alert-type' => 'success',
         ]);
+    }
+
+    /**
+     * Nur in den Modi benutzername/beides; im Modus `email` bleibt die Spalte unberührt.
+     *
+     * @param  array<string, mixed>  $daten
+     */
+    private function benutzernameSetzen(Model $user, array $daten): void
+    {
+        if ($this->anmeldung->modus()->brauchtBenutzername()) {
+            $user->setAttribute('benutzername', $daten['benutzername']);
+        }
     }
 
     /**
@@ -234,6 +251,7 @@ final class UserController extends Controller
         $user->name = $this->getName($daten);
         $user->email = $daten['email'];
         $user->role_id = $daten['role_id'];
+        $this->benutzernameSetzen($user, $daten);
         $this->profilfelderSetzen($user, $daten, false);
 
         // Image

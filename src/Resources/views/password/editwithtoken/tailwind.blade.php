@@ -26,9 +26,9 @@
         <form method="POST" action="{{ route('password.updatewithtoken') }}" novalidate>
             @csrf
 
-            {{-- Hidden fields for token and email --}}
+            {{-- Hidden fields for token and Kennung (E-Mail bzw. Kennung des Kontos) --}}
             <input type="hidden" name="pwtoken" value="{{ $token }}">
-            <input type="hidden" name="email" value="{{ $email }}">
+            <input type="hidden" name="{{ $kennungFeld ?? 'email' }}" value="{{ $email }}">
 
             {{-- Neues Passwort --}}
             <div class="mb-5">

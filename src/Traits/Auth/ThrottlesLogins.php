@@ -80,13 +80,13 @@ trait ThrottlesLogins
     }
 
     /**
-     * Get the throttle key for the given request.
+     * Drosselschlüssel aus Kennung (kleingeschrieben, um Randleerzeichen bereinigt) und IP.
      *
      * @return string
      */
     protected function throttleKey(Request $request)
     {
-        return Str::lower($request->input($this->username())).'|'.$request->ip();
+        return Str::lower(trim((string) $request->input($this->username()))).'|'.$request->ip();
     }
 
     /**

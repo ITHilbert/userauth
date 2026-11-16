@@ -37,7 +37,7 @@
                 <div class="row justify-content-center">
                     <div class="col-md-8">
                         <card title="@lang('userauth::password.header_pw_forgotten')">
-                            {{ session('message', __('userauth::password.link_angefordert')) }}
+                            {{ session('message', __(($kennungFeld ?? 'email') === 'email' ? 'userauth::password.link_angefordert' : 'userauth::password.link_angefordert_kennung')) }}
                         </card>
                     </div>
                 </div>

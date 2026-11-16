@@ -16,7 +16,8 @@ use ITHilbert\UserAuth\Domain\Registrierung\Exceptions\EmailNochNichtBestaetigtE
 use ITHilbert\UserAuth\Traits\Auth\AuthenticatesUsers;
 
 /**
- * Anmeldung mit E-Mail und Passwort; Validierung und Drosselung (E-Mail + IP) aus dem Trait AuthenticatesUsers.
+ * Anmeldung mit Kennung (E-Mail, Benutzername oder beides, `userauth.anmeldung_per`) und Passwort;
+ * Validierung und Drosselung (Kennung + IP) aus dem Trait AuthenticatesUsers.
  */
 final class LoginController extends Controller
 {
@@ -52,8 +53,8 @@ final class LoginController extends Controller
             $this->clearLoginAttempts($request);
 
             return redirect()->route('login')
-                ->withInput($request->only('email'))
-                ->withErrors(['email' => __('userauth::registrierung.bestaetigung_offen')])
+                ->withInput($request->only($this->username()))
+                ->withErrors([$this->username() => __('userauth::registrierung.bestaetigung_offen')])
                 ->with('userauth_bestaetigung_offen', true);
         }
 

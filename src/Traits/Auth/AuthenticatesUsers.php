@@ -11,6 +11,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use ITHilbert\UserAuth\Application\Auth\AnmeldeEinstellungen;
+use ITHilbert\UserAuth\Domain\Auth\AnmeldeModus;
 
 trait AuthenticatesUsers
 {
@@ -131,19 +133,31 @@ trait AuthenticatesUsers
      */
     protected function sendFailedLoginResponse(Request $request)
     {
+        // Ein Text für jeden Fehlschlag (unbekannt, falsches Passwort, mehrdeutige E-Mail) – verrät nichts (AK6)
+        $text = match ($this->anmeldeModus()) {
+            AnmeldeModus::Email => trans('auth.failed'),
+            AnmeldeModus::Benutzername => trans('userauth::login.fehlgeschlagen_benutzername'),
+            AnmeldeModus::Beides => trans('userauth::login.fehlgeschlagen_beides'),
+        };
+
         throw ValidationException::withMessages([
-            $this->username() => [trans('auth.failed')],
+            $this->username() => [$text],
         ]);
     }
 
     /**
-     * Get the login username to be used by the controller.
+     * Formularfeld der Kennung je `userauth.anmeldung_per`: `email`, `benutzername` oder `login`.
      *
      * @return string
      */
     public function username()
     {
-        return 'email';
+        return $this->anmeldeModus()->feld();
+    }
+
+    protected function anmeldeModus(): AnmeldeModus
+    {
+        return app(AnmeldeEinstellungen::class)->modus();
     }
 
     /**

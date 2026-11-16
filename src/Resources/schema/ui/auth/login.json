@@ -41,5 +41,24 @@
         "label": "Login"
       }
     ]
+  },
+  "anmeldungPer": {
+    "config": "userauth.anmeldung_per",
+    "beschreibung": "Feld der Kennung je Modus; ersetzt das Feld email in dataSchema und uiSchema. Standard: email.",
+    "email": {
+      "field": "email",
+      "dataSchema": { "type": "email", "required": true },
+      "ui": { "type": "input", "inputType": "email", "label": "E-Mail Address", "autocomplete": "email" }
+    },
+    "benutzername": {
+      "field": "benutzername",
+      "dataSchema": { "type": "string", "required": true },
+      "ui": { "type": "input", "inputType": "text", "label": "userauth::login.kennung_benutzername", "autocomplete": "username" }
+    },
+    "beides": {
+      "field": "login",
+      "dataSchema": { "type": "string", "required": true },
+      "ui": { "type": "input", "inputType": "text", "label": "userauth::login.kennung_beides", "autocomplete": "username" }
+    }
   }
 }

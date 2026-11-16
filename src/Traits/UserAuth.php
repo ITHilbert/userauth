@@ -63,6 +63,7 @@ trait UserAuth
             'birthday',
             'comment',
             'image',
+            'benutzername',
         ]);
 
         // Ergänzt ein eigenes $hidden der Model-Klasse, ersetzt es nicht

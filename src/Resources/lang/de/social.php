@@ -11,6 +11,7 @@ return [
         'email_not_verified' => 'Die E-Mail-Adresse Ihres Kontos beim Anbieter ist nicht bestätigt. Eine Anmeldung ist deshalb nicht möglich.',
         'domain_not_allowed' => 'Die E-Mail-Domain Ihres Kontos ist für die Anmeldung nicht zugelassen.',
         'registration_disabled' => 'Zu dieser E-Mail-Adresse existiert kein Konto. Eine Registrierung über diesen Anbieter ist nicht möglich.',
+        'email_not_unique' => 'Die Anmeldung über diesen Anbieter ist nicht möglich, weil die E-Mail-Adresse nicht eindeutig ist. Bitte melden Sie sich mit Ihrem Benutzernamen an.',
         'account_disabled' => 'Dieses Konto ist deaktiviert oder gelöscht.',
         'provider_already_connected' => 'Für dieses Konto ist bereits ein anderes Konto dieses Anbieters verknüpft.',
         'social_account_taken' => 'Dieses Anbieter-Konto ist bereits mit einem anderen Benutzer verknüpft.',

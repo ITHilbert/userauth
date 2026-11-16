@@ -60,6 +60,16 @@
     </div>
 @endif
 
+{{-- Benutzername (nur Modi benutzername/beides) --}}
+@if (app(\ITHilbert\UserAuth\Application\Auth\AnmeldeEinstellungen::class)->modus()->brauchtBenutzername())
+    <div class="form-group row mb-2">
+        <label for="benutzername" class="col-md-4 col-form-label text-md-right">@lang('userauth::user.benutzername') *</label>
+        <div class="col-md-6">
+            <x-kit::input-text name="benutzername" :value="AlteEingabe::text('benutzername', $user?->benutzername)" required />
+        </div>
+    </div>
+@endif
+
 {{-- E-Mail --}}
 @if (config('userauth.user.email'))
     <div class="form-group row mb-2">
