@@ -77,14 +77,14 @@
                       <div class="mb-3 text-start">
                         <label class="form-label" for="{{ $kennungFeld }}">{{ $kennungLabel ?? 'Email address' }}</label>
                         <div class="form-icon-container">
-                            <input type="{{ $kennungTyp ?? 'email' }}" class="form-control form-icon-input" id="{{ $kennungFeld }}" name="{{ $kennungFeld }}" class="@error($kennungFeld) is-invalid @enderror" value="{{ AlteEingabe::text($kennungFeld) }}" required autocomplete="{{ $kennungAutocomplete ?? 'email' }}" autofocus><span class="fas fa-user text-900 fs--1 form-icon"></span>
+                            <input type="{{ $kennungTyp ?? 'email' }}" class="form-control form-icon-input @error($kennungFeld) is-invalid @enderror" id="{{ $kennungFeld }}" name="{{ $kennungFeld }}" value="{{ AlteEingabe::text($kennungFeld) }}" required autocomplete="{{ $kennungAutocomplete ?? 'email' }}" autofocus><span class="fas fa-user text-900 fs--1 form-icon"></span>
                         </div>
                       </div>
                       {{-- Password --}}
                       <div class="mb-3 text-start">
                         <label class="form-label" for="password">Password</label>
                         <div class="form-icon-container">
-                            <input type="password" class="form-control form-icon-input" id="password" name="password" class="@error('password') is-invalid @enderror" required autocomplete="current-password"><span class="fas fa-key text-900 fs--1 form-icon"></span>
+                            <input type="password" class="form-control form-icon-input @error('password') is-invalid @enderror" id="password" name="password" required autocomplete="current-password"><span class="fas fa-key text-900 fs--1 form-icon"></span>
                         </div>
                       </div>
                       {{-- Remember me --}}
