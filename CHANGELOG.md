@@ -14,7 +14,7 @@
 
 ### Geändert
 - Selbstregistrierung: In den Modi `benutzername`/`beides` antworten die Registrierungsrouten mit 404, weil die Registrierung keinen Benutzernamen erfasst.
-- Veröffentlichte Host-Views (login, password/*) und statische Schema-JSON müssen nach dem Update neu veröffentlicht werden, sonst bleibt es beim Feld `email`.
+- Veröffentlichte Host-Views (login, password/*) und die statische Schema-JSON `auth/login.json` müssen nach dem Update neu veröffentlicht werden, sonst bleibt es beim Feld `email`.
 
 ## 3.2.1 – 2026-11-05
 
