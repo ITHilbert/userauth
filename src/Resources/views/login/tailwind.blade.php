@@ -35,23 +35,24 @@
         <form method="POST" action="{{ route('login') }}" novalidate>
             @csrf
 
-            {{-- E-Mail --}}
+            {{-- Kennung: E-Mail, Benutzername oder beides (userauth.anmeldung_per) --}}
+            @php($kennungFeld ??= 'email')
             <div class="mb-5">
-                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
-                    E-Mail-Adresse
+                <label for="{{ $kennungFeld }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    {{ $kennungLabel ?? 'E-Mail-Adresse' }}
                 </label>
                 <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value="{{ AlteEingabe::text('email') }}"
+                    type="{{ $kennungTyp ?? 'email' }}"
+                    id="{{ $kennungFeld }}"
+                    name="{{ $kennungFeld }}"
+                    value="{{ AlteEingabe::text($kennungFeld) }}"
                     required
-                    autocomplete="email"
+                    autocomplete="{{ $kennungAutocomplete ?? 'email' }}"
                     autofocus
-                    class="w-full rounded-lg border @error('email') border-red-400 bg-red-50 @else border-gray-300 @enderror px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
-                    placeholder="name@beispiel.de"
+                    class="w-full rounded-lg border @error($kennungFeld) border-red-400 bg-red-50 @else border-gray-300 @enderror px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                    @if ($kennungFeld === 'email') placeholder="name@beispiel.de" @endif
                 >
-                @error('email')
+                @error($kennungFeld)
                     <p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>
                 @enderror
             </div>

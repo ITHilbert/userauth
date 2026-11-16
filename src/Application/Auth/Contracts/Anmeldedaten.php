@@ -17,4 +17,13 @@ interface Anmeldedaten
      * @return Authenticatable|null Nutzer bei gültigen Zugangsdaten, sonst null
      */
     public function pruefen(#[\SensitiveParameter] array $zugangsdaten, bool $angemeldetBleiben): ?Authenticatable;
+
+    /**
+     * Prüft das Passwort gegen genau das Konto mit dem Schlüssel; ohne Konto (null) wird kein Passwort verglichen.
+     * Events `Attempting`/`Failed` tragen die eingegebenen Zugangsdaten (Kennung statt Schlüssel).
+     *
+     * @param  array<string, mixed>  $zugangsdaten  eingegebene Kennung und `password`
+     * @return Authenticatable|null Nutzer bei gültigem Passwort, sonst null
+     */
+    public function kontoPruefen(int|string|null $kontoSchluessel, #[\SensitiveParameter] array $zugangsdaten, bool $angemeldetBleiben): ?Authenticatable;
 }

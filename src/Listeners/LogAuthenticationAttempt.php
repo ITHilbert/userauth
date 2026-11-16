@@ -58,7 +58,7 @@ final class LogAuthenticationAttempt
         } elseif ($event instanceof Failed) {
             $data['event'] = 'failed';
             $data['user_id'] = null;
-            $data['email'] = isset($event->credentials['email']) ? $event->credentials['email'] : null;
+            $data['email'] = $this->eingegebeneKennung($event->credentials);
         } elseif ($event instanceof ZweiFaktorCodeAbgelehnt) {
             // Eigenes Ereignis: Passwort war richtig, nur der Code wurde abgelehnt (AK22)
             $data['event'] = 'two_factor_failed';
@@ -81,5 +81,21 @@ final class LogAuthenticationAttempt
         }
 
         UserAuthAuditLog::create($data);
+    }
+
+    /**
+     * Eingegebene Kennung je Modus (`email`, `benutzername`, `login`); landet in der Spalte `email` (keine eigene Audit-Spalte).
+     *
+     * @param  array<string, mixed>  $zugangsdaten
+     */
+    private function eingegebeneKennung(#[\SensitiveParameter] array $zugangsdaten): ?string
+    {
+        foreach (['email', 'benutzername', 'login'] as $feld) {
+            if (isset($zugangsdaten[$feld]) && is_string($zugangsdaten[$feld])) {
+                return $zugangsdaten[$feld];
+            }
+        }
+
+        return null;
     }
 }

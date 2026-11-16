@@ -27,6 +27,7 @@ use ITHilbert\UserAuth\App\Console\Commands\CreatePermissionCommand;
 use ITHilbert\UserAuth\App\Console\Commands\PruneSocialLinksCommand;
 use ITHilbert\UserAuth\App\Console\Commands\UserAuthCopyFiles;
 use ITHilbert\UserAuth\Application\Auth\Contracts\Anmeldedaten;
+use ITHilbert\UserAuth\Application\Auth\Contracts\KontoZurKennung;
 use ITHilbert\UserAuth\Application\Auth\Contracts\OffeneAnmeldungen;
 use ITHilbert\UserAuth\Application\Auth\Contracts\Sitzungsanmeldung;
 use ITHilbert\UserAuth\Application\Auth\Contracts\ZweiFaktorCodeHasher;
@@ -61,10 +62,12 @@ use ITHilbert\UserAuth\Http\Middleware\hasRole;
 use ITHilbert\UserAuth\Http\Middleware\isAdmin;
 use ITHilbert\UserAuth\Http\Middleware\isDev;
 use ITHilbert\UserAuth\Http\MiddlewarePrioritaet;
+use ITHilbert\UserAuth\Http\ViewComposers\AnmeldeKennungComposer;
 use ITHilbert\UserAuth\Http\ViewComposers\AvailableSocialProvidersComposer;
 use ITHilbert\UserAuth\Http\ViewComposers\GeloeschteEmailHinweisComposer;
 use ITHilbert\UserAuth\Http\ViewComposers\RegistrierungComposer;
 use ITHilbert\UserAuth\Http\ViewComposers\ThemeComposer;
+use ITHilbert\UserAuth\Infrastructure\Auth\EloquentKontoZurKennung;
 use ITHilbert\UserAuth\Infrastructure\Auth\GuardAnmeldedaten;
 use ITHilbert\UserAuth\Infrastructure\Auth\GuardSitzungsanmeldung;
 use ITHilbert\UserAuth\Infrastructure\Auth\HmacZweiFaktorCodeHasher;
@@ -138,6 +141,7 @@ class UserAuthServiceProvider extends ServiceProvider
         );
         View::composer('userauth::login.*', GeloeschteEmailHinweisComposer::class);
         View::composer('userauth::login.*', RegistrierungComposer::class);
+        View::composer('userauth::login.*', AnmeldeKennungComposer::class);
         View::composer([
             'userauth::login',
             'userauth::password.editwithtoken',
@@ -297,6 +301,7 @@ class UserAuthServiceProvider extends ServiceProvider
     protected function registerAnmeldung(): void
     {
         $this->app->bind(Anmeldedaten::class, GuardAnmeldedaten::class);
+        $this->app->bind(KontoZurKennung::class, EloquentKontoZurKennung::class);
         $this->app->bind(Sitzungsanmeldung::class, GuardSitzungsanmeldung::class);
         $this->app->bind(OffeneAnmeldungen::class, SessionOffeneAnmeldungen::class);
         $this->app->bind(ZweiFaktorCodeHasher::class, HmacZweiFaktorCodeHasher::class);

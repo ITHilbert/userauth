@@ -72,11 +72,12 @@
                         <hr class="bg-200 mt-5 mb-4" />
                         <div class="divider-content-center bg-white">or use email</div>
                       </div> --}}
-                      {{-- E-Mail Adresse --}}
+                      {{-- Kennung: E-Mail, Benutzername oder beides (userauth.anmeldung_per) --}}
+                      @php($kennungFeld ??= 'email')
                       <div class="mb-3 text-start">
-                        <label class="form-label" for="email">Email address</label>
+                        <label class="form-label" for="{{ $kennungFeld }}">{{ $kennungLabel ?? 'Email address' }}</label>
                         <div class="form-icon-container">
-                            <input type="email" class="form-control form-icon-input" id="email" name="email" class="@error('email') is-invalid @enderror" value="{{ AlteEingabe::text('email') }}" required autocomplete="email" autofocus><span class="fas fa-user text-900 fs--1 form-icon"></span>
+                            <input type="{{ $kennungTyp ?? 'email' }}" class="form-control form-icon-input" id="{{ $kennungFeld }}" name="{{ $kennungFeld }}" class="@error($kennungFeld) is-invalid @enderror" value="{{ AlteEingabe::text($kennungFeld) }}" required autocomplete="{{ $kennungAutocomplete ?? 'email' }}" autofocus><span class="fas fa-user text-900 fs--1 form-icon"></span>
                         </div>
                       </div>
                       {{-- Password --}}

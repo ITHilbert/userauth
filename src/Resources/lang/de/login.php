@@ -22,6 +22,12 @@ return [
     'email' => 'E-Mail Addresse',
     'password' => 'Passwort',
     'remember' => 'Eingeloggt bleiben',
+    // Feld der Kennung je userauth.anmeldung_per (Modus email behält die Labels der Views)
+    'kennung_benutzername' => 'Benutzername',
+    'kennung_beides' => 'Benutzername oder E-Mail',
+    // Ein Text für jeden Fehlschlag der Anmeldung (unbekannt, falsches Passwort, mehrdeutige E-Mail)
+    'fehlgeschlagen_benutzername' => 'Benutzername oder Passwort ist falsch.',
+    'fehlgeschlagen_beides' => 'Die Anmeldedaten sind falsch. Bei gemeinsam genutzter E-Mail-Adresse bitte den Benutzernamen verwenden.',
     'pwforgotten' => 'Passwort vergessen',
 
     'seite_titel' => 'Anmeldung',
