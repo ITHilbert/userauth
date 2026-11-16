@@ -15,3 +15,5 @@ Randfall 1 | "Hat der Host jQuery trotzdem geladen, funktionieren die Listen unv
 Randfall 2 | "hoechsteNeueNummer zählt weiter ab der höchsten vorhandenen Nummer" | tests/js/permission.test.mjs::Randfall: neu ergänzte Zeilen nach old()-Zeilen bekommen freie Nummern und füllen ihre eigene Zeile
 
 Einschränkung AK4: Verhalten über minimales DOM (node --test, vm, kein jsdom), nicht im echten Browser. AK2: Fixture fälscht window.DataTable; echte DataTables-Initialisierung ungeprüft (Echtlauf im NACHWEIS).
+
+Nachzug (Test-Refactoring, ABDECKUNG entfällt): tests/js/rechtename.test.mjs baut permission.js jetzt auf einem Vanilla-DOM-Stub statt jQuery-Mock; Fälle unverändert (userauth-rechtenamen AK2, Randfall 1).

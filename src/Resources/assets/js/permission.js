@@ -1,33 +1,35 @@
-var group_display = $('input[name="group_display"]')[0];
-var group_name = $('input[name="group_name"]')[0];
+// Rechteformular ohne jQuery (klassisches Skript, globale Funktionen für onclick/onchange in den Views).
+var group_display = document.querySelector('input[name="group_display"]');
 
+if (group_display) {
+    group_display.addEventListener('change', function () {
+        var value = formatDisplayToIntern(this.value);
 
-group_display.addEventListener("change", function() {
-    var value = this.value; //$('input[name="group_display"]')[0].val();
-
-    value = formatDisplayToIntern(value);
-
-    $('input[name="group_name"]')[0].value = value;
-});
+        document.querySelector('input[name="group_name"]').value = value;
+    });
+}
 
 
 function showSinglePermissions() {
-    var cb = $('input[name="ckPermissionGroup"]')[0].checked;
+    var cb = document.querySelector('input[name="ckPermissionGroup"]').checked;
+    var bereich = document.getElementById('group_permissions_show');
 
     if (cb) {
-        $('#group_permissions_show').removeClass('d-none');
+        bereich.classList.remove('d-none');
     } else {
-        $('#group_permissions_show').addClass('d-none');
+        bereich.classList.add('d-none');
     }
 }
-
 
 
 // Startwert: höchste Nummer der vorhandenen neuen Zeilen im DOM (nach einem Validierungsfehler können es mehrere sein)
 function hoechsteNeueNummer(tbody) {
     var hoechste = 1;
-    tbody.find('tr[id^="new-row-"]').each(function () {
-        var nr = parseInt($(this).attr('nummer'), 10);
+    if (!tbody) {
+        return hoechste;
+    }
+    tbody.querySelectorAll('tr[id^="new-row-"]').forEach(function (zeile) {
+        var nr = parseInt(zeile.getAttribute('nummer'), 10);
         if (!isNaN(nr) && nr > hoechste) {
             hoechste = nr;
         }
@@ -35,90 +37,70 @@ function hoechsteNeueNummer(tbody) {
     return hoechste;
 }
 
-var newID = hoechsteNeueNummer($('#tbody'));
+var newID = hoechsteNeueNummer(document.getElementById('tbody'));
 
 function newPermission() {
-    var vorlage = $('#vorlage').clone()
+    var vorlage = document.getElementById('vorlage').cloneNode(true);
 
     newID++;
     var zeilenNummer = newID;
-    vorlage.removeClass('d-none');
-    vorlage.attr('id', 'new-row-' + zeilenNummer)
-    vorlage.attr('nummer', zeilenNummer);
+    vorlage.classList.remove('d-none');
+    vorlage.setAttribute('id', 'new-row-' + zeilenNummer);
+    vorlage.setAttribute('nummer', zeilenNummer);
 
     //ID anpassen
-    var rowid = vorlage.find('#new-id');
-    rowid.attr('id', 'new-id-' + zeilenNummer);
+    var rowid = vorlage.querySelector('#new-id');
+    rowid.setAttribute('id', 'new-id-' + zeilenNummer);
     rowid.append('new_' + zeilenNummer);
 
     //Recht anpassen
-    var rowid = vorlage.find('#vorlage_display');
-    rowid.attr('id', 'display_new_' + zeilenNummer);
-    rowid.attr('name', 'permission_display_new_' + zeilenNummer);
+    var tb1 = vorlage.querySelector('#vorlage_display');
+    tb1.setAttribute('id', 'display_new_' + zeilenNummer);
+    tb1.setAttribute('name', 'permission_display_new_' + zeilenNummer);
 
     //Recht intern anpassen
-    var tb2 = vorlage.find('#vorlage_intern');
-    tb2.attr('id', 'intern_new_' + zeilenNummer);
-    tb2.attr('name', 'permission_new_' + zeilenNummer);
+    var tb2 = vorlage.querySelector('#vorlage_intern');
+    tb2.setAttribute('id', 'intern_new_' + zeilenNummer);
+    tb2.setAttribute('name', 'permission_new_' + zeilenNummer);
 
     //Löschen Button
-    var btn = vorlage.find('#btnVorlage');
-    btn.removeAttr('id');
-    btn.attr('onclick', "deletePermission('new-row-" + zeilenNummer + "')");
+    var btn = vorlage.querySelector('#btnVorlage');
+    btn.removeAttribute('id');
+    btn.setAttribute('onclick', "deletePermission('new-row-" + zeilenNummer + "')");
 
     //Angepasste Vorlage einfügen
-    $('#tbody').append(vorlage);
+    document.getElementById('tbody').appendChild(vorlage);
 
-    var tb = document.getElementById('display_new_' + zeilenNummer)
-    tb.addEventListener("change", function() {
+    tb1.addEventListener('change', function () {
         editIntern('new-row-' + zeilenNummer);
     });
 }
 
 
 function deletePermission(rowID) {
+    var element = document.getElementById(rowID);
 
     //Neuer Eintrag
     if (rowID.indexOf('new-row') == 0) {
-        var element = document.getElementById(rowID)
         element.parentNode.removeChild(element);
     } else {
-        var element = $('#' + rowID);
-        var nr = element.attr('nummer');
+        var nr = element.getAttribute('nummer');
 
-        element.addClass('d-none');
-
+        element.classList.add('d-none');
 
         //Recht anpassen
-        var tb1 = element.find('#display_' + nr);
-        tb1.attr('name', 'delete_display_' + nr);
+        element.querySelector('#display_' + nr).setAttribute('name', 'delete_display_' + nr);
 
         //Recht intern anpassen
-        var tb2 = element.find('#intern_' + nr);
-        tb2.attr('name', 'delete_intern_' + nr);
+        element.querySelector('#intern_' + nr).setAttribute('name', 'delete_intern_' + nr);
     }
-
-
-
-
 }
 
 function editIntern(rowID) {
-    //console.log('editIntern(' + rowID + ')');
+    var nr = document.getElementById(rowID).getAttribute('nummer');
+    var praefix = rowID.indexOf('new-row') == 0 ? 'new_' : '';
 
-    var nr = $('#' + rowID).attr('nummer');
-    //console.log('Nr: ' + nr);
-
-    //Neuer Eintrag
-    if (rowID.indexOf('new-row') == 0) {
-        //console.log(1);
-        var value = $('#display_new_' + nr).val();
-        value = $('input[name="group_name"]')[0].value + '_' + formatDisplayToIntern(value);
-        $('#intern_new_' + nr).val(value);
-    } else {
-        //console.log(2);
-        var value = $('#display_' + nr).val();
-        value = $('input[name="group_name"]')[0].value + '_' + formatDisplayToIntern(value);
-        $('#intern_' + nr).val(value);
-    }
+    var value = document.getElementById('display_' + praefix + nr).value;
+    value = document.querySelector('input[name="group_name"]').value + '_' + formatDisplayToIntern(value);
+    document.getElementById('intern_' + praefix + nr).value = value;
 }

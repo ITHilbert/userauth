@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.4.0 – 2026-11-16
+
+### Geändert
+- Listen (Benutzer, Rollen, Rechte): `new DataTable('.data-table', …)` statt jQuery-Plugin, DataTable 2 braucht kein jQuery mehr. Ajax sendet den Header `X-Requested-With`.
+- `permission.js` ohne jQuery (Vanilla-JS, gleiches Verhalten). Der Host muss die veröffentlichte `permission.js` neu veröffentlichen (`vendor:publish`).
+
 ## 3.3.2 – 2026-11-16
 
 ### Geändert
