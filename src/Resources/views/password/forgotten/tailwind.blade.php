@@ -11,8 +11,13 @@
 @section('content')
     <div class="w-full max-w-md bg-white rounded-xl shadow-lg ring-1 ring-gray-200 px-8 py-10">
         <h1 class="text-2xl font-bold text-gray-900 text-center mb-2">@lang('userauth::password.header_pw_forgotten')</h1>
+        @php($kennungFeld ??= 'email')
         <p class="text-sm text-gray-500 text-center mb-8">
-            Geben Sie Ihre E-Mail-Adresse ein — wir senden Ihnen einen Reset-Link.
+            @if ($kennungFeld === 'email')
+                Geben Sie Ihre E-Mail-Adresse ein — wir senden Ihnen einen Reset-Link.
+            @else
+                {{ __($kennungFeld === 'login' ? 'userauth::password.forgotten_text_beides' : 'userauth::password.forgotten_text_benutzername') }}
+            @endif
         </p>
 
         @if ($errors->any())
@@ -35,21 +40,21 @@
             @csrf
 
             <div class="mb-6">
-                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
-                    E-Mail-Adresse
+                <label for="{{ $kennungFeld }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    {{ $kennungLabel ?? 'E-Mail-Adresse' }}
                 </label>
                 <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value="{{ old('email') }}"
+                    type="{{ $kennungTyp ?? 'email' }}"
+                    id="{{ $kennungFeld }}"
+                    name="{{ $kennungFeld }}"
+                    value="{{ old($kennungFeld) }}"
                     required
-                    autocomplete="email"
+                    autocomplete="{{ $kennungAutocomplete ?? 'email' }}"
                     autofocus
-                    class="w-full rounded-lg border @error('email') border-red-400 bg-red-50 @else border-gray-300 @enderror px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
-                    placeholder="name@beispiel.de"
+                    class="w-full rounded-lg border @error($kennungFeld) border-red-400 bg-red-50 @else border-gray-300 @enderror px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                    @if ($kennungFeld === 'email') placeholder="name@beispiel.de" @endif
                 >
-                @error('email')
+                @error($kennungFeld)
                     <p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>
                 @enderror
             </div>

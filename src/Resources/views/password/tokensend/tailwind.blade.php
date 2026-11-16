@@ -13,7 +13,7 @@
         <div class="text-5xl mb-4">📬</div>
         <h1 class="text-2xl font-bold text-gray-900 mb-3">@lang('userauth::password.header_link_angefordert')</h1>
         <p class="text-sm text-gray-600 mb-6">
-            {{ session('message', __('userauth::password.link_angefordert')) }}
+            {{ session('message', __(($kennungFeld ?? 'email') === 'email' ? 'userauth::password.link_angefordert' : 'userauth::password.link_angefordert_kennung')) }}
         </p>
 
         <a href="{{ route('login') }}" class="inline-block mt-2 text-sm text-indigo-600 hover:text-indigo-800 hover:underline transition-colors">

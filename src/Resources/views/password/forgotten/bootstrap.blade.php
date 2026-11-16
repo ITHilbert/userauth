@@ -36,7 +36,11 @@
                         </div>
                       </a>
                       <h4 class="text-1000">@lang('userauth::password.header_pw_forgotten')</h4>
+                      @if (($kennungFeld ?? 'email') === 'email')
                       <p class="text-700 mb-5">Enter your email below and we will <br class="d-md-none" />send you <br class="d-none d-xxl-block" />a reset link</p>
+                      @else
+                      <p class="text-700 mb-5">{{ __(($kennungFeld ?? '') === 'login' ? 'userauth::password.forgotten_text_beides' : 'userauth::password.forgotten_text_benutzername') }}</p>
+                      @endif
                       @if ($errors->any())
                         <div class="alert alert-danger text-start" role="alert">
                           @foreach ($errors->all() as $error)
@@ -46,7 +50,13 @@
                       @endif
                       <form class="d-flex align-items-center mb-5" method="POST" action="{{ route('password.sendtocken') }}">
                         @csrf
+                        @php($kennungFeld ??= 'email')
+                        @if ($kennungFeld === 'email')
                         <input class="form-control flex-1" id="email" type="email" placeholder="Email" name="email" required autocomplete="email" autofocus />
+                        @else
+                        <label class="visually-hidden" for="{{ $kennungFeld }}">{{ $kennungLabel }}</label>
+                        <input class="form-control flex-1" id="{{ $kennungFeld }}" type="{{ $kennungTyp ?? 'text' }}" placeholder="{{ $kennungLabel }}" name="{{ $kennungFeld }}" value="{{ old($kennungFeld) }}" required autocomplete="{{ $kennungAutocomplete ?? 'username' }}" autofocus />
+                        @endif
                         <button class="btn btn-primary ms-2">Send<span class="fas fa-chevron-right ms-2"></span></button>
                       </form>
                       {{-- <a class="fs--1 fw-bold" href="#!">Still having problems?</a> --}}

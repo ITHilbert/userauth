@@ -39,6 +39,7 @@ use ITHilbert\UserAuth\Application\Contracts\MailLinks;
 use ITHilbert\UserAuth\Application\Passwort\Contracts\PasswortHistorie;
 use ITHilbert\UserAuth\Application\Passwort\Contracts\PasswortKonten;
 use ITHilbert\UserAuth\Application\Passwort\Contracts\ResetLinkVersand;
+use ITHilbert\UserAuth\Application\Passwort\Contracts\ResetTokens;
 use ITHilbert\UserAuth\Application\Registrierung\Contracts\BestaetigungsLinkVersand;
 use ITHilbert\UserAuth\Application\Registrierung\Contracts\RegistrierungsKonten;
 use ITHilbert\UserAuth\Application\Registrierung\Contracts\RegistrierungsRollen;
@@ -76,6 +77,7 @@ use ITHilbert\UserAuth\Infrastructure\Auth\SessionOffeneAnmeldungen;
 use ITHilbert\UserAuth\Infrastructure\Benutzer\EloquentGeloeschteBenutzer;
 use ITHilbert\UserAuth\Infrastructure\Benutzer\PublicDiskBenutzerbilder;
 use ITHilbert\UserAuth\Infrastructure\Mail\AppUrlMailLinks;
+use ITHilbert\UserAuth\Infrastructure\Passwort\BrokerResetTokens;
 use ITHilbert\UserAuth\Infrastructure\Passwort\DatenbankPasswortHistorie;
 use ITHilbert\UserAuth\Infrastructure\Passwort\EloquentPasswortKonten;
 use ITHilbert\UserAuth\Infrastructure\Passwort\NachAntwortResetLinkVersand;
@@ -141,7 +143,12 @@ class UserAuthServiceProvider extends ServiceProvider
         );
         View::composer('userauth::login.*', GeloeschteEmailHinweisComposer::class);
         View::composer('userauth::login.*', RegistrierungComposer::class);
-        View::composer('userauth::login.*', AnmeldeKennungComposer::class);
+        View::composer([
+            'userauth::login.*',
+            'userauth::password.forgotten.*',
+            'userauth::password.editwithtoken.*',
+            'userauth::password.tokensend.*',
+        ], AnmeldeKennungComposer::class);
         View::composer([
             'userauth::login',
             'userauth::password.editwithtoken',
@@ -316,6 +323,7 @@ class UserAuthServiceProvider extends ServiceProvider
         $this->app->bind(PasswortKonten::class, EloquentPasswortKonten::class);
         $this->app->bind(PasswortHistorie::class, DatenbankPasswortHistorie::class);
         $this->app->bind(ResetLinkVersand::class, NachAntwortResetLinkVersand::class);
+        $this->app->bind(ResetTokens::class, BrokerResetTokens::class);
         $this->app->bind(MailLinks::class, AppUrlMailLinks::class);
     }
 

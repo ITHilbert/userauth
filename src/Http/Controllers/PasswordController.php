@@ -8,10 +8,12 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
 use ITHilbert\LaravelKit\Helpers\Breadcrumb;
+use ITHilbert\UserAuth\Application\Auth\AnmeldeEinstellungen;
 use ITHilbert\UserAuth\Application\Passwort\PasswortSetzen;
 use ITHilbert\UserAuth\Application\Passwort\PasswortZuruecksetzen;
 use ITHilbert\UserAuth\Application\Passwort\PasswortZuruecksetzenAnfordern;
 use ITHilbert\UserAuth\Application\Passwort\PasswortZuruecksetzenErgebnis;
+use ITHilbert\UserAuth\Domain\Auth\AnmeldeModus;
 use ITHilbert\UserAuth\Http\PasswortAblehnung;
 use ITHilbert\UserAuth\Http\Requests\PasswortAendernRequest;
 use ITHilbert\UserAuth\Http\Requests\PasswortZuruecksetzenAnfordernRequest;
@@ -52,14 +54,16 @@ final class PasswordController
     }
 
     /**
-     * Reset-Link anfordern; gleiche Antwort für bekannte und unbekannte Adressen.
+     * Reset-Link anfordern; gleiche Antwort für bekannte, unbekannte und mehrdeutige Kennungen.
      */
-    public function sendtocken(PasswortZuruecksetzenAnfordernRequest $request, PasswortZuruecksetzenAnfordern $anfordern): RedirectResponse
+    public function sendtocken(PasswortZuruecksetzenAnfordernRequest $request, PasswortZuruecksetzenAnfordern $anfordern, AnmeldeEinstellungen $einstellungen): RedirectResponse
     {
-        $anfordern->handle((string) $request->validated('email'));
+        $anfordern->handle($request->kennung());
 
         return redirect()->route('password.tokensend')
-            ->with('message', trans('userauth::password.link_angefordert'));
+            ->with('message', trans($einstellungen->modus() === AnmeldeModus::Email
+                ? 'userauth::password.link_angefordert'
+                : 'userauth::password.link_angefordert_kennung'));
     }
 
     /**
@@ -71,7 +75,7 @@ final class PasswordController
     }
 
     /**
-     * Formular „Neues Passwort“ aus dem Reset-Link.
+     * Formular „Neues Passwort“ aus dem Reset-Link; `$email` ist im Modus `benutzername`/`beides` die Kennung des Kontos.
      */
     public function editwithtoken(string $token, string $email): View
     {
@@ -86,7 +90,7 @@ final class PasswordController
     public function updatewithtoken(PasswortZuruecksetzenRequest $request, PasswortZuruecksetzen $zuruecksetzen): RedirectResponse
     {
         $ergebnis = PasswortAblehnung::alsValidierungsfehler(fn (): PasswortZuruecksetzenErgebnis => $zuruecksetzen->handle(
-            (string) $request->validated('email'),
+            $request->kennung(),
             (string) $request->validated('pwtoken'),
             (string) $request->validated('password'),
         ));

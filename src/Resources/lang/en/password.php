@@ -25,6 +25,9 @@ return [
 
     // Forgotten / change password
     'link_angefordert' => 'If an account exists for this e-mail address, we have sent you a link to reset your password. Please check your inbox (and your spam folder).',
+    'link_angefordert_kennung' => 'If an account exists for your input, we have sent a link to reset your password to the stored e-mail address. Please check your inbox (and your spam folder).',
+    'forgotten_text_benutzername' => 'Enter your username — we will send a reset link to the stored e-mail address.',
+    'forgotten_text_beides' => 'Enter your username or e-mail address — we will send a reset link to the stored e-mail address. If the e-mail address is shared, please use your username.',
     'header_link_angefordert' => 'Please check your inbox',
     'link_ungueltig' => 'The password reset link is invalid or has expired. Please request a new link.',
     'geaendert' => 'Your password has been changed',
