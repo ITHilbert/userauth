@@ -1,7 +1,7 @@
 # Plan: userauth-datatable-ohne-jquery
 
 Marketing: entfällt (kein Seitendesign, nur Skript-Umbau)
-Review: entfällt (kein Risiko: keine neue Route, keine Migration, kein Sicherheitsbezug, unter 50 Zeilen Produktivcode je Muster) — Entscheidung Moderator, wird mit dem Diff abgeglichen
+Review: entfällt (Refactoring ohne Verhaltensänderung, Rule agent-lifecycle.md; keine Route, keine Migration, kein Sicherheitsbezug)
 
 ## T1 [pro] Listen und permission.js ohne jQuery (AK1–AK5)
 — Tests: tests/Feature/AdminViewsKitTest.php tests/Feature/AdminViewsSkripteTest.php tests/js/permission.test.mjs (Fixture tests/Fixtures/inline-skript-lauf.mjs)
