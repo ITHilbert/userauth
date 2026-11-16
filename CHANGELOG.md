@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.3.2 – 2026-11-16
+
+### Geändert
+- Schema `user/create.json` und `user/edit.json`: Das Feld `benutzername` trägt `nurModi: ["benutzername", "beides"]`, es gilt im Modus `email` nicht (#1323).
+- README und CHANGELOG 3.3.0: Nur `auth/login.json` hat den Block `anmeldungPer`; `password/forgotten.json` und `password/editwithtoken.json` kennen weiter nur `email` (#1323).
+
 ## 3.3.1 – 2026-11-16
 
 ### Behoben
