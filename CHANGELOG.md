@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.3.1 – 2026-11-16
+
+### Behoben
+- Login-Ansicht (Theme bootstrap): Kennungs- und Passwortfeld hatten je zwei `class`-Attribute, sodass die Fehlermarkierung `is-invalid` nie erschien. Jetzt ein `class`-Attribut je Feld (#1324).
+
 ## 3.3.0 – 2026-11-16
 
 ### Hinzugefügt
