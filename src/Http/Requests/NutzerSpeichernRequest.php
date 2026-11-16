@@ -6,7 +6,9 @@ namespace ITHilbert\UserAuth\Http\Requests;
 
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use ITHilbert\UserAuth\Application\Auth\AnmeldeEinstellungen;
 use ITHilbert\UserAuth\Application\Benutzer\GeloeschteEmailAufloesen;
 
 /**
@@ -25,6 +27,9 @@ final class NutzerSpeichernRequest extends FormRequest
         if ($this->has('password2')) {
             $this->merge(['password_confirmation' => $this->input('password2')]);
         }
+        if (is_string($this->input('benutzername'))) {
+            $this->merge(['benutzername' => trim($this->input('benutzername'))]);
+        }
     }
 
     /**
@@ -36,8 +41,11 @@ final class NutzerSpeichernRequest extends FormRequest
         $anlegen = $nutzerId === null;
         $neuesPasswort = $anlegen || (bool) $this->input('password');
 
+        $modus = $this->container->make(AnmeldeEinstellungen::class)->modus();
         $email = ['required', 'email'];
-        if ($anlegen) {
+        if ($modus->brauchtBenutzername()) {
+            // Mehrere Konten dürfen eine E-Mail teilen (Anmeldung per Benutzername): keine Eindeutigkeit, keine Sperre.
+        } elseif ($anlegen) {
             // Gelöschte Benutzer regelt die Option `userauth.geloeschte_email`; bail: nur eine Meldung je Fall.
             array_unshift($email, 'bail');
             $email[] = Rule::unique('users', 'email')->whereNull('deleted_at');
@@ -56,6 +64,13 @@ final class NutzerSpeichernRequest extends FormRequest
             'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:4096'],
         ];
 
+        if ($modus->brauchtBenutzername()) {
+            $regeln['benutzername'] = [
+                'bail', 'required', 'string', 'max:255', 'not_regex:/[@\\/]/',
+                $this->benutzernameFrei($nutzerId),
+            ];
+        }
+
         if ($neuesPasswort) {
             // Gleiche Regeln wie beim eigenen Ändern; die Bestätigung kommt im Admin-Formular als `password2`.
             $regeln['password'] = NeuesPasswortRegeln::regeln()['password'];
@@ -70,6 +85,29 @@ final class NutzerSpeichernRequest extends FormRequest
         $regeln['birthday'] = ['nullable', 'date_format:Y-m-d'];
 
         return $regeln;
+    }
+
+    /**
+     * Eindeutig ohne Beachtung der Schreibweise, gelöschte Konten zählen mit (der Unique-Index kennt sie).
+     *
+     * @return Closure(string, mixed, Closure(string): mixed): void
+     */
+    private function benutzernameFrei(mixed $nutzerId): Closure
+    {
+        return static function (string $attribut, mixed $wert, Closure $fail) use ($nutzerId): void {
+            if (! is_string($wert)) {
+                return;
+            }
+
+            $vergeben = DB::table('users')
+                ->whereRaw('LOWER(benutzername) = ?', [mb_strtolower($wert)])
+                ->when($nutzerId !== null, static fn ($abfrage) => $abfrage->where('id', '!=', $nutzerId))
+                ->exists();
+
+            if ($vergeben) {
+                $fail(trans('userauth::user.benutzername_vergeben'));
+            }
+        };
     }
 
     /**

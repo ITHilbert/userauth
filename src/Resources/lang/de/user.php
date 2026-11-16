@@ -27,6 +27,8 @@ return [
     'name' => 'Name',
     'smallname' => 'Kürzel',
     'email' => 'E-Mail',
+    'benutzername' => 'Benutzername',
+    'benutzername_vergeben' => 'Dieser Benutzername ist bereits vergeben.',
     'password' => 'Passwort',
     'password2' => 'Passwort wiederholen',
     'password_generate' => 'Passwort erzeugen',

@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.3.0 – 2026-11-16
+
+### Hinzugefügt
+- Anmeldung per E-Mail, Benutzername oder beides: Die Config `anmeldung_per` (env `USERAUTH_ANMELDUNG_PER`, Standard `email`) steuert Anmeldeseite, Drosselung, „Passwort vergessen“, Reset-Link (Token je Konto), Audit-Log und Benutzerverwaltung. Modus `email` bleibt unverändert. Neue Migration für `users.benutzername`. Details: README, Abschnitt „Anmeldung per E-Mail, Benutzername oder beides“ (#1311).
+- Benutzerverwaltung: In den Modi `benutzername`/`beides` gibt es das Pflichtfeld „Benutzername“ (Blade und Schema `user/create.json`, `user/edit.json`); die E-Mail muss dort nicht eindeutig sein.
+- Social Login: Gehören mehrere aktive Konten zur E-Mail des Anbieters, wird nichts verknüpft oder angelegt; die Anmeldeseite zeigt eine Meldung mit Hinweis auf den Benutzernamen.
+
+### Geändert
+- Selbstregistrierung: In den Modi `benutzername`/`beides` antworten die Registrierungsrouten mit 404, weil die Registrierung keinen Benutzernamen erfasst.
+- Veröffentlichte Host-Views (login, password/*) und statische Schema-JSON müssen nach dem Update neu veröffentlicht werden, sonst bleibt es beim Feld `email`.
+
 ## 3.2.1 – 2026-11-05
 
 ### Behoben

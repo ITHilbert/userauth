@@ -32,6 +32,11 @@ final class EloquentSocialUserRepository implements SocialUserRepository
         return $user === null ? null : $this->toLocalUser($user);
     }
 
+    public function countActiveByEmail(string $email): int
+    {
+        return $this->query()->whereRaw('LOWER(email) = ?', [mb_strtolower($email)])->count();
+    }
+
     public function createVerified(?string $name, string $email, string $roleKey): LocalUser
     {
         $roleId = $this->roleId($roleKey);

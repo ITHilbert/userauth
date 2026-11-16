@@ -27,6 +27,8 @@ return [
     'name' => 'name',
     'smallname' => 'smallname',
     'email' => 'E-Mail',
+    'benutzername' => 'Username',
+    'benutzername_vergeben' => 'This username is already taken.',
     'password' => 'password',
     'password2' => 'remember password',
     'password_generate' => 'Generate password',

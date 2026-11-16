@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ITHilbert\UserAuth\Application\Registrierung;
 
 use Illuminate\Contracts\Config\Repository;
+use ITHilbert\UserAuth\Application\Auth\AnmeldeEinstellungen;
+use ITHilbert\UserAuth\Domain\Auth\AnmeldeModus;
 
 /**
  * Liest `userauth.registration` zur Laufzeit. Hosts setzen die Gruppe oft als Ganzes (die Paket-Config wird
@@ -14,10 +16,20 @@ final class RegistrierungsEinstellungen
 {
     private const STANDARD_MINUTEN = 60;
 
-    public function __construct(private readonly Repository $config) {}
+    public function __construct(
+        private readonly Repository $config,
+        private readonly AnmeldeEinstellungen $anmeldung,
+    ) {}
 
+    /**
+     * Die Registrierung erfasst keinen Benutzernamen: Sie gilt nur im Modus `email` (AK15).
+     */
     public function aktiv(): bool
     {
+        if ($this->anmeldung->modus() !== AnmeldeModus::Email) {
+            return false;
+        }
+
         return (bool) $this->config->get('userauth.registration.enabled', false);
     }
 

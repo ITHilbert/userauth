@@ -16,6 +16,7 @@ use ITHilbert\UserAuth\Application\SocialLogin\Exceptions\SocialProviderUnavaila
 use ITHilbert\UserAuth\Domain\Benutzer\Exceptions\EmailGehoertGeloeschtemBenutzerException;
 use ITHilbert\UserAuth\Domain\SocialLogin\AllowedDomainPolicy;
 use ITHilbert\UserAuth\Domain\SocialLogin\Exceptions\AccountDisabledException;
+use ITHilbert\UserAuth\Domain\SocialLogin\Exceptions\EmailNotUniqueException;
 use ITHilbert\UserAuth\Domain\SocialLogin\Exceptions\EmailNotVerifiedException;
 use ITHilbert\UserAuth\Domain\SocialLogin\Exceptions\ProviderAlreadyConnectedException;
 use ITHilbert\UserAuth\Domain\SocialLogin\Exceptions\RegistrationDisabledException;
@@ -61,6 +62,11 @@ final class HandleSocialLogin
             $user = $this->users->findActiveById($linkedUserId) ?? throw new AccountDisabledException;
 
             return $this->login($user);
+        }
+
+        // Gemeinsame E-Mail (Anmeldung per Benutzername): kein Konto raten, weder verknüpfen noch anlegen.
+        if ($this->users->countActiveByEmail($identity->email) > 1) {
+            throw new EmailNotUniqueException;
         }
 
         $user = $this->users->findActiveByEmail($identity->email);

@@ -15,6 +15,11 @@ interface SocialUserRepository
      */
     public function findActiveByEmail(string $email): ?LocalUser;
 
+    /**
+     * Anzahl aktiver (nicht gelöschter) Konten zur E-Mail, ohne Beachtung der Schreibweise.
+     */
+    public function countActiveByEmail(string $email): int;
+
     public function createVerified(?string $name, string $email, string $roleKey): LocalUser;
 
     /**
