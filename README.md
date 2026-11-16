@@ -281,7 +281,7 @@ Schema::table('users', function (Blueprint $table) {
 });
 ```
 
-3. Veröffentlichte Views (`login`, `password/*`) und die statischen Schema-JSON-Dateien (Login, „Passwort vergessen“, Reset) des Hosts müssen nach dem Update neu veröffentlicht werden. Sonst bleibt es beim Feld `email`.
+3. Veröffentlichte Views (`login`, `password/*`) und die statischen Schema-JSON-Dateien des Hosts müssen nach dem Update neu veröffentlicht werden. Sonst bleibt es beim Feld `email`. Nur `auth/login.json` kennt den Block `anmeldungPer`; `password/forgotten.json` und `password/editwithtoken.json` kennen weiter nur `email`. In `user/create.json` und `user/edit.json` ist das Feld `benutzername` mit `nurModi` gekennzeichnet und gilt nur in den Modi `benutzername` und `beides`.
 
 ### Verhalten
 
