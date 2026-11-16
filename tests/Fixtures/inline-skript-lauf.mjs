@@ -1,11 +1,15 @@
 // Hilfsprogramm für AdminViewsSkripteTest: führt die Skripte einer Admin-View aus, wie der Browser es bei einem
-// Host mit Modul-Bundle tut. Zuerst laufen die Skripte ohne defer/async/module in Dokument-Reihenfolge ohne `$`/`jQuery`
-// (das Bundle ist noch nicht ausgeführt). Dann läuft das "Bundle": `$` steht bereit, defer-/module-Skripte laufen,
+// Host mit Modul-Bundle tut. Zuerst laufen die Skripte ohne defer/async/module in Dokument-Reihenfolge ohne `DataTable`
+// (das Bundle ist noch nicht ausgeführt). Dann läuft das "Bundle": `window.DataTable` (DataTables 2) steht als Konstruktor
+// bereit, defer-/module-Skripte laufen,
 // danach feuern DOMContentLoaded und load, Timer laufen ab. Skripte, die per createElement nachgeladen werden,
 // laufen beim Anhängen (permission.js kommt aus dem Manifest statt per URL).
-// Aufruf: node inline-skript-lauf.mjs <manifest.json>
+// Ohne jQuery (userauth-datatable-ohne-jquery): `$` und `jQuery` sind nicht definiert; jeder Zugriff wird in
+// `jqueryZugriffe` gezählt und wirft einen ReferenceError. Mit dem zweiten Argument `mit-jquery` ist jQuery geladen
+// (Randfall 1): Aufrufe landen in `jqueryAufrufe`.
+// Aufruf: node inline-skript-lauf.mjs <manifest.json> [mit-jquery]
 // Manifest: [{ "typ": "inline"|"src", "code": "<Quelltext>", "src": "<url>", "spaeter": bool }]
-// Ausgabe: JSON {fehlerVorBundle, fehler, aufrufe, optionen, funktionen}.
+// Ausgabe: JSON {fehlerVorBundle, fehler, aufrufe, optionen, funktionen, jqueryZugriffe, jqueryAufrufe}.
 import fs from 'node:fs';
 import vm from 'node:vm';
 
@@ -14,7 +18,10 @@ const listener = [];
 const timer = [];
 const aufrufe = [];
 const optionen = [];
-const ergebnis = { fehlerVorBundle: null, fehler: null, aufrufe, optionen, funktionen: [] };
+const mitJquery = process.argv[3] === 'mit-jquery';
+const jqueryZugriffe = [];
+const jqueryAufrufe = [];
+const ergebnis = { fehlerVorBundle: null, fehler: null, aufrufe, optionen, funktionen: [], jqueryZugriffe, jqueryAufrufe, jqueryGeladen: false };
 let bundleLaeuft = false;
 
 const beiFehler = (e) => {
@@ -57,9 +64,9 @@ const document = {
     documentElement: behaelter(),
     addEventListener: (art, fn) => listener.push([art, fn]),
     createElement: () => ({ setAttribute(k, v) { this[k] = v; }, addEventListener(art, fn) { if (art === 'load') this.onload = fn; } }),
-    querySelector: () => null,
+    querySelector: () => beliebig(),
     querySelectorAll: () => [],
-    getElementById: () => null,
+    getElementById: () => beliebig(),
 };
 const fenster = { addEventListener: (art, fn) => listener.push([art, fn]), document };
 const kontext = vm.createContext({
@@ -69,26 +76,39 @@ const kontext = vm.createContext({
     setTimeout: (fn) => timer.push(fn),
 });
 fenster.setTimeout = kontext.setTimeout;
+if (!mitJquery) {
+    for (const name of ['$', 'jQuery']) {
+        Object.defineProperty(kontext, name, {
+            configurable: true,
+            get() {
+                jqueryZugriffe.push(name);
+                throw new ReferenceError(`${name} is not defined`);
+            },
+        });
+    }
+}
 
 // Phase 1: Skripte, die der Browser sofort ausführt.
 for (const s of manifest) {
     if (!s.spaeter) ausfuehren(s.code);
 }
 
-// Phase 2: das Modul-Bundle läuft, jQuery und DataTables stehen bereit.
+// Phase 2: das Modul-Bundle läuft, DataTables 2 steht als `window.DataTable` bereit.
 bundleLaeuft = true;
-const jq = (arg) => {
-    if (typeof arg === 'function') {
-        arg(jq);
-        return jq;
-    }
-    aufrufe.push(arg);
-    return new Proxy(beliebig(), {
-        get: (ziel, k) => (k === 'DataTable' ? (opt) => { optionen.push(opt); return {}; } : ziel[k]),
-    });
-};
-kontext.$ = jq;
-kontext.jQuery = jq;
+function DataTable(selektor, opt) {
+    aufrufe.push(selektor);
+    optionen.push(opt);
+}
+kontext.DataTable = DataTable;
+fenster.DataTable = DataTable;
+if (mitJquery) {
+    const jq = (arg) => {
+        jqueryAufrufe.push(typeof arg === 'function' ? 'function' : arg);
+        return beliebig();
+    };
+    kontext.$ = jq;
+    kontext.jQuery = jq;
+}
 document.readyState = 'interactive';
 for (const s of manifest) {
     if (s.spaeter) ausfuehren(s.code);
@@ -103,5 +123,6 @@ try {
     beiFehler(e);
 }
 
-ergebnis.funktionen = ['showSinglePermissions', 'newPermission'].filter((f) => typeof kontext[f] === 'function');
+ergebnis.jqueryGeladen = mitJquery && typeof kontext.$ === 'function' && typeof kontext.jQuery === 'function';
+ergebnis.funktionen = ['showSinglePermissions', 'newPermission', 'deletePermission', 'editIntern'].filter((f) => typeof kontext[f] === 'function');
 console.log(JSON.stringify(ergebnis));

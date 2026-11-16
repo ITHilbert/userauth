@@ -102,15 +102,15 @@ Die Verwaltungsseiten erweitern `userauth::layouts.afterLogin`. Dieses Layout er
 | `title` | im `<title>` | alle Verwaltungsseiten |
 | `content` | Seiteninhalt | alle Verwaltungsseiten |
 | `css` | im `<head>` | aktuell von keiner aktiven Verwaltungsseite |
-| `js` | nach den Skripten für jQuery und DataTables, am Ende von `<body>` | Listen (Benutzer, Rollen, Rechte), Rollen- und Rechteformulare |
+| `js` | nach dem Skript für DataTables (ohne jQuery), am Ende von `<body>` | Listen (Benutzer, Rollen, Rechte), Rollen- und Rechteformulare |
 | Stack `scripts` | am Ende von `<body>` (`@stack('scripts')`) | dieselben Skripte wie `js` |
 
 `content_header` wird von keiner aktiven View genutzt (nur auskommentiert) und ist nicht nötig.
 
-**Skripte:** Der Host gibt `@stack('scripts')` oder `@yield('js')` aus, beides ist möglich: Das Paket füllt Stack `scripts` und Section `js` mit denselben Skripten und lässt bei einem Layout mit beiden jedes Skript nur einmal stehen. Ein Nachstarter im Host-Layout (Skript, das die Skripte der Views nachträglich ausführt) ist nicht mehr nötig. Die Inline-Initialisierungen laufen erst bei `DOMContentLoaded`, `role.js` und `permission.js` mit `defer`; ein Host, der jQuery und DataTables als Modul-Bundle (Vite) lädt, braucht nichts weiter. Gibt das Layout weder `scripts` noch `js` aus, laufen keine Skripte.
+**Skripte:** Der Host gibt `@stack('scripts')` oder `@yield('js')` aus, beides ist möglich: Das Paket füllt Stack `scripts` und Section `js` mit denselben Skripten und lässt bei einem Layout mit beiden jedes Skript nur einmal stehen. Ein Nachstarter im Host-Layout (Skript, das die Skripte der Views nachträglich ausführt) ist nicht mehr nötig. Die Inline-Initialisierungen laufen erst bei `DOMContentLoaded`, `role.js` und `permission.js` mit `defer`; ein Host, der DataTables als Modul-Bundle (Vite) lädt, braucht nichts weiter. Gibt das Layout weder `scripts` noch `js` aus, laufen keine Skripte.
 
 Weitere Anforderungen an den Host:
-- **jQuery und DataTables** müssen vor dem Ausführen der Skripte geladen sein (klassisch vor `js`/`scripts`, als Modul-Bundle spätestens vor `DOMContentLoaded`). Die Listen rufen `$('.data-table').DataTable(…)` auf. Fehlen beide, bleiben die Listen leer.
+- **DataTables 2** (`window.DataTable`, ohne jQuery, kein jQuery nötig) muss vor dem Ausführen der Skripte geladen sein (klassisch vor `js`/`scripts`, als Modul-Bundle spätestens vor `DOMContentLoaded`). Die Listen rufen `new DataTable('.data-table', …)` auf; Ajax sendet den Header `X-Requested-With`. Fehlt DataTables, bleiben die Listen leer.
 - **Sprachdatei der Listen:** Die Listen laden `vendor/laravelkit/DataTable_DE.json`. Die Datei kommt aus `ithilbert/laravel-kit`.
 - **Kit-Components und Skripte:** Die Views bestehen aus Blade-Components von laravel-kit (`<x-kit::…>`), das Theme bestimmt `laravelkit.theme`. Der Host bindet `initTabs()`, `initLoeschen()` und `mountInseln()` mit der Insel `dialog-delete` ein (siehe [Upgrade-Hinweise](#upgrade-hinweise-nach-300-unveröffentlicht), Punkt 9). Ein Whole-DOM-Mount ist für diese Seiten nicht nötig.
 - **Lösch-Buttons:** `HButton::delete` aus laravel-kit gibt `data-kit-delete="<id>"` für `initLoeschen()` aus und ruft weiter `OpenDeleteForm(id)` per `onclick` auf. Hosts, die `OpenDeleteForm` global definieren (im Host `packages_dev` in `resources/js/forms.js`), öffnen den Dialog weiter auf diesem Weg.
@@ -562,7 +562,7 @@ mountInseln({
     Dann wird weder die Gruppe noch ein Recht angelegt oder umbenannt.
 
 **Skripte der Verwaltungsseiten**
-15. Die Verwaltungsseiten legen ihre Skripte in den Stack `userauth-scripts`; `userauth::layouts.afterLogin` bringt sie in Stack `scripts` und Section `js` des Host-Layouts (siehe [Verwaltungsseiten](#verwaltungsseiten-benutzer-rollen-rechte-passwort-benutzerbild)). Ein Nachstarter im Host-Layout für diese Skripte kann entfallen. Das Host-Layout gibt den Stack bzw. die Section nach dem Bundle mit jQuery und DataTables aus.
+15. Die Verwaltungsseiten legen ihre Skripte in den Stack `userauth-scripts`; `userauth::layouts.afterLogin` bringt sie in Stack `scripts` und Section `js` des Host-Layouts (siehe [Verwaltungsseiten](#verwaltungsseiten-benutzer-rollen-rechte-passwort-benutzerbild)). Ein Nachstarter im Host-Layout für diese Skripte kann entfallen. Das Host-Layout gibt den Stack bzw. die Section nach dem Bundle mit DataTables (ohne jQuery) aus.
 16. Hosts mit veröffentlichtem `layouts/afterLogin.blade.php` oder veröffentlichten Verwaltungs-Views unter `resources/views/vendor/userauth/` übernehmen die neue Fassung (neu veröffentlichen, siehe Punkt 11). Eine alte `afterLogin` ohne Brücke gibt die Skripte der neuen Views nicht aus; alte Views mit `@section('js')` laufen weiter wie bisher.
 
 **Interne Namen: eine Regel**

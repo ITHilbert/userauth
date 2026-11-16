@@ -1,5 +1,6 @@
-// Tests für src/Resources/assets/js/permission.js (klassisches Browser-Skript, jQuery, globale Funktionen).
-// Läuft per `node --test` in einem vm-Kontext mit minimalem DOM-/jQuery-Ersatz (keine npm-Abhängigkeit).
+// Tests für src/Resources/assets/js/permission.js (klassisches Browser-Skript ohne jQuery, globale Funktionen).
+// Läuft per `node --test` in einem vm-Kontext mit minimalem DOM-Ersatz (keine npm-Abhängigkeit); `$`/`jQuery` sind nicht
+// definiert, jeder Zugriff wird gezählt und wirft (userauth-datatable-ohne-jquery, AK4).
 // Das Markup entspricht permission/rechtezeilen.blade.php (Zeilen `new-row-<n>`, Vorlage-Zeile `#vorlage`).
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -36,6 +37,11 @@ class El {
             add: (...n) => { const l = self.classList.liste(); n.forEach((x) => l.includes(x) || l.push(x)); self.attrs.class = l.join(' '); },
             remove: (...n) => { self.attrs.class = self.classList.liste().filter((x) => !n.includes(x)).join(' '); },
             contains: (n) => self.classList.liste().includes(n),
+            toggle: (n, erzwingen) => {
+                const an = erzwingen ?? !self.classList.contains(n);
+                an ? self.classList.add(n) : self.classList.remove(n);
+                return an;
+            },
         };
     }
     get id() { return this.attrs.id ?? ''; }
@@ -56,6 +62,17 @@ class El {
         }
         return true;
     }
+    get name() { return this.attrs.name ?? ''; }
+    set name(v) { this.attrs.name = String(v); }
+    get className() { return this.attrs.class ?? ''; }
+    set className(v) { this.attrs.class = String(v); }
+    get firstElementChild() { return this.children[0] ?? null; }
+    append(...xs) { xs.forEach((x) => (typeof x === 'string' ? (this.textContent += x) : this.appendChild(x))); }
+    remove() { this.parentNode?.removeChild(this); }
+    matches(s) { return s.split(',').some((t) => passt(this, t.trim())); }
+    closest(s) { for (let x = this; x; x = x.parentNode) if (x.matches(s)) return x; return null; }
+    querySelectorAll(s) { return suche([this], s); }
+    querySelector(s) { return suche([this], s)[0] ?? null; }
     nachfahren() { return this.children.flatMap((k) => [k, ...k.nachfahren()]); }
     cloneNode() {
         const c = new El(this.tagName, { ...this.attrs }, this.children.map((k) => k.cloneNode()));
@@ -114,12 +131,20 @@ function baueKontext(zeilenNummern) {
         nachfahren: () => html.nachfahren(),
         getElementById: (id) => html.nachfahren().find((e) => e.id === id) ?? null,
         createElement: (t) => new El(t),
-        addEventListener() {},
+        listeners: {},
+        readyState: 'interactive',
+        addEventListener(t, f) { (doc.listeners[t] ??= []).push(f); },
+        querySelectorAll: (sel) => suche([doc], sel),
+        querySelector: (sel) => suche([doc], sel)[0] ?? null,
     };
 
     const feld = (id, name, value = '') => new El('input', { type: 'text', id, name, class: 'form-control input-text', value });
     body.appendChild(feld('group_display', 'group_display', 'Gruppe'));
     body.appendChild(feld('group_name', 'group_name', 'grp'));
+    const checkbox = new El('input', { type: 'checkbox', name: 'ckPermissionGroup' });
+    checkbox.checked = false;
+    body.appendChild(checkbox);
+    body.appendChild(new El('div', { id: 'group_permissions_show', class: 'd-none' }));
 
     const tbody = new El('tbody', { id: 'tbody' });
     body.appendChild(new El('table', {}, [tbody]));
@@ -131,6 +156,11 @@ function baueKontext(zeilenNummern) {
             new El('td', {}, [new El('button', { onclick: `deletePermission('new-row-${n}')` })]),
         ]));
     }
+    // vorhandene (gespeicherte) Zeile aus rechtezeilen.blade.php
+    tbody.appendChild(new El('tr', { id: 'perm-7', nummer: 7 }, [
+        new El('td', {}, [feld('display_7', 'permission_display_7', 'Sieben')]),
+        new El('td', {}, [feld('intern_7', 'permission_7', 'grp_sieben')]),
+    ]));
     tbody.appendChild(new El('tr', { id: 'vorlage', class: 'd-none', nummer: 'x' }, [
         new El('td', { id: 'new-id', scope: 'row', class: 'd-none' }),
         new El('td', {}, [feld('vorlage_display', '')]),
@@ -138,73 +168,31 @@ function baueKontext(zeilenNummern) {
         new El('td', {}, [new El('button', { id: 'btnVorlage' })]),
     ]));
 
-    // minimales jQuery
-    function J(elemente) {
-        const liste = elemente.filter(Boolean);
-        const o = {
-            length: liste.length,
-            find: (s) => J(suche(liste, s)),
-            clone: () => J(liste.map((e) => e.cloneNode())),
-            each(f) { liste.forEach((e, i) => f.call(e, i, e)); return o; },
-            attr(n, v) {
-                if (v === undefined) return liste[0]?.getAttribute(n) ?? undefined;
-                liste.forEach((e) => e.setAttribute(n, v));
-                return o;
-            },
-            removeAttr: (n) => { liste.forEach((e) => e.removeAttribute(n)); return o; },
-            addClass: (c) => { liste.forEach((e) => e.classList.add(c)); return o; },
-            removeClass: (c) => { liste.forEach((e) => e.classList.remove(c)); return o; },
-            hasClass: (c) => !!liste[0]?.classList.contains(c),
-            append(x) {
-                liste.forEach((e) => {
-                    if (typeof x === 'string') e.textContent += x;
-                    else x.toArray().forEach((k) => e.appendChild(k));
-                });
-                return o;
-            },
-            val(v) {
-                if (v === undefined) return liste[0]?.value;
-                liste.forEach((e) => { e.value = String(v); });
-                return o;
-            },
-            text(v) {
-                if (v === undefined) return liste[0]?.textContent;
-                liste.forEach((e) => { e.textContent = String(v); });
-                return o;
-            },
-            on(t, f) { liste.forEach((e) => e.addEventListener(t, f)); return o; },
-            first: () => J(liste.slice(0, 1)),
-            eq: (i) => J(liste.slice(i, i + 1)),
-            get: (i) => (i === undefined ? liste : liste[i]),
-            toArray: () => liste,
-            parent: () => J(liste.map((e) => e.parentNode)),
-            closest: (s) => J(liste.map((e) => { for (let x = e; x; x = x.parentNode) if (passt(x, s)) return x; return null; })),
-            prop: (n, v) => (v === undefined ? liste[0]?.[n] : (liste.forEach((e) => { e[n] = v; }), o)),
-            remove: () => { liste.forEach((e) => e.parentNode?.removeChild(e)); return o; },
-        };
-        liste.forEach((e, i) => { o[i] = e; });
-        return o;
-    }
-    const $ = (x) => {
-        if (typeof x === 'string') return J(suche([doc], x));
-        if (x instanceof El) return J([x]);
-        if (x && typeof x.toArray === 'function') return x;
-        return J([]);
-    };
-    $.fn = {};
-
-    const ctx = vm.createContext({ $, jQuery: $, document: doc, console });
+    // Der Browser ohne jQuery: jeder Zugriff auf `$` oder `jQuery` (auch `typeof`) wird gezählt und wirft (AK4).
+    const jqueryZugriffe = [];
+    const ctx = vm.createContext({ document: doc, console });
     ctx.window = ctx;
+    for (const name of ['$', 'jQuery']) {
+        Object.defineProperty(ctx, name, {
+            configurable: true,
+            get() {
+                jqueryZugriffe.push(name);
+                throw new ReferenceError(`${name} is not defined`);
+            },
+        });
+    }
     // Die Skripte laden wie die Views: erst die gemeinsamen Dateien (Namensregel), dann permission.js.
     for (const datei of skripteDerView('permission/create')) {
         vm.runInContext(fs.readFileSync(path.join(jsOrdner, datei), 'utf8'), ctx, { filename: datei });
     }
+    // defer-Skript: DOMContentLoaded steht noch aus, danach feuern die registrierten Listener.
+    doc.listeners.DOMContentLoaded?.forEach((f) => f({ type: 'DOMContentLoaded' }));
 
     // Zeilen aus dem Markup tragen ein inline onchange="editIntern('new-row-<n>')"
     for (const n of zeilenNummern) {
         doc.getElementById(`display_new_${n}`).addEventListener('change', () => ctx.editIntern(`new-row-${n}`));
     }
-    return { ctx, doc, tbody };
+    return { ctx, doc, tbody, jqueryZugriffe };
 }
 
 const aendern = (doc, id, wert) => {
@@ -320,4 +308,82 @@ test('Randfall: neu ergänzte Zeilen nach old()-Zeilen bekommen freie Nummern un
 test('AK3: public/vendor/userauth/js/permission.js im Host ist gleich der Paketdatei', () => {
     assert.ok(fs.existsSync(hostDatei), 'Host-Kopie fehlt: ' + hostDatei);
     assert.equal(fs.readFileSync(hostDatei, 'utf8'), fs.readFileSync(paketDatei, 'utf8'));
+});
+
+// AK4
+test('AK4: permission.js ruft weder `$` noch `jQuery` auf (Gegenprobe: die Falle zählt jeden Zugriff)', () => {
+    const { ctx, jqueryZugriffe } = baueKontext([1]);
+    ctx.newPermission();
+    ctx.deletePermission('perm-7');
+    ctx.editIntern('perm-7');
+    ctx.showSinglePermissions();
+    assert.equal(typeof ctx.newPermission, 'function', 'Aufbau: Skript ist geladen');
+    assert.deepEqual(jqueryZugriffe, [], 'Zugriffe auf $/jQuery');
+
+    // Gegenprobe: ein Skript, das `$` nutzt, löst die Falle aus.
+    assert.throws(() => vm.runInContext("$('x')", ctx), { name: 'ReferenceError' });
+    assert.deepEqual(jqueryZugriffe, ['$'], 'Aufbau: die Falle erkennt Zugriffe');
+});
+
+// AK4
+test('AK4: Änderung von group_display setzt group_name', () => {
+    const { doc } = baueKontext([]);
+    assert.equal(doc.getElementById('group_name').value, 'grp', 'Aufbau: Startwert');
+    aendern(doc, 'group_display', 'Meine Gruppe');
+    assert.equal(doc.getElementById('group_name').value, 'meine_gruppe');
+});
+
+// AK4
+test('AK4: showSinglePermissions blendet #group_permissions_show je nach Checkbox mit d-none aus und ein', () => {
+    const { ctx, doc } = baueKontext([]);
+    const box = doc.querySelector('input[name="ckPermissionGroup"]');
+    const bereich = doc.getElementById('group_permissions_show');
+    assert.ok(bereich.classList.contains('d-none'), 'Aufbau: Bereich startet ausgeblendet');
+    box.checked = true;
+    ctx.showSinglePermissions();
+    assert.ok(!bereich.classList.contains('d-none'), 'sichtbar bei gesetzter Checkbox');
+    box.checked = false;
+    ctx.showSinglePermissions();
+    assert.ok(bereich.classList.contains('d-none'), 'wieder ausgeblendet');
+});
+
+// AK4
+test('AK4: newPermission klont die Vorlage: sichtbar, Nummer, Namen, Löschen-Button', () => {
+    const { ctx, doc, tbody } = baueKontext([1]);
+    ctx.newPermission();
+    const z = zeile(tbody, 2);
+    assert.ok(z, 'Zeile new-row-2 steht im tbody');
+    assert.ok(!z.classList.contains('d-none'), 'Zeile ist sichtbar');
+    assert.equal(z.getAttribute('nummer'), '2');
+    assert.equal(doc.getElementById('new-id-2').textContent, 'new_2');
+    assert.equal(doc.getElementById('display_new_2').getAttribute('name'), 'permission_display_new_2');
+    assert.equal(doc.getElementById('intern_new_2').getAttribute('name'), 'permission_new_2');
+    const knopf = z.nachfahren().find((e) => e.tagName === 'BUTTON');
+    assert.equal(knopf.getAttribute('onclick'), "deletePermission('new-row-2')");
+    assert.ok(!knopf.hasAttribute('id'), 'id btnVorlage entfernt');
+    assert.ok(doc.getElementById('vorlage').classList.contains('d-none'), 'Vorlage bleibt unverändert ausgeblendet');
+});
+
+// AK4
+test('AK4: deletePermission entfernt neue Zeilen und blendet vorhandene aus (delete_*-Namen)', () => {
+    const { ctx, doc, tbody } = baueKontext([1]);
+    assert.ok(zeile(tbody, 1), 'Aufbau: neue Zeile da');
+    ctx.deletePermission('new-row-1');
+    assert.equal(zeile(tbody, 1), undefined, 'neue Zeile entfernt');
+
+    const alt = doc.getElementById('perm-7');
+    assert.ok(!alt.classList.contains('d-none'), 'Aufbau: vorhandene Zeile sichtbar');
+    ctx.deletePermission('perm-7');
+    assert.ok(doc.getElementById('perm-7'), 'vorhandene Zeile bleibt im DOM');
+    assert.ok(alt.classList.contains('d-none'));
+    assert.equal(doc.getElementById('display_7').getAttribute('name'), 'delete_display_7');
+    assert.equal(doc.getElementById('intern_7').getAttribute('name'), 'delete_intern_7');
+});
+
+// AK4
+test('AK4: editIntern bildet den internen Namen einer vorhandenen Zeile aus group_name und Anzeige', () => {
+    const { ctx, doc } = baueKontext([]);
+    doc.getElementById('display_7').value = 'Neues Recht';
+    ctx.editIntern('perm-7');
+    assert.equal(doc.getElementById('intern_7').value, 'grp_neues_recht');
 });

@@ -40,14 +40,15 @@
 @push('userauth-scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  $(function() {
-
-    var table = $('.data-table').DataTable({
+    new DataTable('.data-table', {
         processing: true,
         serverSide: true,
         responsive: true,
         language: { url: "{{ asset("vendor/laravelkit/DataTable_DE.json") }}" },
-        ajax: "{{ route('permission') }}",
+        ajax: {
+            url: "{{ route('permission') }}",
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        },
         columns: [
             { data: 'id', name: 'id' },
             { data: 'group_display', name: 'group_display' },
@@ -55,8 +56,6 @@ document.addEventListener('DOMContentLoaded', function () {
             { data: 'action', name: 'action', orderable: false, searchable: false },
         ],
     });
-
-  });
 });
 </script>
 @endpush

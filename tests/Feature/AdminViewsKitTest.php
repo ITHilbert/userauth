@@ -1162,12 +1162,15 @@ final class AdminViewsKitTest extends TestCase
     // ================================================================== AK8
 
     /**
-     * @return array{spalten: list<string>, ajax: string, entry: array<string, string>}
+     * Die Initialisierung `new DataTable('.data-table', {…})` der Seite (userauth-datatable-ohne-jquery, AK1/AK3).
+     *
+     * @return array{spalten: list<string>, ajax: string, ajaxHeader: bool, entry: array<string, string>, skript: string}
      */
     private function dataTable(string $html): array
     {
-        $this->assertSame(1, preg_match('/\.DataTable\(\{(.*?)\}\);\s*\}\);/s', $html, $block), 'DataTable-Initialisierung');
-        $this->assertSame(1, preg_match('/ajax:\s*["\']([^"\']+)["\']/', $block[1], $ajax), 'ajax');
+        $this->assertSame(1, preg_match('/new\s+DataTable\(\s*[\'"]\.data-table[\'"]\s*,\s*\{(.*?)\}\s*\)\s*;/s', $html, $block), 'DataTable-Initialisierung `new DataTable(\'.data-table\', {…})`');
+        $this->assertSame(1, preg_match('/ajax:\s*\{\s*url:\s*["\']([^"\']+)["\']/', $block[1], $ajax), 'ajax: { url: … }');
+        $ajaxHeader = preg_match('/ajax:\s*\{[^}]*headers:\s*\{\s*["\']?X-Requested-With["\']?\s*:\s*["\']XMLHttpRequest["\']\s*\}/s', $block[1]) === 1;
         $this->assertSame(1, preg_match('/columns:\s*\[(.*)\]/s', $block[1], $spalten), 'columns');
         preg_match_all('/\{([^{}]*)\}/', $spalten[1], $eintraege);
         $namen = [];
@@ -1177,8 +1180,9 @@ final class AdminViewsKitTest extends TestCase
             $namen[] = $d[1];
             $roh[$d[1]] = $eintrag;
         }
+        $this->assertSame(1, preg_match('/<script\b[^>]*>((?:(?!<\/script>).)*new\s+DataTable\((?:(?!<\/script>).)*)<\/script>/s', $html, $skript), 'Inline-Skript mit der Initialisierung');
 
-        return ['spalten' => $namen, 'ajax' => $ajax[1], 'entry' => $roh];
+        return ['spalten' => $namen, 'ajax' => $ajax[1], 'ajaxHeader' => $ajaxHeader, 'entry' => $roh, 'skript' => $skript[1]];
     }
 
     /** @return array<string, array{0: string, 1: list<string>}> */
@@ -1195,20 +1199,54 @@ final class AdminViewsKitTest extends TestCase
      * @param  list<string>  $spalten
      */
     #[DataProvider('dataTables')]
-    public function test_ak8_liste_nutzt_jquery_datatable_mit_denselben_spalten_und_derselben_ajax_route(string $liste, array $spalten): void
+    // AK1 (userauth-datatable-ohne-jquery; löst die jQuery-Festlegung aus AK8 ab)
+    public function test_ak1_liste_nutzt_new_datatable_ohne_jquery_mit_denselben_spalten_und_derselben_ajax_route(string $liste, array $spalten): void
     {
         $html = $this->seite($liste.'.index');
         $tabelle = $this->dataTable($html);
 
         $this->assertSame($spalten, $tabelle['spalten']);
         $this->assertSame(route($liste), $tabelle['ajax']);
-        $this->assertMatchesRegularExpression('/\$\(\s*[\'"]\.data-table[\'"]\s*\)\.DataTable\(/', $html);
         $this->assertMatchesRegularExpression('/serverSide:\s*true/', $html);
         $this->assertMatchesRegularExpression('/processing:\s*true/', $html);
+        $this->assertMatchesRegularExpression('/responsive:\s*true/', $html);
+        $this->assertMatchesRegularExpression('#language:\s*\{\s*url:\s*"[^"]*vendor/laravelkit/DataTable_DE\.json"#', $html);
         $this->assertMatchesRegularExpression('/orderable:\s*false/', $tabelle['entry']['action']);
         $this->assertMatchesRegularExpression('/searchable:\s*false/', $tabelle['entry']['action']);
         $kopf = $this->elemente($this->dom($html), '//table[contains(@class,"data-table")]/thead//th');
         $this->assertCount(count($spalten), $kopf, 'eine Kopfzelle je Spalte');
+    }
+
+    /**
+     * @param  list<string>  $spalten
+     */
+    #[DataProvider('dataTables')]
+    // AK1 (userauth-datatable-ohne-jquery)
+    public function test_ak1_inline_skript_der_liste_ruft_weder_dollar_noch_jquery_auf(string $liste, array $spalten): void
+    {
+        $muster = '/(?<![\w$.])(\$|jQuery)\s*[(.]/';
+        // Gegenprobe: das Muster erkennt die alten Schreibweisen.
+        $this->assertSame(1, preg_match($muster, "$('.data-table').DataTable({});"), 'Aufbau: $-Aufruf wird erkannt');
+        $this->assertSame(1, preg_match($muster, "jQuery('.data-table').DataTable({});"), 'Aufbau: jQuery-Aufruf wird erkannt');
+        $this->assertSame(1, preg_match($muster, "document.addEventListener('x', function () { $(function () {}); });"), 'Aufbau: $(function) wird erkannt');
+
+        $tabelle = $this->dataTable($this->seite($liste.'.index'));
+
+        $this->assertStringContainsString('new DataTable(', $tabelle['skript'], 'Aufbau: das geprüfte Skript ist das der Initialisierung');
+        $this->assertSame(0, preg_match($muster, $tabelle['skript']), 'Inline-Skript ruft kein `$`/`jQuery` auf');
+    }
+
+    /**
+     * @param  list<string>  $spalten
+     */
+    #[DataProvider('dataTables')]
+    // AK3 (userauth-datatable-ohne-jquery)
+    public function test_ak3_ajax_option_traegt_url_und_header_x_requested_with(string $liste, array $spalten): void
+    {
+        $tabelle = $this->dataTable($this->seite($liste.'.index'));
+
+        $this->assertSame(route($liste), $tabelle['ajax'], 'Aufbau: ajax ist ein Objekt mit der Route als url');
+        $this->assertTrue($tabelle['ajaxHeader'], 'ajax.headers enthält X-Requested-With: XMLHttpRequest');
     }
 
     /**

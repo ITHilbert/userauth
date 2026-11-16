@@ -25,9 +25,9 @@ final class AdminViewsSkripteTest extends TestCase
 
     /** Seite → Marker, der das Skript der Seite eindeutig erkennt. */
     private const MARKER = [
-        'user.index' => '.DataTable(',
-        'role.index' => '.DataTable(',
-        'permission.index' => '.DataTable(',
+        'user.index' => 'new DataTable(',
+        'role.index' => 'new DataTable(',
+        'permission.index' => 'new DataTable(',
         'role.create' => 'vendor/userauth/js/role.js',
         'role.edit' => 'vendor/userauth/js/role.js',
         'permission.create' => 'vendor/userauth/js/permission.js',
@@ -154,11 +154,11 @@ final class AdminViewsSkripteTest extends TestCase
     }
 
     /**
-     * Führt die Skripte der Seite aus wie bei einem Host mit Modul-Bundle (`$` erst nach dem Laden).
+     * Führt die Skripte der Seite aus wie bei einem Host mit Modul-Bundle (`window.DataTable` erst nach dem Laden, ohne jQuery).
      *
-     * @return array{fehler: ?string, fehlerVorBundle: ?string, aufrufe: list<mixed>, optionen: list<array<string, mixed>>, funktionen: list<string>}
+     * @return array{fehler: ?string, fehlerVorBundle: ?string, aufrufe: list<mixed>, optionen: list<array<string, mixed>>, funktionen: list<string>, jqueryZugriffe: list<string>, jqueryAufrufe: list<mixed>, jqueryGeladen: bool}
      */
-    private function skriptLaufen(string $seite): array
+    private function skriptLaufen(string $seite, bool $mitJquery = false): array
     {
         $html = $this->seite($seite);
         $manifest = $this->manifest($html);
@@ -166,21 +166,21 @@ final class AdminViewsSkripteTest extends TestCase
             $this->assertCount(1, array_filter($manifest, fn (array $s) => $s['typ'] === 'inline'), 'genau ein Inline-Skript auf der Seite');
         }
 
-        return $this->manifestLaufen($manifest);
+        return $this->manifestLaufen($manifest, $mitJquery);
     }
 
     /**
      * @param  list<array{typ: string, code: string, src: string, spaeter: bool}>  $manifest
-     * @return array{fehler: ?string, fehlerVorBundle: ?string, aufrufe: list<mixed>, optionen: list<array<string, mixed>>, funktionen: list<string>}
+     * @return array{fehler: ?string, fehlerVorBundle: ?string, aufrufe: list<mixed>, optionen: list<array<string, mixed>>, funktionen: list<string>, jqueryZugriffe: list<string>, jqueryAufrufe: list<mixed>, jqueryGeladen: bool}
      */
-    private function manifestLaufen(array $manifest): array
+    private function manifestLaufen(array $manifest, bool $mitJquery = false): array
     {
         $datei = tempnam(sys_get_temp_dir(), 'userauth-skript-');
         $this->assertNotFalse($datei);
 
         try {
             file_put_contents($datei, json_encode($manifest, JSON_THROW_ON_ERROR));
-            $ausgabe = shell_exec('node '.escapeshellarg(__DIR__.'/../Fixtures/inline-skript-lauf.mjs').' '.escapeshellarg($datei).' 2>&1');
+            $ausgabe = shell_exec('node '.escapeshellarg(__DIR__.'/../Fixtures/inline-skript-lauf.mjs').' '.escapeshellarg($datei).($mitJquery ? ' mit-jquery' : '').' 2>&1');
         } finally {
             @unlink($datei);
         }
@@ -250,14 +250,64 @@ final class AdminViewsSkripteTest extends TestCase
         $this->assertCount(1, $lauf['optionen'], 'DataTable genau einmal initialisiert');
     }
 
-    // AK3
-    public function test_ak3_gegenprobe_permission_js_ohne_bundle_wirft_reference_error(): void
+    // AK4 (userauth-datatable-ohne-jquery; ersetzt die ReferenceError-Gegenprobe aus AK3 der Skripte-Spec)
+    public function test_ak4_permission_js_laeuft_ohne_bundle_und_ohne_jquery_ohne_fehler(): void
     {
         $code = (string) file_get_contents(__DIR__.'/../../src/Resources/assets/js/permission.js');
 
+        // Gegenprobe: derselbe Aufbau mit einem Skript, das `$` nutzt, scheitert und zählt den Zugriff.
+        $alt = $this->manifestLaufen([['typ' => 'src', 'code' => "var x = \$('input');", 'src' => 'permission.js', 'spaeter' => false]]);
+        $this->assertStringContainsString('ReferenceError', (string) $alt['fehlerVorBundle'], 'Aufbau: ohne jQuery scheitert ein `$`-Skript');
+        $this->assertSame(['$'], $alt['jqueryZugriffe'], 'Aufbau: Zugriff auf `$` wird gezählt');
+
         $lauf = $this->manifestLaufen([['typ' => 'src', 'code' => $code, 'src' => 'permission.js', 'spaeter' => false]]);
 
-        $this->assertStringContainsString('ReferenceError', (string) $lauf['fehlerVorBundle'], 'Aufbau: ohne Verzögerung scheitert permission.js ohne `$`');
+        $this->assertNull($lauf['fehlerVorBundle'], 'permission.js läuft ohne `$`/`jQuery` ohne Fehler');
+        $this->assertSame([], $lauf['jqueryZugriffe'], 'permission.js greift nicht auf `$`/`jQuery` zu');
+    }
+
+    // AK2 (userauth-datatable-ohne-jquery)
+    #[DataProvider('listenMitLayouts')]
+    public function test_ak2_ohne_jquery_wird_data_table_genau_einmal_ohne_fehler_initialisiert(string $variante, string $seite): void
+    {
+        $this->layout($variante);
+
+        $lauf = $this->skriptLaufen($seite);
+
+        $this->assertSame(['.data-table'], $lauf['aufrufe'], 'new DataTable(\'.data-table\', …) genau einmal (Aufbau greift)');
+        $this->assertCount(1, $lauf['optionen']);
+        $this->assertNull($lauf['fehlerVorBundle']);
+        $this->assertNull($lauf['fehler'], 'ohne `$`/`jQuery` kein Fehler');
+        $this->assertSame([], $lauf['jqueryZugriffe'], 'kein Zugriff auf `$`/`jQuery`');
+    }
+
+    // AK3 (userauth-datatable-ohne-jquery)
+    #[DataProvider('listen')]
+    public function test_ak3_ajax_option_im_lauf_traegt_url_und_header(string $seite): void
+    {
+        $this->layout('yield');
+
+        $lauf = $this->skriptLaufen($seite);
+
+        $this->assertCount(1, $lauf['optionen'], 'Aufbau: Initialisierung ist gelaufen');
+        $ajax = $lauf['optionen'][0]['ajax'];
+        $this->assertIsArray($ajax, 'ajax ist ein Objekt {url, headers}');
+        $this->assertSame(['url', 'headers'], array_keys($ajax));
+        $this->assertSame(['X-Requested-With' => 'XMLHttpRequest'], $ajax['headers']);
+    }
+
+    // Randfall 1 (userauth-datatable-ohne-jquery)
+    #[DataProvider('listen')]
+    public function test_randfall1_mit_geladenem_jquery_laeuft_die_liste_unveraendert_ohne_jquery_aufruf(string $seite): void
+    {
+        $this->layout('stack');
+
+        $lauf = $this->skriptLaufen($seite, true);
+
+        $this->assertNull($lauf['fehler']);
+        $this->assertSame(['.data-table'], $lauf['aufrufe'], 'genau eine Initialisierung');
+        $this->assertTrue($lauf['jqueryGeladen'], 'Aufbau: `$` und `jQuery` waren geladen');
+        $this->assertSame([], $lauf['jqueryAufrufe'], 'kein jQuery-Wrapper um die Initialisierung');
     }
 
     /** @return array<string, array{0: string, 1: string}> */
@@ -295,8 +345,8 @@ final class AdminViewsSkripteTest extends TestCase
         $lauf = $this->skriptLaufen($seite);
 
         $this->assertNull($lauf['fehler'], 'Nach dem Bundle läuft permission.js ohne Fehler');
-        $this->assertContains('input[name="group_display"]', $lauf['aufrufe'], 'permission.js hat mit `$` gearbeitet');
-        $this->assertSame(['showSinglePermissions', 'newPermission'], $lauf['funktionen'], 'globale Funktionen von permission.js stehen bereit');
+        $this->assertSame([], $lauf['jqueryZugriffe'], 'permission.js greift nicht auf `$`/`jQuery` zu');
+        $this->assertSame(['showSinglePermissions', 'newPermission', 'deletePermission', 'editIntern'], $lauf['funktionen'], 'globale Funktionen von permission.js stehen bereit');
     }
 
     // ================================================================== Randfälle 4 bis 6 — Host-Section js und Randfall 7 (nie leere Seite)
@@ -366,7 +416,7 @@ final class AdminViewsSkripteTest extends TestCase
         // Gegenprobe: mit normalem Limit steht das Skript bei „beides“ genau einmal da (die Nachbearbeitung greift);
         // der Lauf kompiliert und cacht dabei die Views.
         $normal = $this->seite('permission.index');
-        $this->assertSame(1, substr_count($normal, '.DataTable('), 'Aufbau: Doppelausgabe wird entfernt');
+        $this->assertSame(1, substr_count($normal, 'new DataTable('), 'Aufbau: Doppelausgabe wird entfernt');
 
         $this->app['view']->flushState();
         ini_set('pcre.jit', '0');
@@ -385,7 +435,7 @@ final class AdminViewsSkripteTest extends TestCase
         $this->assertStringContainsString('<!--HOSTLAYOUT-->', $html, 'Host-Layout ist gerendert');
         $this->assertStringContainsString('<h1', $html, 'Verwaltungsseite ist vollständig');
         $this->assertStringContainsString('</html>', $html);
-        $this->assertGreaterThanOrEqual(1, substr_count($html, '.DataTable('), 'Skript der Seite steht in der Seite');
+        $this->assertGreaterThanOrEqual(1, substr_count($html, 'new DataTable('), 'Skript der Seite steht in der Seite');
     }
 
     // ================================================================== AK4 — Sprachdatei
@@ -460,5 +510,32 @@ final class AdminViewsSkripteTest extends TestCase
         $abschnitt = $this->readmeAbschnitt();
 
         $this->assertMatchesRegularExpression('/Nachstarter[^\n]*(nicht mehr n(ö|oe)tig|entfällt|kein)|(nicht mehr n(ö|oe)tig|kein)[^\n]*Nachstarter/iu', $abschnitt);
+    }
+
+    // AK5 (userauth-datatable-ohne-jquery)
+    public function test_ak5_readme_nennt_window_datatable_statt_jquery_pflicht(): void
+    {
+        $readme = (string) file_get_contents(__DIR__.'/../../README.md');
+        $verlangtJquery = static fn (string $zeile): bool => str_contains($zeile, 'jQuery')
+            && preg_match('/\b(ohne|kein|keine|keinen|nicht|optional)\b/iu', $zeile) !== 1;
+
+        // Gegenprobe: der Wächter erkennt die alte Pflichtaussage und lässt die neue Aussage durch.
+        $this->assertTrue($verlangtJquery('jQuery und DataTables müssen vor dem Ausführen der Skripte geladen sein.'), 'Aufbau: Pflichtaussage wird erkannt');
+        $this->assertFalse($verlangtJquery('Voraussetzung ist `window.DataTable` (DataTables 2, ohne jQuery).'), 'Aufbau: Aussage ohne Pflicht wird durchgelassen');
+
+        $this->assertStringContainsString('window.DataTable', $readme);
+        $this->assertStringContainsString("new DataTable('.data-table'", $readme);
+        $pflicht = array_values(array_filter(explode("\n", $readme), $verlangtJquery));
+        $this->assertSame([], $pflicht, 'README nennt jQuery nirgends als Voraussetzung');
+    }
+
+    // AK5 (userauth-datatable-ohne-jquery)
+    public function test_ak5_changelog_hat_eintrag_3_4_0(): void
+    {
+        $changelog = (string) file_get_contents(__DIR__.'/../../CHANGELOG.md');
+
+        $this->assertSame(1, preg_match('/^## 3\.4\.0 – \d{4}-\d{2}-\d{2}\s*\n(.*?)(?=^## |\z)/ms', $changelog, $eintrag), 'Eintrag `## 3.4.0 – <Datum>`');
+        $this->assertStringContainsString('DataTable', $eintrag[1]);
+        $this->assertStringContainsString('jQuery', $eintrag[1]);
     }
 }

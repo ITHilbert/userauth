@@ -29,7 +29,7 @@ const skripteDerView = (view) => {
     return [...html.matchAll(/vendor\/userauth\/js\/([\w.\-]+\.js)/g)].map((m) => m[1]);
 };
 
-// ---------- Kontext mit minimalem DOM/jQuery ----------
+// ---------- Kontext mit minimalem DOM (ohne jQuery) ----------
 function baueKontext(dateien, { gruppenname = 'grp', anzeigeZeile = undefined } = {}) {
     const element = (wert = '') => ({ value: wert, listeners: {}, addEventListener(t, f) { (this.listeners[t] ??= []).push(f); } });
     const el = {
@@ -41,33 +41,21 @@ function baueKontext(dateien, { gruppenname = 'grp', anzeigeZeile = undefined } 
     const zeile = { value: anzeigeZeile };
     const intern = { value: '' };
 
-    const leer = () => new Proxy(function () {}, { get: (_, k) => (k === 'length' ? 0 : k === Symbol.toPrimitive ? () => '' : leer()), apply: () => leer() });
-    const wrapper = (liste) => Object.assign([...liste], {
-        find: () => ({ each() {} }),
-        val: (v) => {
-            if (v === undefined) return liste[0]?.value;
-            liste.forEach((e) => { e.value = v; });
-            return undefined;
-        },
-        attr: () => '1',
-        addClass: () => leer(),
-        removeClass: () => leer(),
-    });
-    const $ = (sel) => {
-        if (sel === 'input[name="group_display"]') return wrapper([el.group_display]);
-        if (sel === 'input[name="group_name"]') return wrapper([el.group_name]);
-        if (sel === '#display_new_1') return wrapper([zeile]);
-        if (sel === '#intern_new_1') return wrapper([intern]);
-        if (sel === '#new-row-1') return wrapper([{ value: '' }]);
-        return wrapper([]);
-    };
+    // Zeile new-row-1 wie in rechtezeilen.blade.php: getAttribute('nummer') liefert die Zeilennummer.
+    const zeilenElement = { getAttribute: (n) => (n === 'nummer' ? '1' : null) };
+    const nachId = { ...el, 'new-row-1': zeilenElement, 'display_new_1': zeile, 'intern_new_1': intern };
+    const nachName = { group_display: el.group_display, group_name: el.group_name };
+    // Vanilla-DOM wie permission.js ihn braucht; `$`/`jQuery` gibt es nicht (userauth-datatable-ohne-jquery, AK4).
     const document = {
-        getElementById: (id) => el[id] ?? null,
-        querySelector: () => null,
+        getElementById: (id) => nachId[id] ?? null,
+        querySelector: (sel) => {
+            const m = sel.match(/^input\[name="(\w+)"\]$/);
+            return (m && nachName[m[1]]) ?? null;
+        },
         querySelectorAll: () => [],
         addEventListener() {},
     };
-    const ctx = vm.createContext({ $, jQuery: $, document, console });
+    const ctx = vm.createContext({ document, console });
     ctx.window = ctx;
     for (const datei of dateien) {
         vm.runInContext(fs.readFileSync(path.join(jsOrdner, datei), 'utf8'), ctx, { filename: datei });
