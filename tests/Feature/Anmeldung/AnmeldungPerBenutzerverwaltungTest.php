@@ -158,6 +158,27 @@ final class AnmeldungPerBenutzerverwaltungTest extends SocialLoginTestCase
         $this->assertSame($vorher + 1, $this->zeilen());
     }
 
+    // AK12 (kein Schrägstrich: er bräche den Reset-Link password/editwithtoken/{token}/{kennung})
+    #[DataProvider('benutzernameModi')]
+    public function test_ak12_benutzername_darf_keinen_schraegstrich_enthalten(string $modus): void
+    {
+        $this->modus($modus);
+        $ziel = User::factory()->create(['benutzername' => 'ziel.k', 'email' => 'ziel@example.test']);
+        $vorher = $this->zeilen();
+        $basis = ['name' => 'Name', 'role_id' => 3, 'email' => 'ziel@example.test'];
+
+        $this->anlegen($this->daten(['benutzername' => 'anna/m']))->assertSessionHasErrors('benutzername');
+        $this->assertSame($vorher, $this->zeilen(), 'Anlegen mit Schrägstrich legt kein Konto an');
+        $this->bearbeiten($ziel, array_merge($basis, ['benutzername' => 'anna/m']))->assertSessionHasErrors('benutzername');
+        $this->assertSame('ziel.k', $this->benutzernameVon($ziel->id), 'Bearbeiten lässt den Wert unverändert');
+
+        // Gegenprobe: derselbe Aufbau mit Punkt statt Schrägstrich wird gespeichert
+        $this->anlegen($this->daten(['benutzername' => 'anna.m']))->assertSessionHasNoErrors();
+        $this->assertSame($vorher + 1, $this->zeilen());
+        $this->bearbeiten($ziel, array_merge($basis, ['benutzername' => 'bert.m']))->assertSessionHasNoErrors();
+        $this->assertSame('bert.m', $this->benutzernameVon($ziel->id));
+    }
+
     // AK12
     #[DataProvider('benutzernameModi')]
     public function test_ak12_email_bleibt_pflicht_und_muss_gueltig_sein(string $modus): void
