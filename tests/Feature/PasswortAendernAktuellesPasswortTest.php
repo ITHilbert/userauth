@@ -132,4 +132,27 @@ final class PasswortAendernAktuellesPasswortTest extends TestCase
         $this->assertSame(1, $felder->length, 'genau ein Feld aktuelles_passwort im Formular');
         $this->assertSame('current-password', $felder->item(0)->getAttribute('autocomplete'));
     }
+
+    // AK25
+    public function test_ak25_schema_fassung_enthaelt_aktuelles_passwort_vor_dem_neuen_passwort(): void
+    {
+        $schema = json_decode(
+            (string) file_get_contents(__DIR__.'/../../src/Resources/schema/ui/password/edit.json'),
+            true,
+            512,
+            JSON_THROW_ON_ERROR,
+        );
+
+        $this->assertTrue($schema['dataSchema']['aktuelles_passwort']['required'] ?? false);
+
+        $felder = array_map(fn (array $element) => $element['field'] ?? null, $schema['uiSchema']['elements']);
+        $neu = array_search('password', $felder, true);
+        $aktuell = array_search('aktuelles_passwort', $felder, true);
+
+        $this->assertNotFalse($neu, 'Gegenprobe: Element für password vorhanden');
+        $this->assertNotFalse($aktuell);
+        $this->assertLessThan($neu, $aktuell);
+        $this->assertSame('input-password', $schema['uiSchema']['elements'][$aktuell]['type']);
+        $this->assertSame('current-password', $schema['uiSchema']['elements'][$aktuell]['autocomplete']);
+    }
 }
