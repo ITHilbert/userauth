@@ -20,6 +20,7 @@ return [
 
     'id' => 'ID',
     'password' => 'Passwort',
+    'password-current' => 'Aktuelles Passwort',
     'password-new' => 'Neues Passwort',
     'password-confirm' => 'Passwort wiederholen',
 
