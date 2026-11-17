@@ -21,7 +21,7 @@ final class PasswortAendernRequest extends FormRequest
      */
     public function rules(): array
     {
-        return ['aktuelles_passwort' => ['required', 'string', 'current_password']]
+        return ['aktuelles_passwort' => ['bail', 'required', 'string', 'current_password']]
             + NeuesPasswortRegeln::regeln();
     }
 }
