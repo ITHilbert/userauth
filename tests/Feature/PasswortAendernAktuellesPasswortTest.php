@@ -92,6 +92,25 @@ final class PasswortAendernAktuellesPasswortTest extends TestCase
     }
 
     // AK25
+    public function test_ak25_aktuelles_passwort_als_liste_wird_am_feld_abgelehnt_ohne_500_und_hash_bleibt(): void
+    {
+        $nutzer = $this->nutzer();
+        $vorher = $this->hash($nutzer);
+        $this->assertTrue(Hash::check(self::AKTUELLES_PASSWORT, $vorher), 'Gegenprobe: Ausgangshash gehört zum aktuellen Passwort');
+
+        $this->aendern($nutzer, ['aktuelles_passwort' => ['x']])
+            ->assertSessionHasErrors('aktuelles_passwort');
+        $this->assertSame($vorher, $this->hash($nutzer));
+
+        $this->actingAs($nutzer)->postJson(route('password.update'), [
+            'aktuelles_passwort' => ['x'],
+            'password' => self::NEUES_PASSWORT,
+            'password_confirmation' => self::NEUES_PASSWORT,
+        ])->assertStatus(422)->assertJsonValidationErrors('aktuelles_passwort');
+        $this->assertSame($vorher, $this->hash($nutzer));
+    }
+
+    // AK25
     public function test_ak25_richtiges_aktuelles_passwort_aendert_das_passwort(): void
     {
         $nutzer = $this->nutzer();
