@@ -1,6 +1,6 @@
 # Changelog
 
-## Unveröffentlicht
+## 3.4.1 – 2026-11-17
 
 ### Sicherheit
 - Passwort ändern (`POST /password/update`) verlangt das aktuelle Passwort im Feld `aktuelles_passwort`; ohne oder mit falschem Wert Validierungsfehler, Hash bleibt unverändert. Passwort vergessen (Token) und Admin-Änderung bleiben unverändert (#1496).
