@@ -22,6 +22,26 @@
             @include('include.message')
 
             <div class="space-y-6">
+                <!-- Group: Aktuelles Passwort -->
+                <div>
+                    <label for="password-current" class="block text-sm font-semibold text-slate-700 mb-2">
+                        @lang('userauth::password.password-current')
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-lock text-slate-400"></i>
+                        </div>
+                        <input type="password" id="password-current" name="aktuelles_passwort" required autocomplete="current-password" 
+                               class="pl-10 w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 text-sm py-2.5 transition-all @error('aktuelles_passwort') border-red-500 ring-2 ring-red-100 @enderror" 
+                               placeholder="********">
+                    </div>
+                    @error('aktuelles_passwort')
+                        <p class="mt-2 text-sm text-red-600 flex items-center gap-1">
+                            <i class="fas fa-exclamation-circle"></i> {{ $message }}
+                        </p>
+                    @enderror
+                </div>
+
                 <!-- Group: Neues Passwort -->
                 <div>
                     <label for="password" class="block text-sm font-semibold text-slate-700 mb-2">
