@@ -228,7 +228,7 @@ final class ErstpasswortTest extends TestCase
         $this->assertSame(0, $this->historienAnzahl($nutzer->id), 'Ausgangslage: keine Historie');
 
         $this->actingAs($nutzer)->from(route('password.edit'))
-            ->post(route('password.update'), ['password' => self::NEUES_PASSWORT, 'password_confirmation' => self::NEUES_PASSWORT])
+            ->post(route('password.update'), ['aktuelles_passwort' => self::ALTES_PASSWORT, 'password' => self::NEUES_PASSWORT, 'password_confirmation' => self::NEUES_PASSWORT])
             ->assertSessionHasNoErrors();
 
         $this->assertTrue(Hash::check(self::NEUES_PASSWORT, (string) DB::table('users')->where('id', $nutzer->id)->value('password')), 'Gegenprobe: Passwort geändert');

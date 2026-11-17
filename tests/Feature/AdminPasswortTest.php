@@ -146,7 +146,7 @@ final class AdminPasswortTest extends TestCase
     {
         $this->actingAs($nutzer)
             ->from(route('password.edit'))
-            ->post(route('password.update'), ['password' => $passwort, 'password_confirmation' => $passwort])
+            ->post(route('password.update'), ['aktuelles_passwort' => self::AKTUELLES_PASSWORT, 'password' => $passwort, 'password_confirmation' => $passwort])
             ->assertSessionHasErrors('password');
         $this->assertSame($nutzer->password, DB::table('users')->where('id', $nutzer->id)->value('password'), 'Gegenprobe: eigenes Ändern darf nichts speichern.');
     }
