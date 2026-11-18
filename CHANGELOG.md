@@ -4,6 +4,7 @@
 
 ### Sicherheit
 - Geheimfelder `aktuelles_passwort`, `pwtoken` und `two_factor_code` werden bei Validierungsfehlern nicht mehr in die Sitzung geflasht (#1595).
+- Der Schutz greift auch, wenn der gebundene ExceptionHandler keine Methode `dontFlash` hat (Dekorierer): die Felder werden zusätzlich vor dem Fehlerwurf aus der Anfrage entfernt, auch beim ungültigen Reset-Token (#1596).
 
 ## 3.5.0 – 2026-11-18
 

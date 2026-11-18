@@ -57,6 +57,7 @@ use ITHilbert\UserAuth\Domain\Registrierung\Events\EmailBestaetigt;
 use ITHilbert\UserAuth\Domain\Registrierung\Events\KontoRegistriert;
 use ITHilbert\UserAuth\Domain\SocialLogin\Events\SocialAccountLinked;
 use ITHilbert\UserAuth\Domain\SocialLogin\Events\SocialAccountUnlinked;
+use ITHilbert\UserAuth\Http\Geheimfelder;
 use ITHilbert\UserAuth\Http\Middleware\hasPermission;
 use ITHilbert\UserAuth\Http\Middleware\hasPermissionAnd;
 use ITHilbert\UserAuth\Http\Middleware\hasPermissionOr;
@@ -206,7 +207,7 @@ class UserAuthServiceProvider extends ServiceProvider
         $handler = $this->app->make(ExceptionHandler::class);
 
         if (method_exists($handler, 'dontFlash')) {
-            $handler->dontFlash(['aktuelles_passwort', 'pwtoken', 'two_factor_code']);
+            $handler->dontFlash(Geheimfelder::FELDER);
         }
     }
 
