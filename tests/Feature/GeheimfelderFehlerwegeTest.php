@@ -8,6 +8,7 @@ use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\View;
 use ITHilbert\UserAuth\Tests\Fixtures\User;
 use ITHilbert\UserAuth\Tests\TestCase;
@@ -137,6 +138,81 @@ final class GeheimfelderFehlerwegeTest extends TestCase
     public function test_ungueltiger_token_flasht_pwtoken_nicht(): void
     {
         $this->normalesFeldWirdGeflasht();
+
+        $this->from('/x')->post(route('password.updatewithtoken'), [
+            'email' => 'max@firma.de',
+            'pwtoken' => 'ungueltiger-token-123',
+            'password' => 'Neues-Passwort-2!',
+            'password_confirmation' => 'Neues-Passwort-2!',
+        ])->assertRedirect(route('password.forgotten'))
+            ->assertSessionHasErrors('pwtoken');
+
+        $alt = session()->getOldInput();
+        $this->assertSame('max@firma.de', $alt['email'] ?? null, 'Gegenprobe: email wird geflasht');
+        $this->assertArrayNotHasKey('pwtoken', $alt, '_old_input enthält pwtoken');
+    }
+
+    // AK4
+    public function test_wiederverwendetes_passwort_flasht_aktuelles_passwort_bei_dekoriertem_handler_nicht(): void
+    {
+        $this->dekoriererIstGebunden();
+        config()->set('userauth.password_policy.enabled', true);
+        $nutzer = User::factory()->create(['role_id' => 3, 'password' => Hash::make(self::AKTUELL)]);
+
+        $this->actingAs($nutzer)->from(route('password.edit'))->post(route('password.update'), [
+            'aktuelles_passwort' => self::AKTUELL,
+            'password' => self::AKTUELL,
+            'password_confirmation' => self::AKTUELL,
+            'harmlos' => 'sichtbar',
+        ])->assertSessionHasErrors(['password' => trans('userauth::password.bereits_verwendet')]);
+
+        $alt = session()->getOldInput();
+        $this->assertSame('sichtbar', $alt['harmlos'] ?? null, 'Gegenprobe: normales Feld wird geflasht');
+        $this->assertArrayNotHasKey('aktuelles_passwort', $alt, '_old_input enthält aktuelles_passwort');
+    }
+
+    // AK5
+    public function test_wiederverwendetes_passwort_flasht_pwtoken_bei_dekoriertem_handler_nicht(): void
+    {
+        $this->dekoriererIstGebunden();
+        config()->set('userauth.password_policy.enabled', true);
+        $nutzer = User::factory()->create(['role_id' => 3, 'email' => 'max@firma.de', 'password' => Hash::make(self::AKTUELL)]);
+        $token = Password::broker()->createToken($nutzer);
+
+        $this->from('/x')->post(route('password.updatewithtoken'), [
+            'email' => 'max@firma.de',
+            'pwtoken' => $token,
+            'password' => self::AKTUELL,
+            'password_confirmation' => self::AKTUELL,
+        ])->assertSessionHasErrors(['password' => trans('userauth::password.bereits_verwendet')]);
+
+        $alt = session()->getOldInput();
+        $this->assertSame('max@firma.de', $alt['email'] ?? null, 'Gegenprobe: email wird geflasht');
+        $this->assertArrayNotHasKey('pwtoken', $alt, '_old_input enthält pwtoken');
+    }
+
+    // AK6
+    public function test_falsches_aktuelles_passwort_flasht_es_bei_dekoriertem_handler_nicht(): void
+    {
+        $this->dekoriererIstGebunden();
+        $nutzer = User::factory()->create(['role_id' => 3, 'password' => Hash::make(self::AKTUELL)]);
+
+        $this->actingAs($nutzer)->from(route('password.edit'))->post(route('password.update'), [
+            'aktuelles_passwort' => 'Falsches-Passwort-9!',
+            'password' => 'Neues-Passwort-2!',
+            'password_confirmation' => 'Neues-Passwort-2!',
+            'harmlos' => 'sichtbar',
+        ])->assertSessionHasErrors('aktuelles_passwort');
+
+        $alt = session()->getOldInput();
+        $this->assertSame('sichtbar', $alt['harmlos'] ?? null, 'Gegenprobe: normales Feld wird geflasht');
+        $this->assertArrayNotHasKey('aktuelles_passwort', $alt, '_old_input enthält aktuelles_passwort');
+    }
+
+    // AK6
+    public function test_ungueltiger_token_flasht_pwtoken_bei_dekoriertem_handler_nicht(): void
+    {
+        $this->dekoriererIstGebunden();
 
         $this->from('/x')->post(route('password.updatewithtoken'), [
             'email' => 'max@firma.de',
