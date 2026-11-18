@@ -27,6 +27,8 @@ final class PasswortAblehnung
         try {
             return $setzen();
         } catch (PasswortBereitsVerwendetException) {
+            Geheimfelder::entfernen(request());
+
             throw ValidationException::withMessages(['password' => trans('userauth::password.bereits_verwendet')]);
         }
     }
