@@ -57,6 +57,12 @@ return [
     // add_benutzername_to_users_table; gemeinsame E-Mails zusätzlich den Rückbau des Unique-Index (README).
     'anmeldung_per' => env('USERAUTH_ANMELDUNG_PER', 'email'),
 
+    // Passwort-Regeln für neue Passwörter (Ändern, Zurücksetzen, Admin, Registrierung).
+    // min_laenge: Mindestlänge in Zeichen (Standard 8); ungültige Werte (nicht ganzzahlig, kleiner 1, leer) wirken wie 8.
+    'passwort' => [
+        'min_laenge' => env('USERAUTH_PASSWORT_MIN_LAENGE', 8),
+    ],
+
     // Aktiviert das Audit Log
     'audit_log_enabled' => env('USERAUTH_AUDIT_LOG_ENABLED', false),
     // Aktiviert 2-Faktor-Authentifizierung
