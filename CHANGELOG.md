@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.5.0 – 2026-11-18
+
+### Hinzugefügt
+- Mindestlänge neuer Passwörter einstellbar über `userauth.passwort.min_laenge` (Env `USERAUTH_PASSWORT_MIN_LAENGE`, Standard 8), gilt für Ändern, Zurücksetzen, Admin und Registrierung (#1593).
+
 ## 3.4.2 – 2026-11-18
 
 ### Behoben

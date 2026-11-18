@@ -199,6 +199,14 @@ Zwingender Wechsel von Passwörtern bei Bedarf aktivieren. Verhindert auch, dass
     ],
 ```
 
+#### Mindestlänge des Passworts
+Neue Passwörter (Ändern, Zurücksetzen, Anlegen und Ändern durch den Admin, Registrierung) brauchen mindestens `min_laenge` Zeichen. Standard 8; ungültige Werte (nicht ganzzahlig, kleiner 1, leer) wirken wie 8.
+```php
+    'passwort' => [
+        'min_laenge' => env('USERAUTH_PASSWORT_MIN_LAENGE', 8),
+    ],
+```
+
 #### Impersonate
 System-Admins können temporär ("Impersonate") die Perspektive eines beliebigen Endnutzers einnehmen. Ein Button kann mit `@if(auth()->user()->isImpersonated()) ... @endif` überwacht werden. Der "Zurück"-Button ist ein POST-Formular mit `@csrf` auf `userauth.impersonate.leave` (Pfad `impersonate-leave`); ein GET-Link funktioniert nicht (siehe [Upgrade-Hinweise](#upgrade-hinweise-nach-300-unveröffentlicht)). Impersonation durchläuft keine Zwei-Faktor-Anmeldung. Die Rechte prüft das Paket mit der Rolle des Handelnden (siehe [Rollen und Rechte](#rollen-und-rechte)).
 ```php
