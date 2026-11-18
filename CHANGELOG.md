@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.5.1 – 2026-11-18
+
+### Sicherheit
+- Geheimfelder `aktuelles_passwort`, `pwtoken` und `two_factor_code` werden bei Validierungsfehlern nicht mehr in die Sitzung geflasht (#1595).
+
 ## 3.5.0 – 2026-11-18
 
 ### Hinzugefügt
