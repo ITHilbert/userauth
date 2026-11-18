@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.4.2 – 2026-11-18
+
+### Behoben
+- Audit-Log setzt Zeitstempel selbst (unter `shouldBeStrict` kein 500 mehr, #1588).
+
 ## 3.4.1 – 2026-11-17
 
 ### Sicherheit
