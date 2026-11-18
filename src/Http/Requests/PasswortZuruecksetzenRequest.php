@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace ITHilbert\UserAuth\Http\Requests;
 
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use ITHilbert\UserAuth\Application\Auth\AnmeldeEinstellungen;
 use ITHilbert\UserAuth\Domain\Auth\AnmeldeModus;
+use ITHilbert\UserAuth\Http\Geheimfelder;
 
 /**
  * Zurücksetzen mit Token. `pwtoken` muss Text sein (keine Zahl, kein Array), bevor es den Broker erreicht.
@@ -43,5 +45,12 @@ final class PasswortZuruecksetzenRequest extends FormRequest
     private function modus(): AnmeldeModus
     {
         return $this->container->make(AnmeldeEinstellungen::class)->modus();
+    }
+
+    protected function failedValidation(Validator $validator): void
+    {
+        Geheimfelder::entfernen($this, $this->container->make('request'));
+
+        parent::failedValidation($validator);
     }
 }

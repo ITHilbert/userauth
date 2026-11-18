@@ -14,6 +14,7 @@ use ITHilbert\UserAuth\Application\Passwort\PasswortZuruecksetzen;
 use ITHilbert\UserAuth\Application\Passwort\PasswortZuruecksetzenAnfordern;
 use ITHilbert\UserAuth\Application\Passwort\PasswortZuruecksetzenErgebnis;
 use ITHilbert\UserAuth\Domain\Auth\AnmeldeModus;
+use ITHilbert\UserAuth\Http\Geheimfelder;
 use ITHilbert\UserAuth\Http\PasswortAblehnung;
 use ITHilbert\UserAuth\Http\Requests\PasswortAendernRequest;
 use ITHilbert\UserAuth\Http\Requests\PasswortZuruecksetzenAnfordernRequest;
@@ -96,6 +97,7 @@ final class PasswordController
         ));
 
         if ($ergebnis !== PasswortZuruecksetzenErgebnis::Zurueckgesetzt) {
+            Geheimfelder::entfernen($request, request());
             throw ValidationException::withMessages(['pwtoken' => trans('userauth::password.link_ungueltig')])
                 ->redirectTo(route('password.forgotten'));
         }
