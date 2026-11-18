@@ -47,8 +47,6 @@ final class LogAuthenticationAttempt
         $data = [
             'ip_address' => $this->request->ip(),
             'user_agent' => $this->request->userAgent(),
-            'created_at' => now(),
-            'updated_at' => now(),
         ];
 
         if ($event instanceof Login) {
