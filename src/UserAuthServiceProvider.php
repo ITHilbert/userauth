@@ -11,6 +11,7 @@ use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Contracts\Http\Kernel as HttpKernelContract;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 use Illuminate\Http\Request;
@@ -110,6 +111,7 @@ class UserAuthServiceProvider extends ServiceProvider
         $this->registerViews();
         $this->loadMigrationsFrom(__DIR__.'/Database/Migrations');
         $this->registerRateLimiters();
+        $this->registerGeheimfelder();
         $this->registerRoutes();
         $this->publishAssets();
         $this->registerMiddleware();
@@ -193,6 +195,18 @@ class UserAuthServiceProvider extends ServiceProvider
     {
         foreach (['userauth-passwort-anfordern', 'userauth-passwort-zuruecksetzen', 'userauth-registrieren', 'userauth-registrierung-link'] as $name) {
             RateLimiter::for($name, static fn (Request $request): Limit => Limit::perMinute(5)->by((string) $request->ip()));
+        }
+    }
+
+    /**
+     * Geheimfelder des Pakets nie als _old_input in die Sitzung flashen (#1595).
+     */
+    private function registerGeheimfelder(): void
+    {
+        $handler = $this->app->make(ExceptionHandler::class);
+
+        if (method_exists($handler, 'dontFlash')) {
+            $handler->dontFlash(['aktuelles_passwort', 'pwtoken', 'two_factor_code']);
         }
     }
 
