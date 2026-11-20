@@ -37,6 +37,11 @@ return [
         'js' => [],
     ],
 
+    // Vite-Einträge des Hosts, die die Auth-Views laden (Pfade wie im Vite-Manifest). Geladen werden nur Einträge,
+    // die im Manifest (public/build/manifest.json) stehen; bei laufendem Dev-Server (public/hot) alle.
+    // Ohne passenden Eintrag wird kein @vite ausgegeben (kein 500).
+    'vite_entries' => ['resources/css/app.css', 'resources/js/app.js'],
+
     // Name einer View des Hosts, die in den <head> der Auth-Seiten mit eigenem <head> eingebunden wird
     // (z. B. Favicon, Meta-Tags). Leer/null = nichts. Fehlt die View, wird sie ignoriert.
     'head_view' => env('USERAUTH_HEAD_VIEW') ?: null,

@@ -207,6 +207,12 @@ Neue Passwörter (Ändern, Zurücksetzen, Anlegen und Ändern durch den Admin, R
     ],
 ```
 
+#### Vite-Einträge
+Die Auth-Views laden bei vorhandenem Vite-Manifest nur die Einträge aus `vite_entries`, die darin stehen (bei `public/hot` alle). Fehlt jeder, entfällt `@vite`.
+```php
+    'vite_entries' => ['resources/css/app.css', 'resources/js/app.js'],
+```
+
 #### Impersonate
 System-Admins können temporär ("Impersonate") die Perspektive eines beliebigen Endnutzers einnehmen. Ein Button kann mit `@if(auth()->user()->isImpersonated()) ... @endif` überwacht werden. Der "Zurück"-Button ist ein POST-Formular mit `@csrf` auf `userauth.impersonate.leave` (Pfad `impersonate-leave`); ein GET-Link funktioniert nicht (siehe [Upgrade-Hinweise](#upgrade-hinweise-nach-300-unveröffentlicht)). Impersonation durchläuft keine Zwei-Faktor-Anmeldung. Die Rechte prüft das Paket mit der Rolle des Handelnden (siehe [Rollen und Rechte](#rollen-und-rechte)).
 ```php

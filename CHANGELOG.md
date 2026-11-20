@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.5.2 – 2026-11-20
+
+### Behoben
+- Auth-Seiten liefern keinen 500 mehr, wenn das Vite-Manifest des Hosts andere Einträge hat: geladen werden nur die Einträge aus der neuen Config `userauth.vite_entries` (Standard `resources/css/app.css`, `resources/js/app.js`), die im Manifest stehen (#1938).
+
 ## 3.5.1 – 2026-11-18
 
 ### Sicherheit
