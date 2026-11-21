@@ -28,4 +28,6 @@ Offener Punkt ad156b0242ddd64f5: 1 AK-fremd (build:css würde userauth.css ander
 Abweichung ad156b0242ddd64f5: Fehlalarm: keine Abweichung gemeldet
 Offener Punkt a1bf9001d6dcb2432: 1 AK-fremd (Fußzeile nutzt userauth-spalte statt userauth-zeile, AK5 gilt für Formularzeilen) | 2 AK-fremd (leere Platzhalterzeilen in Rollen-/Rechteformularen, AK5 nur user.create/edit) | 3 AK-fremd (Variante secondary vorhanden) | 4 AK-fremd (style white-space nowrap ist kein Klassen-Token)
 Abweichung a1bf9001d6dcb2432: Fehlalarm: keine Abweichung gemeldet
-Stand: T1, T2 umgesetzt (GATE grün, 355 Tests). T3 als Nächstes.
+Offener Punkt a7761687222afbeba: keine
+Abweichung a7761687222afbeba: Fehlalarm: keine Abweichung gemeldet
+Stand: T1, T2, T3 umgesetzt (GATE grün). T4 als Nächstes.
