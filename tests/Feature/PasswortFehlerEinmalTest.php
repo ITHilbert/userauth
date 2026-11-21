@@ -114,10 +114,10 @@ final class PasswortFehlerEinmalTest extends TestCase
         $feld = $xp->query('//*[@id="password"]')->item(0);
         $this->assertNotNull($feld, 'Gegenprobe: Feld password gerendert');
         $zeile = $feld;
-        while ($zeile !== null && ! str_contains((string) $zeile->getAttribute('class'), 'row')) {
+        while ($zeile instanceof \DOMElement && ! str_contains($zeile->getAttribute('class'), 'userauth-zeile')) {
             $zeile = $zeile->parentNode;
         }
-        $this->assertNotNull($zeile, 'Gegenprobe: Zeile des Feldes gefunden');
+        $this->assertInstanceOf(\DOMElement::class, $zeile, 'Gegenprobe: Zeile des Feldes gefunden');
         $this->assertStringNotContainsString($meldung, $zeile->textContent, 'nicht zusätzlich am Feld');
     }
 }
