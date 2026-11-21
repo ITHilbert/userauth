@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.5.3 – 2026-11-21
+
+### Behoben
+- Sprachdatei der Listen (`vendor/laravelkit/DataTable_DE.json`): Paket verlangt `ithilbert/laravel-kit` ab 1.6.1, weil nur dort die Datei per Publish-Tag `laravelkit-assets` geliefert wird; README nennt den Publish-Befehl (#661).
+
 ## 3.5.2 – 2026-11-20
 
 ### Behoben
