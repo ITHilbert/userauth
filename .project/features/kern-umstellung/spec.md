@@ -1,7 +1,7 @@
 # userauth auf Theme kern und Vue-3-Kern des laravel-kit umstellen (userauth 4.0.0, #1619)
 
 Typ: feature (Task #1619)
-Risiko: normal (neue Route, Darstellungs-AK, Major-Version)
+Risiko: kritisch (GATE stuft das Layout afterLogin als Auth-Datei ein; neue Route, Darstellungs-AK, Major-Version)
 Entscheidung: freigegeben durch Joerg (Task-Chat #473, Telegram 2026-11-21 07:26): 1. userauth liefert `kit.css` und das Tailwind-Theme des Kits vorkompiliert mit (wie Entscheidung 0005), das einbindende Projekt stylt nichts. 2. Neue Major-Version. Spec selbst freigegeben (automode 2026-11-21, Moderator in Vollmacht).
 Rückbau: entfällt (kein Übergangsstand)
 

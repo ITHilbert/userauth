@@ -19,8 +19,8 @@ final class VerwaltungKernMarkupTest extends TestCase
     use RefreshDatabase;
     use VerwaltungSeitenHilfe;
 
-    /** Zustandsklassen, die die Kit-Components selbst setzen (`is-active`, `is-invalid`). */
-    private const ERLAUBT = ['d-none', 'data-table', 'is-active', 'is-invalid'];
+    /** Zustandsklassen, die die Kit-Components selbst setzen (`is-active`, `is-invalid`, `is-open`). */
+    private const ERLAUBT = ['d-none', 'data-table', 'is-active', 'is-invalid', 'is-open'];
 
     protected function setUp(): void
     {

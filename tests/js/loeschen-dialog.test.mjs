@@ -308,7 +308,7 @@ function pruefeAufbau(d) {
 }
 
 // AK8
-test('AK8: Klick auf [data-kit-delete] zeigt den Dialog, Löschen setzt die Route mit der ID und sendet einmal', () => {
+test('AK8: Klick auf [data-kit-delete] zeigt den Dialog und Löschen setzt die Route mit der ID und sendet einmal', () => {
     const d = bauen();
     pruefeAufbau(d);
     const knopf = d.knopfMit('7');
@@ -325,24 +325,27 @@ test('AK8: Klick auf [data-kit-delete] zeigt den Dialog, Löschen setzt die Rout
 });
 
 // AK8
-for (const [name, schliessen] of [
-    ['Abbrechen', (d) => d.klick(d.abbrechen)],
-    ['Klick auf das Overlay', (d) => d.klick(d.overlay)],
-    ['Escape', (d) => d.taste('Escape')],
-]) {
-    test(`AK8: ${name} blendet den Dialog aus, ohne zu senden`, () => {
-        const d = bauen();
-        pruefeAufbau(d);
+function pruefeSchliessen(schliessen) {
+    const d = bauen();
+    pruefeAufbau(d);
 
-        d.klick(d.knopfMit('7'));
-        assert.ok(d.sichtbar(), 'Gegenprobe: der Dialog war offen');
-        schliessen(d);
+    d.klick(d.knopfMit('7'));
+    assert.ok(d.sichtbar(), 'Gegenprobe: der Dialog war offen');
+    schliessen(d);
 
-        assert.ok(d.zu(), 'Dialog ist zu');
-        assert.deepEqual(d.sendungen, [], 'nichts gesendet');
-        assert.deepEqual(fehlerListe, []);
-    });
+    assert.ok(d.zu(), 'Dialog ist zu');
+    assert.deepEqual(d.sendungen, [], 'nichts gesendet');
+    assert.deepEqual(fehlerListe, []);
 }
+
+// AK8
+test('AK8: Abbrechen blendet den Dialog aus und sendet nicht', () => pruefeSchliessen((d) => d.klick(d.abbrechen)));
+
+// AK8
+test('AK8: Klick auf das Overlay blendet den Dialog aus und sendet nicht', () => pruefeSchliessen((d) => d.klick(d.overlay)));
+
+// AK8
+test('AK8: Escape blendet den Dialog aus und sendet nicht', () => pruefeSchliessen((d) => d.taste('Escape')));
 
 // AK8
 test('AK8: ein später eingefügter [data-kit-delete]-Button löst ebenfalls aus (Klick auf ein Kind des Buttons)', () => {
@@ -357,7 +360,7 @@ test('AK8: ein später eingefügter [data-kit-delete]-Button löst ebenfalls aus
 });
 
 // Randfall 3
-test('Randfall 3: Query der Route bleibt, die ID wird URL-kodiert', () => {
+test('Randfall 3: Query der Route bleibt und die ID wird URL-kodiert', () => {
     const d = bauen({ route: '/user/0?x=1' });
     pruefeAufbau(d);
 
