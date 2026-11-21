@@ -52,3 +52,4 @@ Layout: layout: /roles/create, /permissions/create --breiten 375,1920 --lang .ki
 Echtlauf: browser: /roles/create (Rahmen sichtbar), /permissions/create (Rahmen im HTML, Bereich per d-none ausgeblendet), /users Klick auf Löschen öffnet den Dialog, 0 Konsolenfehler; curl -I auf beide Asset-Routen: 200, kein Set-Cookie
 Review: ja, Sicherheitsbezug (Routen ohne web-Middleware)
 Stand: T5 umgesetzt (GATE grün, 186 Tests), Echtlauf grün. Review als Nächstes.
+Review 0/2 (Nacharbeit): 0 muss, 1 sollte, 1 kann (pruefung-nacharbeit.md, freigegeben); sollte Test is_group=1 → Folge-Task #1985
