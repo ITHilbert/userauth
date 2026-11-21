@@ -28,7 +28,7 @@ final class AdminViewsKitTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const THEMES = ['tailwind', 'bootstrap5'];
+    private const THEMES = ['kern'];
 
     private const SEITEN = [
         'user.index', 'user.create', 'user.edit', 'user.icon',
@@ -75,7 +75,7 @@ final class AdminViewsKitTest extends TestCase
 
         View::addLocation(__DIR__.'/../Fixtures/views');
         View::getFinder()->prependLocation(__DIR__.'/../Fixtures/adminviews');
-        config(['laravelkit.theme' => 'tailwind']);
+        config(['laravelkit.theme' => 'kern']);
 
         $jetzt = now();
         foreach ([[1, 'dev', 'Dev'], [2, 'admin', 'Admin'], [3, 'user', 'User'], [self::ROLLE_EDITOR, 'editor', 'Editor']] as [$id, $name, $anzeige]) {
@@ -240,7 +240,7 @@ final class AdminViewsKitTest extends TestCase
         };
     }
 
-    private function seite(string $seite, string $theme = 'tailwind'): string
+    private function seite(string $seite, string $theme = 'kern'): string
     {
         config(['laravelkit.theme' => $theme]);
 
@@ -290,7 +290,7 @@ final class AdminViewsKitTest extends TestCase
         $xp = $this->dom($html);
         $namen = [];
         foreach ($this->elemente($xp, './/input[@name]|.//select[@name]|.//textarea[@name]', $this->formular($xp, $aktion)) as $el) {
-            if ($el->hasAttribute('disabled') || in_array($el->getAttribute('type'), ['submit', 'button', 'image', 'reset'], true)) {
+            if ($el->hasAttribute('disabled') || $el->getAttribute('name') === '' || in_array($el->getAttribute('type'), ['submit', 'button', 'image', 'reset'], true)) {
                 continue;
             }
             $namen[] = $el->getAttribute('name');
@@ -311,7 +311,7 @@ final class AdminViewsKitTest extends TestCase
         $xp = $this->dom($html);
         $felder = [];
         foreach ($this->elemente($xp, './/input[@name]|.//select[@name]|.//textarea[@name]', $this->formular($xp, $aktion)) as $el) {
-            if ($el->hasAttribute('disabled')) {
+            if ($el->hasAttribute('disabled') || $el->getAttribute('name') === '') {
                 continue;
             }
             $name = $el->getAttribute('name');
@@ -1050,24 +1050,6 @@ final class AdminViewsKitTest extends TestCase
 
     // AK5
     #[DataProvider('listen')]
-    public function test_ak5_liste_enthaelt_den_loesch_dialog_als_insel_mit_props(string $liste): void
-    {
-        $html = $this->seite($liste.'.index');
-
-        $xp = $this->dom($html);
-        $inseln = $this->elemente($xp, '//*[@data-vue="dialog-delete"]');
-        $this->assertCount(1, $inseln);
-        $props = json_decode($inseln[0]->getAttribute('data-props'), true);
-        $this->assertIsArray($props);
-        foreach (['titel', 'body', 'route'] as $prop) {
-            $this->assertIsString($props[$prop] ?? null, 'Prop '.$prop);
-            $this->assertNotSame('', $props[$prop], 'Prop '.$prop);
-        }
-        $this->assertSame(route($liste.'.delete', 0), $props['route']);
-    }
-
-    // AK5
-    #[DataProvider('listen')]
     public function test_ak5_liste_enthaelt_formular_form_delete_mit_methode_delete_und_csrf_token(string $liste): void
     {
         $xp = $this->dom($this->seite($liste.'.index'));
@@ -1088,7 +1070,7 @@ final class AdminViewsKitTest extends TestCase
 
     // AK5
     #[DataProvider('listen')]
-    public function test_ak5_aktionsspalte_der_liste_hat_data_kit_delete_und_behaelt_open_delete_form(string $liste): void
+    public function test_ak5_aktionsspalte_der_liste_hat_data_kit_delete(string $liste): void
     {
         // Gegenprobe-Aufbau: Zeile mit einer ID über 2 (Rollen zeigen die Aktionen nur dafür)
         $id = match ($liste) {
@@ -1106,7 +1088,6 @@ final class AdminViewsKitTest extends TestCase
         $this->assertCount(1, $zeilen, 'Zeile der Liste vorhanden');
         $aktion = array_values($zeilen)[0]['action'];
         $this->assertStringContainsString('data-kit-delete="'.$id.'"', $aktion);
-        $this->assertStringContainsString('OpenDeleteForm('.$id.')', $aktion);
     }
 
     // ================================================================== AK7
@@ -1117,8 +1098,8 @@ final class AdminViewsKitTest extends TestCase
     {
         $xp = $this->dom($this->seite($seite, $theme));
 
-        $this->assertCount(1, $this->elemente($xp, '//ul[@data-kit-tabs]'), 'tabs-header');
-        $reiter = $this->elemente($xp, '//ul[@data-kit-tabs]//button[@data-kit-tab]');
+        $this->assertCount(1, $this->elemente($xp, '//*[@data-kit-tabs]'), 'tabs-header');
+        $reiter = $this->elemente($xp, '//*[@data-kit-tabs]//button[@data-kit-tab]');
         $this->assertSame(['home', 'profile'], array_map(fn (DOMElement $e) => $e->getAttribute('data-kit-tab'), $reiter));
         $this->assertCount(1, $this->elemente($xp, '//div[@data-kit-tabs-body]'), 'tabs-body');
         $koerper = $this->elemente($xp, '//div[@data-kit-tab-body]');
@@ -1135,7 +1116,7 @@ final class AdminViewsKitTest extends TestCase
 
         $this->assertCount(2, $reiter);
         $this->assertCount(2, $koerper);
-        $aktiv = fn (DOMElement $e): bool => in_array('active', preg_split('/\s+/', $e->getAttribute('class')) ?: [], true);
+        $aktiv = fn (DOMElement $e): bool => in_array('is-active', preg_split('/\s+/', $e->getAttribute('class')) ?: [], true);
 
         $this->assertTrue($aktiv($reiter[0]), 'erster Reiter aktiv');
         $this->assertSame('true', $reiter[0]->getAttribute('aria-selected'));
@@ -1318,7 +1299,6 @@ final class AdminViewsKitTest extends TestCase
         $this->assertStringContainsString('initTabs()', $abschnitt);
         $this->assertStringContainsString('initLoeschen()', $abschnitt);
         $this->assertStringContainsString('mountInseln()', $abschnitt);
-        $this->assertStringContainsString('dialog-delete', $abschnitt);
         $this->assertStringContainsString('laravel-kit', $abschnitt);
     }
 

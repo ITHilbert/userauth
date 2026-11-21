@@ -23,7 +23,10 @@ final class DatatableSprachdateiTest extends TestCase
     {
         $composer = json_decode($this->paketdatei('composer.json'), true);
 
-        $this->assertSame('^1.6.1', $composer['require']['ithilbert/laravel-kit'] ?? null);
+        // ab userauth 4.0.0 `^1.10` (kern-umstellung AK11), das schließt 1.6.1 ein
+        $verlangt = (string) ($composer['require']['ithilbert/laravel-kit'] ?? '');
+        $this->assertMatchesRegularExpression('/^\^1\.\d+(\.\d+)?$/', $verlangt);
+        $this->assertTrue(version_compare(ltrim($verlangt, '^'), '1.6.1', '>='), 'Mindeststand unter 1.6.1: '.$verlangt);
     }
 
     // AK2
@@ -50,12 +53,11 @@ final class DatatableSprachdateiTest extends TestCase
     }
 
     // AK3
-    public function test_changelog_oberste_version_ist_3_5_3_mit_eintrag_661(): void
+    public function test_changelog_hat_den_eintrag_3_5_3_mit_661(): void
     {
         $changelog = $this->paketdatei('CHANGELOG.md');
 
-        $this->assertSame(1, preg_match('/^## (\d+\.\d+\.\d+)\b.*?(?=^## |\z)/ms', $changelog, $treffer));
-        $this->assertSame('3.5.3', $treffer[1], 'Oberste Version im CHANGELOG ist nicht 3.5.3');
+        $this->assertSame(1, preg_match('/^## 3\.5\.3\b.*?(?=^## |\z)/ms', $changelog, $treffer), 'Eintrag 3.5.3 fehlt im CHANGELOG');
         $this->assertStringContainsString('#661', $treffer[0]);
     }
 }

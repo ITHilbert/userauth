@@ -1,0 +1,35 @@
+# Abdeckung: kern-umstellung
+
+Risiko normal: Format wie bei kritisch, Sätze je Aussage (nicht vom Hook zerlegt).
+
+AK1 | "userauth-verwaltung.css enthält Regeln für .kit-card … .d-none, aber nicht Tailwinds Preflight (kein ::file-selector-button)" | tests/Feature/VerwaltungCssTest.php::test_ak1_css_enthaelt_die_regeln_und_kein_preflight
+AK1 | "resources-src/verwaltung.css bindet vue3/kit.css und vue3/themes/tailwind.css ein, package.json baut beide Dateien mit build:css" | tests/Feature/VerwaltungCssTest.php::test_ak1_quelle_bindet_das_kit_ein_und_package_json_baut_beide_dateien
+AK2 | "Route userauth.assets.verwaltung: 200, text/css, immutable, Inhalt der Datei; userauth.assets.css liefert weiter userauth.css" | tests/Feature/VerwaltungCssTest.php::test_ak2_route_liefert_die_datei_und_die_alte_css_route_bleibt
+AK2 | "AuthAssetVersion::verwaltungCssVersion() ist der 12-stellige Hash dieser Datei" | tests/Feature/VerwaltungCssTest.php::test_ak2_version_ist_der_zwoelfstellige_hash_der_datei
+AK3 | "jede der zehn Seiten in Host-Layout mit Stack styles, Section css oder beidem: genau ein link rel=stylesheet auf userauth.assets.verwaltung mit ?v=Hash" | tests/Feature/VerwaltungCssTest.php::test_ak3_seite_bindet_die_verwaltungs_css_genau_einmal_ein
+AK3 | "die Login-Seite enthält den Link nicht" | tests/Feature/VerwaltungCssTest.php::test_ak3_login_seite_enthaelt_die_verwaltungs_css_nicht
+AK4 | "zehn Seiten mit Theme kern: kein class-Token außer kit-…, userauth-…, d-none, data-table, is-active, is-invalid, is-open" | tests/Feature/VerwaltungKernMarkupTest.php::test_ak4_seite_traegt_nur_kit_und_userauth_klassen
+AK5 | "jede Formularzeile als div.userauth-zeile mit __label und __feld, Felder sind kit-input-text, -email, -password, -date, kit-combobox, kit-textarea" | tests/Feature/VerwaltungKernMarkupTest.php::test_ak5_formularzeilen_und_felder_sind_kit_components
+AK5 | "Feldnamen, ids und data-Haken der Skripte unverändert; kit-checkbox" | tests/Feature/VerwaltungKernMarkupTest.php::test_ak5_haken_der_skripte_auf_der_rechteseite_und_kit_checkbox_in_der_rollenmaske, tests/Feature/AdminViewsKitTest.php::test_ak3_benutzer_anlegen_sendet_die_heutigen_feldnamen
+AK5 | "die zwei Passwort-Knöpfe sind kit-button" | tests/Feature/VerwaltungKernMarkupTest.php::test_ak5_passwort_knoepfe_sind_kit_button_mit_den_hooks_der_skripte
+AK6 | "Zeile mit …_edit und …_delete: a.kit-button[data-variant=edit] mit Edit-Route, button.kit-button[data-variant=delete][data-kit-delete=id], keine Klasse btn" | tests/Feature/VerwaltungKernMarkupTest.php::test_ak6_zeilenbuttons_mit_beiden_rechten_sind_kit_button
+AK6 | "ohne das jeweilige Recht fehlt der jeweilige Button" | tests/Feature/VerwaltungKernMarkupTest.php::test_ak6_ohne_das_jeweilige_recht_fehlt_der_button
+AK7 | "Listen enthalten div.kit-dialog__overlay (versteckt), div.kit-dialog__content[role=dialog][aria-modal=true], zwei kit-button, Formular #formDelete (POST, _method DELETE, _token), kein data-vue" | tests/Feature/LoeschDialogTest.php::test_ak7_liste_enthaelt_den_dialog_aus_blade_und_das_formular
+AK7 | "Titel und Text aus titel/body" | tests/Feature/LoeschDialogTest.php::test_ak7_titel_und_text_kommen_aus_den_parametern_und_html_erscheint_als_text
+AK8 | "Klick auf [data-kit-delete=7]: Dialog sichtbar; Löschen setzt #formDelete.action auf <route ohne letztes Segment>/7 und sendet einmal" | tests/js/loeschen-dialog.test.mjs::AK8: Klick auf [data-kit-delete] zeigt den Dialog, Löschen setzt die Route mit der ID und sendet einmal
+AK8 | "Abbrechen, Klick auf das Overlay und Escape blenden den Dialog aus, ohne zu senden" | tests/js/loeschen-dialog.test.mjs::AK8: Abbrechen blendet den Dialog aus, ohne zu senden, tests/js/loeschen-dialog.test.mjs::AK8: Klick auf das Overlay blendet den Dialog aus, ohne zu senden, tests/js/loeschen-dialog.test.mjs::AK8: Escape blendet den Dialog aus, ohne zu senden
+AK8 | "ein später eingefügter [data-kit-delete]-Button löst ebenfalls aus" | tests/js/loeschen-dialog.test.mjs::AK8: ein später eingefügter [data-kit-delete]-Button löst ebenfalls aus (Klick auf ein Kind des Buttons)
+AK9 | "Theme ≠ kern (auch Standard tailwind): genau eine Warnung mit userauth und laravelkit.theme=kern je Request, Seite antwortet 200" | tests/Feature/VerwaltungCssTest.php::test_ak9_anderes_theme_loggt_genau_eine_warnung_je_request_und_antwortet_200
+AK9 | "mit kern gibt es keine solche Warnung" | tests/Feature/VerwaltungCssTest.php::test_ak9_mit_theme_kern_gibt_es_keine_warnung
+AK10 | "Prüfungen der Verwaltungsseiten prüfen Theme kern statt tailwind/bootstrap5 und sind grün" | tests/Feature/AdminViewsKitTest.php::test_ak2_seite_antwortet_mit_200, tests/Feature/AdminViewsSkripteTest.php::test_ak3_inline_initialisierung_laeuft_nach_dem_bundle, tests/Feature/PasswortErzeugenTest.php::test_ak3_buttons_sind_type_button_in_der_zeile_des_feldes_password
+AK10 | "Prüfungen der Auth-Seiten und userauth.css bleiben unverändert grün" | tests/Feature/AuthViewAssetsTest.php::test_compiled_package_css_exists_and_contains_classes_of_tailwind_views
+AK11 | "composer.json verlangt ithilbert/laravel-kit ^1.10" | tests/Feature/KernDokuTest.php::test_ak11_composer_verlangt_laravel_kit_1_10
+AK11 | "README hat den Abschnitt Upgrade auf 4.0 (Theme kern setzen, CSS kommt vom Paket, initLoeschen()/mountInseln() nicht mehr nötig, userauth.assets.verwaltung, Build der CSS)" | tests/Feature/KernDokuTest.php::test_ak11_readme_hat_den_abschnitt_upgrade_auf_4_0_mit_allen_punkten
+AK11 | "README nennt nirgends mehr die Insel dialog-delete als Voraussetzung" | tests/Feature/KernDokuTest.php::test_ak11_readme_nennt_dialog_delete_nirgends_als_voraussetzung
+AK11 | "CHANGELOG hat 4.0.0 mit Geändert (inkompatibel)" | tests/Feature/KernDokuTest.php::test_ak11_changelog_hat_4_0_0_mit_geaendert_inkompatibel
+Randfall 1 | "Theme ≠ kern: Seiten rendern ohne Exception (AK9), Optik nicht zugesagt" | tests/Feature/VerwaltungCssTest.php::test_ak9_anderes_theme_loggt_genau_eine_warnung_je_request_und_antwortet_200
+Randfall 2 | "userauth-verwaltung.css fehlt: Route 404, verwaltungCssVersion() = 0, Seiten rendern weiter" | tests/Feature/VerwaltungCssTest.php::test_randfall2_fehlende_datei_gibt_404_version_null_und_seiten_rendern_weiter
+Randfall 3 | "Lösch-Route mit Query (/user/0?x=1) und ID mit Sonderzeichen: Query bleibt, ID kodiert" | tests/js/loeschen-dialog.test.mjs::Randfall 3: Query der Route bleibt, die ID wird URL-kodiert
+Randfall 4 | "Zwei Klicks hintereinander auf Löschen senden einmal" | tests/js/loeschen-dialog.test.mjs::Randfall 4: zwei Klicks hintereinander auf „Löschen“ senden einmal
+Randfall 5 | "{{ 7*7 }} und HTML in Titeln, Namen oder Dialogtext erscheinen als Text" | tests/Feature/LoeschDialogTest.php::test_ak7_titel_und_text_kommen_aus_den_parametern_und_html_erscheint_als_text, tests/Feature/AdminViewsKitTest.php::test_ak4_template_ausdruck_im_namen_steht_als_text_im_html
+Randfall 6 | "Solange das Kit 1.10.0 nicht veröffentlicht ist, lässt sich userauth 4.0.0 nur gegen dev-main bzw. den Workspace auflösen (Hinweis für Joerg)" | nicht prüfbar: Hinweis im Bericht an den Moderator, kein Programmverhalten
