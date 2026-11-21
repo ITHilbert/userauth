@@ -85,7 +85,13 @@
     overflow-wrap: break-word;
 }
 
-/* Breite Tabellen in der Karte scrollen, statt im Wort zu brechen */
-.kit-card__body {
+/* Breite Tabellen scrollen in ihrem Rahmen, nicht der Kartenkörper (würde die Combobox-Liste abschneiden) */
+.kit-card__body .dt-container {
     overflow-x: auto;
+}
+
+table.userauth-tabelle {
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
 }

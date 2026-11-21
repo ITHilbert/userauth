@@ -36,4 +36,7 @@ Offener Punkt a7bfbbb609558e999: 1 erledigt vom Moderator (Nachmessung layout-pr
 Abweichung a7bfbbb609558e999: Fehlalarm: keine Abweichung gemeldet
 Layout: layout: /users, /users/create, /roles/create, /permissions --breiten 375,1920 --lang .kit-card → 0 Befunde der userauth-Seiten (Rest: Host-Layout, Navbar, Breadcrumb mit Teststring, auch /intern: SCROLL 791 px)
 Echtlauf: browser: /users, /roles, /permissions, /users/create, /roles/create, /permissions/create im Host (Port 8225, LARAVELKIT_THEME=kern) — 0 Konsolenfehler, Ajax 200, kit-card/userauth-zeile/kit-tabs__tab sichtbar; Klick auf [data-kit-delete] in /users öffnet den Lösch-Dialog (kit-dialog__overlay ohne hidden)
-Stand: T1–T4 und CSS-Korrektur umgesetzt (GATE grün), Echtlauf grün. Nächster Schritt: Review.
+Review 0/2: 2 muss, 2 sollte, 2 kann (pruefung.md); muss 1 DialogDeleteTitelTest rot → Test umgestellt (aa9daf1), muss 2 Rechtegrenze in der Spec ergänzt (155a226); sollte Combobox abgeschnitten → behoben (overflow nur an dt-container und Tabellen); sollte Dialog volle Breite und Asset-Cookie als Folge-Tasks #1981, #1982
+Offener Punkt abf8f617e9f63ee02: 1 AK-fremd (display:block an Tabellen, Layout-Prüfung 375/1920 px ohne Befund der Seiten) | 2 erledigt vom Moderator (Combobox ohne Kartenbody-Overflow, layout-pruefung grün)
+Abweichung abf8f617e9f63ee02: Fehlalarm: keine Abweichung gemeldet
+Stand: Korrekturlauf 1 fertig, Nachprüfung als Nächstes.
