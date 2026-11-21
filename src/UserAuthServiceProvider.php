@@ -70,6 +70,7 @@ use ITHilbert\UserAuth\Http\ViewComposers\AvailableSocialProvidersComposer;
 use ITHilbert\UserAuth\Http\ViewComposers\GeloeschteEmailHinweisComposer;
 use ITHilbert\UserAuth\Http\ViewComposers\RegistrierungComposer;
 use ITHilbert\UserAuth\Http\ViewComposers\ThemeComposer;
+use ITHilbert\UserAuth\Http\ViewComposers\VerwaltungThemeHinweisComposer;
 use ITHilbert\UserAuth\Infrastructure\Auth\EloquentKontoZurKennung;
 use ITHilbert\UserAuth\Infrastructure\Auth\GuardAnmeldedaten;
 use ITHilbert\UserAuth\Infrastructure\Auth\GuardSitzungsanmeldung;
@@ -162,6 +163,18 @@ class UserAuthServiceProvider extends ServiceProvider
             'userauth::social.confirm',
             'userauth::social.accounts',
         ], ThemeComposer::class);
+        View::composer([
+            'userauth::user.index',
+            'userauth::user.create',
+            'userauth::user.edit',
+            'userauth::user.icon',
+            'userauth::role.index',
+            'userauth::role.create',
+            'userauth::role.edit',
+            'userauth::permission.index',
+            'userauth::permission.create',
+            'userauth::permission.edit',
+        ], VerwaltungThemeHinweisComposer::class);
 
         $this->registerGates();
     }

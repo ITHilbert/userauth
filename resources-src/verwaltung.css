@@ -1,0 +1,74 @@
+/*
+ * Verwaltungsseiten (Benutzer, Rollen, Rechte) im Host-Layout: Kit-Basis, Tailwind-Theme des Kits
+ * und die Layout-Klassen `userauth-…`. Ohne Preflight – die Datei läuft neben dem CSS des Hosts
+ * und darf dessen Grundstile nicht zurücksetzen. Darum nicht der Sammelimport `tailwindcss`.
+ * `source(none)`: keine Utilities aus den Views erzeugen, nur, was per @apply gebraucht wird.
+ */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+
+@import "../../laravel-kit/vue3/kit.css";
+@import "../../laravel-kit/vue3/themes/tailwind.css";
+
+@theme {
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+@layer components {
+    .userauth-container {
+        @apply mx-auto w-full max-w-5xl px-4 py-6;
+    }
+
+    /* Formularzeile: mobil untereinander, ab 768 px Label links neben dem Feld */
+    .userauth-zeile {
+        @apply mb-4 flex flex-col gap-1 md:flex-row md:items-start md:gap-4;
+    }
+
+    .userauth-zeile__label {
+        @apply text-sm font-medium text-gray-700 md:w-1/4 md:shrink-0 md:pt-2 md:text-right;
+    }
+
+    .userauth-zeile__feld {
+        @apply min-w-0 flex-1;
+    }
+
+    /* Fußzeile (Knöpfe unter dem Formular bzw. der Liste) */
+    .userauth-spalte {
+        @apply mt-6 flex flex-wrap items-center gap-2;
+    }
+
+    .userauth-rechts {
+        @apply ml-auto flex flex-wrap items-center justify-end gap-2;
+    }
+
+    .userauth-mitte {
+        @apply text-center;
+    }
+
+    .userauth-fehler {
+        @apply mt-1 text-sm text-red-600;
+    }
+
+    .userauth-tabelle {
+        @apply w-full border-collapse text-sm text-gray-700;
+    }
+
+    .userauth-tabelle th,
+    .userauth-tabelle td {
+        @apply border-b border-gray-200 px-3 py-2 text-left align-middle;
+    }
+
+    .userauth-tabelle th {
+        @apply font-semibold text-gray-900;
+    }
+}
+
+/* Zustands- und Hook-Klassen der Skripte */
+.d-none {
+    display: none;
+}
+
+.data-table {
+    width: 100%;
+}
