@@ -210,10 +210,14 @@ final class VerwaltungNacharbeitTest extends TestCase
     public function test_ak14_jede_statische_tabelle_steht_in_einem_rahmen(string $seite): void
     {
         $this->verwaltungAufbauen('adminviews');
+        $this->verwaltungEinzelrechteAnlegen();
         $xp = $this->verwaltungDom($this->verwaltungSeite($seite));
 
         $tabellen = $xp->query('//table[contains(concat(" ", normalize-space(@class), " "), " userauth-tabelle ")]');
         $this->assertGreaterThan(0, $tabellen->length, 'Aufbau: statische Tabelle gerendert');
+        if (str_starts_with($seite, 'role.')) {
+            $this->assertGreaterThanOrEqual(2, $tabellen->length, 'Gegenprobe: CRUD-Tabelle und Tabelle der is_group=1-Gruppe gerendert');
+        }
         foreach ($tabellen as $tabelle) {
             $rahmen = $tabelle->parentNode;
             $this->assertInstanceOf(DOMElement::class, $rahmen);
