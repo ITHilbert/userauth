@@ -39,4 +39,6 @@ Echtlauf: browser: /users, /roles, /permissions, /users/create, /roles/create, /
 Review 0/2: 2 muss, 2 sollte, 2 kann (pruefung.md); muss 1 DialogDeleteTitelTest rot → Test umgestellt (aa9daf1), muss 2 Rechtegrenze in der Spec ergänzt (155a226); sollte Combobox abgeschnitten → behoben (overflow nur an dt-container und Tabellen); sollte Dialog volle Breite und Asset-Cookie als Folge-Tasks #1981, #1982
 Offener Punkt abf8f617e9f63ee02: 1 AK-fremd (display:block an Tabellen, Layout-Prüfung 375/1920 px ohne Befund der Seiten) | 2 erledigt vom Moderator (Combobox ohne Kartenbody-Overflow, layout-pruefung grün)
 Abweichung abf8f617e9f63ee02: Fehlalarm: keine Abweichung gemeldet
-Stand: Korrekturlauf 1 fertig, Nachprüfung als Nächstes.
+Review 1/2: 0 muss, 1 sollte, 0 kann (pruefung-nachpruefung.md, freigegeben); sollte Tabellen-Zeilen volle Breite → Folge-Task #1984
+DOKU: entfällt (README „Upgrade auf 4.0“ und CHANGELOG 4.0.0 sind Teil von T4)
+Stand: freigegeben (Nachprüfung 1198cbe). Merge in den Sammel-Branch, Suite, Release.
