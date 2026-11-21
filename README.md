@@ -21,7 +21,7 @@ composer require ithilbert/userauth
 |---|---|---|
 | PHP | 8.5 | Paket-Code |
 | Laravel (`illuminate/*`) | 12 oder 13 | Framework |
-| `ithilbert/laravel-kit` | `^1.2`, für die Verwaltungsseiten ein Stand mit Kit-Components (siehe [Upgrade-Hinweise](#upgrade-hinweise-nach-300-unveröffentlicht), Punkt 8) | Trait `VueComboBox`, das `UserAuth` verwendet; Kit-Components der Verwaltungsseiten |
+| `ithilbert/laravel-kit` | `^1.10`, mit Theme `kern` für die Verwaltungsseiten (siehe [Upgrade auf 4.0](#upgrade-auf-40)) | Blade-Components der Verwaltungsseiten (`<x-kit::…>`) |
 | `laravel/socialite` | `^5.0` (automatisch installiert) | Social Login (Google) |
 | `yajra/laravel-datatables-oracle` | `^12.0` oder `^13.0` (automatisch installiert) | Nutzerliste (AJAX) |
 | `nesbot/carbon` | `^2.0` oder `^3.0` (automatisch installiert) | Datumsberechnungen |
@@ -29,7 +29,7 @@ composer require ithilbert/userauth
 | Cache-Store | nicht `array` (z. B. `file`, `database`, `redis`) | Zähler der 2FA-Fehlversuche, Sperre „Code erneut senden“, Drosselungen |
 | Session-Treiber | speichert zwischen Requests (nicht `array`) | Offene Zwei-Faktor-Anmeldung liegt in der Session |
 
-Ein `dev-main` des Pakets ist nicht mehr nötig: `ithilbert/laravel-kit` ist ab Version `1.2` als Release verfügbar.
+Ein `dev-main` des Pakets ist nicht mehr nötig: `ithilbert/laravel-kit` ist ab Version `1.10` als Release verfügbar. Solange dieser Release fehlt, lässt sich das Paket nur gegen `dev-main` bzw. den Workspace des Kits auflösen.
 
 ### Eigene Testumgebung (Paket-Entwicklung)
 
@@ -101,7 +101,7 @@ Die Verwaltungsseiten erweitern `userauth::layouts.afterLogin`. Dieses Layout er
 |---|---|---|
 | `title` | im `<title>` | alle Verwaltungsseiten |
 | `content` | Seiteninhalt | alle Verwaltungsseiten |
-| `css` | im `<head>` | aktuell von keiner aktiven Verwaltungsseite |
+| `css` | im `<head>` | Verwaltungsseiten: das Layout legt dort den CSS-Link `userauth-verwaltung.css` ab (siehe [Upgrade auf 4.0](#upgrade-auf-40)) |
 | `js` | nach dem Skript für DataTables (ohne jQuery), am Ende von `<body>` | Listen (Benutzer, Rollen, Rechte), Rollen- und Rechteformulare |
 | Stack `scripts` | am Ende von `<body>` (`@stack('scripts')`) | dieselben Skripte wie `js` |
 
@@ -112,8 +112,8 @@ Die Verwaltungsseiten erweitern `userauth::layouts.afterLogin`. Dieses Layout er
 Weitere Anforderungen an den Host:
 - **DataTables 2** (`window.DataTable`, ohne jQuery, kein jQuery nötig) muss vor dem Ausführen der Skripte geladen sein (klassisch vor `js`/`scripts`, als Modul-Bundle spätestens vor `DOMContentLoaded`). Die Listen rufen `new DataTable('.data-table', …)` auf; Ajax sendet den Header `X-Requested-With`. Fehlt DataTables, bleiben die Listen leer.
 - **Sprachdatei der Listen:** Die Listen laden `vendor/laravelkit/DataTable_DE.json`. Die Datei liefert `ithilbert/laravel-kit` ab 1.6.1 über den Publish-Tag; `php artisan vendor:publish --tag=laravelkit-assets` kopiert sie nach `public/vendor/laravelkit`.
-- **Kit-Components und Skripte:** Die Views bestehen aus Blade-Components von laravel-kit (`<x-kit::…>`), das Theme bestimmt `laravelkit.theme`. Der Host bindet `initTabs()`, `initLoeschen()` und `mountInseln()` mit der Insel `dialog-delete` ein (siehe [Upgrade-Hinweise](#upgrade-hinweise-nach-300-unveröffentlicht), Punkt 9). Ein Whole-DOM-Mount ist für diese Seiten nicht nötig.
-- **Lösch-Buttons:** `HButton::delete` aus laravel-kit gibt `data-kit-delete="<id>"` für `initLoeschen()` aus und ruft weiter `OpenDeleteForm(id)` per `onclick` auf. Hosts, die `OpenDeleteForm` global definieren (im Host `packages_dev` in `resources/js/forms.js`), öffnen den Dialog weiter auf diesem Weg.
+- **Kit-Components und Skripte:** Die Views bestehen aus Blade-Components von laravel-kit (`<x-kit::…>`). Die Verwaltungsseiten brauchen `laravelkit.theme=kern` (siehe [Upgrade auf 4.0](#upgrade-auf-40)). Der Lösch-Dialog ist Blade plus Inline-Skript; `initLoeschen()` und `mountInseln()` mit der Insel `dialog-delete` sind seit 4.0 nicht mehr nötig. Ein Whole-DOM-Mount ist für diese Seiten nicht nötig.
+- **Lösch-Buttons:** Die Zeilenbuttons der Listen sind Kit-Components (`button-delete`, `button-edit`) und tragen `data-kit-delete="<id>"`. Der Dialog öffnet sich über das Inline-Skript des Pakets, ohne `OpenDeleteForm`.
 - **Assets:** `php artisan vendor:publish --provider="ITHilbert\UserAuth\UserAuthServiceProvider"` kopiert `Resources/assets` nach `public/vendor/userauth`, u. a. `js/role.js`, `js/permission.js` und `img/default-user.jpg`. Der Befehl veröffentlicht auch Views, Config und Sprachdateien. Vorhandene Dateien überschreibt er nur mit `--force`.
 - **Views `include.message` und `include.breadcrumb`:** Die Verwaltungsviews binden beide selbst per `@include` ein. Das Paket liefert sie nicht, der Host muss sie bereitstellen.
   - `include.message` zeigt die Erfolgsmeldung aus `session('message')` und alle Validierungsmeldungen aus `$errors`. Ohne diese View kehrt ein abgelehnter Wert kommentarlos ins Formular zurück.
@@ -502,6 +502,17 @@ Siehe [Voraussetzungen und Abhängigkeiten](#voraussetzungen-und-abhängigkeiten
 | `phpunit/phpunit` `^11.5` oder `^12.0` | Dev | Tests |
 | Google OAuth | extern, nur bei `USERAUTH_SOCIAL_ENABLED=true` | Social Login |
 
+## Upgrade auf 4.0
+
+Version 4.0.0 (2026-11-21). Die Verwaltungsseiten (Benutzer, Rollen, Rechte, Benutzerbild) nutzen das Kit-Theme `kern`: Die Klassen sind `kit-…` und `userauth-…` statt Bootstrap-Klassen. Die Auth-Seiten (Login, Registrierung, Passwort, Social) bleiben unverändert.
+
+1. **Theme setzen:** In der `.env` des Hosts `LARAVELKIT_THEME=kern` eintragen (Einstellung `laravelkit.theme`). Mit einem anderen Theme rendern die Verwaltungsseiten zwar, schreiben aber je Request eine Warnung ins Log.
+2. **CSS kommt vom Paket:** Die Route `userauth.assets.verwaltung` liefert `/userauth/assets/userauth-verwaltung.css` vorkompiliert aus. Die Datei enthält `vue3/kit.css` und das Tailwind-Theme des Kits, aber ohne Preflight. Der Host muss die Optik nicht selbst stylen. Das Layout `userauth::layouts.afterLogin` bindet die Datei ein.
+3. **Lösch-Dialog ohne Vue-Insel:** `initLoeschen()` und `mountInseln()` mit der Insel `dialog-delete` sind nicht mehr nötig. Der Lösch-Dialog ist Blade plus Inline-Skript und braucht keinen Eintrag im Host.
+4. **Mindeststand:** `ithilbert/laravel-kit` `^1.10` (erster Release mit Theme `kern`). Solange dieser Release fehlt, gegen `dev-main` bzw. den Workspace auflösen.
+5. **Views neu veröffentlichen:** Veröffentlichte Verwaltungs-Views unter `resources/views/vendor/userauth/` neu veröffentlichen: `php artisan vendor:publish --provider="ITHilbert\UserAuth\UserAuthServiceProvider" --force`. `--force` überschreibt auch Config und Sprachdateien; eigene Änderungen vorher sichern.
+6. **CSS neu bauen (nur Entwicklung im Paket):** `npm run build:css` im Paketordner baut `userauth-verwaltung.css` aus `resources-src/verwaltung.css`. Der Befehl setzt `NODE_PATH` (POSIX-Shell) und läuft nur im Workspace mit dem Kit unter `../laravel-kit`. Dabei wird `userauth.css` mit neu gebaut, wenn es gebaut wird.
+
 ## Upgrade-Hinweise (nach 3.0.0, unveröffentlicht)
 
 Diese Punkte gelten für Hosts, die den aktuellen Stand des Pakets nutzen. Eine Version nach 3.0.0 gibt es noch nicht.
@@ -544,26 +555,22 @@ Diese Punkte gelten für Hosts, die den aktuellen Stand des Pakets nutzen. Eine 
 5. `hourly_rate` muss eine Zahl ≥ 0 sein, `birthday` das Format `Y-m-d` haben. Sonst gibt es einen Validierungsfehler für das Feld, und der Benutzer wird nicht gespeichert. Der Host muss die Fehler anzeigen (siehe [Verwaltungsseiten](#verwaltungsseiten-benutzer-rollen-rechte-passwort-benutzerbild)).
 
 **Lösch-Dialog**
-6. Die Listen übergeben `dialog-delete` das Prop `titel` statt `title`. Veröffentlichte Views unter `resources/views/vendor/userauth/` müssen angepasst werden, wenn sie `title=` am Dialog setzen.
+6. Die Listen übergeben `dialog-delete` das Prop `titel` statt `title`. Veröffentlichte Views unter `resources/views/vendor/userauth/` müssen angepasst werden, wenn sie `title=` am Dialog setzen. Mit 4.0 entfällt die Insel `dialog-delete` (siehe [Upgrade auf 4.0](#upgrade-auf-40)).
 
 **Verwaltungsseiten ohne Vue-Tags (Kit-Components)**
 7. Die Verwaltungsviews (`user/index|create|edit|icon`, `role/index|create|edit`, `permission/index|create|edit`) bestehen aus Blade-Components von laravel-kit (`<x-kit::…>`) statt aus Vue-Tags. Ein Ausdruck wie `{{ 7*7 }}` in Namen oder Anzeigen erscheint als Text. Das Markup wählt laravel-kit über `laravelkit.theme` (`tailwind` oder `bootstrap5`).
-8. Mindeststand von `ithilbert/laravel-kit`: der erste Stand nach 1.2.0 mit den Kit-Components (#142) und der Component `combobox` (#115). Eine Versionsnummer dafür gibt es noch nicht. `^1.2` aus `composer.json` genügt erst, wenn dieser Stand als Release vorliegt.
+8. Mindeststand von `ithilbert/laravel-kit`: der erste Stand nach 1.2.0 mit den Kit-Components (#142) und der Component `combobox` (#115). Ab userauth 4.0 gilt `^1.10` (erster Release mit Theme `kern`, siehe „Upgrade auf 4.0“).
 9. Der Host bindet die Skripte von laravel-kit einmal pro Seite ein, z. B. in `resources/js/app.js`:
 
 ```javascript
 import { initTabs } from '../../vendor/ithilbert/laravel-kit/js/tabs.js';
 import { initLoeschen } from '../../vendor/ithilbert/laravel-kit/js/loeschen.js';
-import { mountInseln } from '../../vendor/ithilbert/laravel-kit/js/mount-inseln.js';
 
 initTabs();
 initLoeschen();
-mountInseln({
-    'dialog-delete': () => import('../../vendor/ithilbert/laravel-kit/vue/tailwind/dialog/delete.vue'),
-});
 ```
 
-   `initTabs()` schaltet die Reiter im Rollenformular. `initLoeschen()` nimmt den Klick auf die Lösch-Buttons der Listen entgegen (`data-kit-delete` aus `HButton::delete`). `mountInseln()` mountet die Insel `dialog-delete`. Der Dialog sendet das Formular `#formDelete`, das die Listen selbst mitbringen (Methode DELETE, CSRF-Token). Die Insel `dialog-delete` gibt es nur für das Theme `tailwind`.
+   `initTabs()` schaltet die Reiter im Rollenformular. `initLoeschen()` nahm den Klick auf die Lösch-Buttons der Listen entgegen. `mountInseln()` mountete die Insel `dialog-delete`; beides entfällt mit 4.0 (siehe [Upgrade auf 4.0](#upgrade-auf-40)), der Lösch-Dialog braucht seitdem keine Insel mehr. Der Dialog sendet das Formular `#formDelete`, das die Listen selbst mitbringen (Methode DELETE, CSRF-Token).
 10. Ein Whole-DOM-Mount (`vueapp_TW.js`, `vueapp_B5.js`, `vueapp_B4.js` aus laravel-kit) ist für diese Seiten nicht mehr nötig.
 11. Veröffentlichte Verwaltungs-Views unter `resources/views/vendor/userauth/` neu veröffentlichen: `php artisan vendor:publish --provider="ITHilbert\UserAuth\UserAuthServiceProvider" --force`. Ohne das behält der Host die alten Views mit Vue-Tags. `--force` überschreibt auch Config und Sprachdateien; eigene Änderungen dort vorher sichern. Neu sind die Teil-Views `user/formularfelder`, `role/formularfelder`, `role/recht`, `permission/rechtezeilen` und `partials/loeschen`.
 12. Die Views `include.breadcrumb` und `include.message` des Hosts dürfen keine Vue-Tags enthalten (z. B. `<breadcrumb>`). Ohne Whole-DOM-Mount rendert der Browser sie sonst nicht.

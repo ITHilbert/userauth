@@ -30,4 +30,6 @@ Offener Punkt a1bf9001d6dcb2432: 1 AK-fremd (Fußzeile nutzt userauth-spalte sta
 Abweichung a1bf9001d6dcb2432: Fehlalarm: keine Abweichung gemeldet
 Offener Punkt a7761687222afbeba: keine
 Abweichung a7761687222afbeba: Fehlalarm: keine Abweichung gemeldet
-Stand: T1, T2, T3 umgesetzt (GATE grün). T4 als Nächstes.
+Offener Punkt a728bbdb26d647115: 1 AK-fremd (build:css baut userauth.css mit; schon unter ad156b0242ddd64f5 Punkt 1 entschieden) | 2 erledigt vom Moderator (README Punkt 8 auf ^1.10 umgeschrieben) | 3 AK-fremd (Randfall 6, Hinweis an Joerg, Kit-Task) | 4 AK-fremd (Route durch VerwaltungCssTest abgedeckt)
+Abweichung a728bbdb26d647115: Fehlalarm: keine Abweichung gemeldet
+Stand: T1–T4 umgesetzt (GATE grün). Nächster Schritt: Echtlauf im Host, Review.

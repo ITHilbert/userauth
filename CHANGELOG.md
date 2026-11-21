@@ -1,5 +1,19 @@
 # Changelog
 
+## 4.0.0 – 2026-11-21
+
+### Geändert (inkompatibel)
+- Die Verwaltungsseiten (Benutzer, Rollen, Rechte, Benutzerbild) brauchen das Kit-Theme `kern` (`LARAVELKIT_THEME=kern`, Einstellung `laravelkit.theme`). Mit einem anderen Theme rendern sie, schreiben aber je Request eine Warnung ins Log.
+- Ihre Optik kommt vom Paket: vorkompiliertes CSS mit Kit-Basis und Tailwind-Theme des Kits, ohne Preflight. Die Klassen sind `kit-…` und `userauth-…` statt Bootstrap-Klassen. Die Auth-Seiten (Login, Registrierung, Passwort, Social) bleiben unverändert.
+- Der Lösch-Dialog ist Blade plus Inline-Skript statt Vue-Insel `dialog-delete`. `initLoeschen()` und `mountInseln()` sind dafür nicht mehr nötig.
+- Die Zeilenbuttons der Listen (Bearbeiten, Löschen) sind Kit-Components (`button-edit`, `button-delete`) statt `HButton`.
+- `ithilbert/laravel-kit` ab `^1.10` (erster Release mit Theme `kern`).
+- Veröffentlichte Verwaltungs-Views müssen neu veröffentlicht werden (siehe README, „Upgrade auf 4.0“).
+
+### Hinzugefügt
+- Route `userauth.assets.verwaltung` (`/userauth/assets/userauth-verwaltung.css`) mit dem CSS der Verwaltungsseiten.
+- Quelle `resources-src/verwaltung.css` und Skript `npm run build:css`, das die CSS-Dateien baut.
+
 ## 3.5.3 – 2026-11-21
 
 ### Behoben
