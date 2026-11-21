@@ -13,6 +13,7 @@
     $neueNummern = array_values(array_unique($neueNummern));
     sort($neueNummern);
 @endphp
+<div class="userauth-tabelle-rahmen">
 <table class="userauth-tabelle">
     <thead>
     <tr>
@@ -54,3 +55,4 @@
         </tr>
     </tbody>
 </table>
+</div>

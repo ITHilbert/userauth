@@ -13,6 +13,8 @@
 ### Hinzugefügt
 - Route `userauth.assets.verwaltung` (`/userauth/assets/userauth-verwaltung.css`) mit dem CSS der Verwaltungsseiten.
 - Quelle `resources-src/verwaltung.css` und Skript `npm run build:css`, das die CSS-Dateien baut.
+- Die Asset-Routen laufen ohne Session-Cookie (ohne Middleware-Gruppe `web`).
+- Der Lösch-Dialog ist auf 32rem Breite begrenzt; die statischen Tabellen der Rollen- und Rechteformulare stehen in `userauth-tabelle-rahmen` und scrollen dort.
 
 ## 3.5.3 – 2026-11-21
 

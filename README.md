@@ -511,7 +511,8 @@ Version 4.0.0 (2026-11-21). Die Verwaltungsseiten (Benutzer, Rollen, Rechte, Ben
 3. **Lösch-Dialog ohne Vue-Insel:** `initLoeschen()` und `mountInseln()` mit der Insel `dialog-delete` sind nicht mehr nötig. Der Lösch-Dialog ist Blade plus Inline-Skript und braucht keinen Eintrag im Host.
 4. **Mindeststand:** `ithilbert/laravel-kit` `^1.10` (erster Release mit Theme `kern`). Solange dieser Release fehlt, gegen `dev-main` bzw. den Workspace auflösen.
 5. **Views neu veröffentlichen:** Veröffentlichte Verwaltungs-Views unter `resources/views/vendor/userauth/` neu veröffentlichen: `php artisan vendor:publish --provider="ITHilbert\UserAuth\UserAuthServiceProvider" --force`. `--force` überschreibt auch Config und Sprachdateien; eigene Änderungen vorher sichern.
-6. **CSS neu bauen (nur Entwicklung im Paket):** `npm run build:css` im Paketordner baut `userauth-verwaltung.css` aus `resources-src/verwaltung.css`. Der Befehl setzt `NODE_PATH` (POSIX-Shell) und läuft nur im Workspace mit dem Kit unter `../laravel-kit`. Dabei wird `userauth.css` mit neu gebaut, wenn es gebaut wird.
+6. **Asset-Routen ohne Session:** `userauth.assets.css` und `userauth.assets.verwaltung` laufen ohne Middleware-Gruppe `web` und setzen keinen Session-Cookie. Der Lösch-Dialog ist auf 32rem begrenzt, die statischen Tabellen der Rollen- und Rechteformulare stehen in `userauth-tabelle-rahmen`.
+7. **CSS neu bauen (nur Entwicklung im Paket):** `npm run build:css` im Paketordner baut `userauth-verwaltung.css` aus `resources-src/verwaltung.css`. Der Befehl setzt `NODE_PATH` (POSIX-Shell) und läuft nur im Workspace mit dem Kit unter `../laravel-kit`. Dabei wird `userauth.css` mit neu gebaut, wenn es gebaut wird.
 
 ## Upgrade-Hinweise (nach 3.0.0, unveröffentlicht)
 

@@ -30,6 +30,7 @@
         <x-kit::tabs-body>
             <x-kit::tab-body name="home" active>
                 {{-- CRUD-Rechte --}}
+                <div class="userauth-tabelle-rahmen">
                 <table class="userauth-tabelle">
                     <thead>
                     <tr>
@@ -55,11 +56,13 @@
                         @endforeach
                     </tbody>
                 </table>
+                </div>
             </x-kit::tab-body>
             <x-kit::tab-body name="profile">
                 {{-- Einzelrechte --}}
                 @foreach ($permissionsgroups as $group)
                     @if ($group->is_group == 1)
+                        <div class="userauth-tabelle-rahmen">
                         <table class="userauth-tabelle">
                             <thead>
                             <tr>
@@ -77,6 +80,7 @@
                                 @endforeach
                             </tbody>
                         </table>
+                        </div>
                     @endif
                 @endforeach
             </x-kit::tab-body>

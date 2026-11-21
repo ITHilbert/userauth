@@ -46,4 +46,9 @@ Stand: freigegeben (Nachprüfung 1198cbe). Merge in den Sammel-Branch, Suite, Re
 ## T5 [pro] Nacharbeit aus den Review-Funden (AK12, AK13, AK14; Tasks #1981, #1982, #1984)
 — Tests: tests/Feature/VerwaltungNacharbeitTest.php
 Bestehende Tests: tests/Feature/VerwaltungCssTest.php tests/Feature/VerwaltungKernMarkupTest.php tests/Feature/AuthViewAssetsTest.php tests/Feature/LoeschDialogTest.php
-Stand: Spec um AK12–AK14 ergänzt (Nachtrag), Test-Writer als Nächstes.
+Offener Punkt ac46e6f15a7e48852: keine
+Abweichung ac46e6f15a7e48852: Fehlalarm: keine Abweichung gemeldet
+Layout: layout: /roles/create, /permissions/create --breiten 375,1920 --lang .kit-card → 0 Befunde der userauth-Seiten (Rest Host-Layout)
+Echtlauf: browser: /roles/create (Rahmen sichtbar), /permissions/create (Rahmen im HTML, Bereich per d-none ausgeblendet), /users Klick auf Löschen öffnet den Dialog, 0 Konsolenfehler; curl -I auf beide Asset-Routen: 200, kein Set-Cookie
+Review: ja, Sicherheitsbezug (Routen ohne web-Middleware)
+Stand: T5 umgesetzt (GATE grün, 186 Tests), Echtlauf grün. Review als Nächstes.

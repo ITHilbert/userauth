@@ -30,13 +30,12 @@ use ITHilbert\UserAuth\Http\Middleware\EnsureSocialLoginEnabled;
 |
 */
 
+// Asset-Routen ohne Middleware-Gruppe `web`: keine Session, keine Cookies, kein CSRF (statische Antwort, cachebar)
+Route::get('userauth/assets/userauth.css', AuthCssController::class)->name('userauth.assets.css');
+Route::get('userauth/assets/userauth-verwaltung.css', [AuthCssController::class, 'verwaltung'])->name('userauth.assets.verwaltung');
+
 Route::middleware(['web'])
     ->group(function () {
-
-        // Vorkompilierte CSS der Tailwind-Auth-Views (öffentlich, versioniert über ?v=)
-        Route::get('userauth/assets/userauth.css', AuthCssController::class)->name('userauth.assets.css');
-        // Vorkompilierte CSS der Verwaltungsseiten (Kit-Theme kern, ohne Preflight)
-        Route::get('userauth/assets/userauth-verwaltung.css', [AuthCssController::class, 'verwaltung'])->name('userauth.assets.verwaltung');
 
         // Permission routes
         Route::middleware(config('userauth.routes.permissions_middleware'))

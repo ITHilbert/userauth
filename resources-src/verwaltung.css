@@ -90,8 +90,17 @@
     overflow-x: auto;
 }
 
-table.userauth-tabelle {
-    display: block;
+/* Statische Tabellen der Formulare scrollen im Rahmen, die Tabelle selbst bleibt eine Tabelle */
+.userauth-tabelle-rahmen {
     overflow-x: auto;
     max-width: 100%;
+}
+
+table.userauth-tabelle {
+    width: 100%;
+}
+
+/* Lösch-Dialog: Kit setzt ohne Layer max-width 100vw; diese Regel steht danach und begrenzt auf 32rem */
+.kit-dialog__content {
+    max-width: min(32rem, calc(100vw - 2rem));
 }
