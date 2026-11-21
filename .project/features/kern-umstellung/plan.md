@@ -42,3 +42,8 @@ Abweichung abf8f617e9f63ee02: Fehlalarm: keine Abweichung gemeldet
 Review 1/2: 0 muss, 1 sollte, 0 kann (pruefung-nachpruefung.md, freigegeben); sollte Tabellen-Zeilen volle Breite → Folge-Task #1984
 DOKU: entfällt (README „Upgrade auf 4.0“ und CHANGELOG 4.0.0 sind Teil von T4)
 Stand: freigegeben (Nachprüfung 1198cbe). Merge in den Sammel-Branch, Suite, Release.
+
+## T5 [pro] Nacharbeit aus den Review-Funden (AK12, AK13, AK14; Tasks #1981, #1982, #1984)
+— Tests: tests/Feature/VerwaltungNacharbeitTest.php
+Bestehende Tests: tests/Feature/VerwaltungCssTest.php tests/Feature/VerwaltungKernMarkupTest.php tests/Feature/AuthViewAssetsTest.php tests/Feature/LoeschDialogTest.php
+Stand: Spec um AK12–AK14 ergänzt (Nachtrag), Test-Writer als Nächstes.

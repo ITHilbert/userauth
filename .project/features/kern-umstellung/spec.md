@@ -40,6 +40,11 @@ Die Verwaltungsseiten von userauth (Benutzer, Rollen, Rechte) nutzen die Blade-C
 - **AK10** Gegeben die Prüfungen der Verwaltungsseiten (`AdminViewsKitTest`, `AdminViewsSkripteTest`, `PasswortErzeugenTest` u. a.), wenn sie laufen, dann prüfen sie das Theme `kern` statt `tailwind`/`bootstrap5` und sind grün; die Prüfungen der Auth-Seiten (Login, Registrierung, Passwort, Social) und `userauth.css` bleiben unverändert grün.
 - **AK11** Gegeben `composer.json`, README und CHANGELOG, wenn gelesen wird, dann verlangt `composer.json` `ithilbert/laravel-kit` `^1.10`; die README hat den Abschnitt „Upgrade auf 4.0“ (Theme `kern` setzen, CSS kommt vom Paket, `initLoeschen()`/`mountInseln()` mit `dialog-delete` sind nicht mehr nötig, `userauth.assets.verwaltung`, Build der CSS) und nennt nirgends mehr die Insel `dialog-delete` als Voraussetzung; der CHANGELOG hat `4.0.0` mit „Geändert (inkompatibel)“.
 
+## Nachtrag (Review-Funde, Spec-Lücken, automode 2026-11-21, Moderator in Vollmacht)
+- **AK12** (#1981) Gegeben `userauth-verwaltung.css`, wenn sie gelesen wird, dann hat `.kit-dialog__content` ohne Layer eine Breitenbegrenzung kleiner als `100vw` (`max-width` mit höchstens `32rem`, z. B. `min(32rem, calc(100vw - 2rem))`), und `.kit-card__body` hat keine Regel mit `overflow` (die Combobox-Liste bleibt sichtbar); nur `.kit-card__body .dt-container` darf `overflow-x` setzen.
+- **AK13** (#1982) Gegeben die Routen `userauth.assets.css` und `userauth.assets.verwaltung`, wenn sie aufgerufen werden, dann antworten sie 200 mit `Cache-Control` `public, max-age=31536000, immutable` und **ohne** `Set-Cookie` und ohne Session; alle anderen Routen des Pakets laufen weiter durch `web`.
+- **AK14** (#1984) Gegeben die Formulare `role.create`, `role.edit`, `permission.create`, `permission.edit` mit Theme `kern`, wenn sie rendern, dann steht jede statische Tabelle `table.userauth-tabelle` in einem `div.userauth-tabelle-rahmen`, und `userauth-verwaltung.css` setzt `overflow-x: auto` am Rahmen, nicht an `table.userauth-tabelle` (kein `display: block` an der Tabelle), damit die Zeilen die volle Kartenbreite füllen.
+
 ## Randfälle
 1. Theme ≠ `kern`: Seiten rendern ohne Exception (AK9), Optik nicht zugesagt.
 2. `userauth-verwaltung.css` fehlt: Route 404, `verwaltungCssVersion()` = `0`, Seiten rendern weiter.
