@@ -48,6 +48,22 @@ trait VerwaltungSeitenHilfe
         $this->ziel = User::factory()->create(['role_id' => 4, 'name' => 'Ziel Nutzer', 'email' => 'ziel@example.test']);
     }
 
+    /** Zusätzlich eine Rechtegruppe mit `is_group = 1` und zwei Einzelrechten (Tab „Einzelrechte“ im Rollenformular). */
+    protected function verwaltungEinzelrechteAnlegen(): void
+    {
+        $jetzt = now();
+        DB::table('permissions_groups')->insert([
+            'id' => 2, 'group_name' => 'einzel', 'group_display' => 'Gruppe Einzel', 'is_group' => 1,
+            'created_at' => $jetzt, 'updated_at' => $jetzt,
+        ]);
+        foreach (['a', 'b'] as $kennung) {
+            DB::table('permissions')->insert([
+                'permission' => 'einzel_'.$kennung, 'permission_display' => 'Einzelrecht '.$kennung,
+                'group_id' => 2, 'crud' => 'single', 'created_at' => $jetzt, 'updated_at' => $jetzt,
+            ]);
+        }
+    }
+
     /** @return array<string, array{0: string}> */
     public static function verwaltungSeiten(): array
     {
