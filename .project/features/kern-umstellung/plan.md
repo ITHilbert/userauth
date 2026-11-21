@@ -32,4 +32,8 @@ Offener Punkt a7761687222afbeba: keine
 Abweichung a7761687222afbeba: Fehlalarm: keine Abweichung gemeldet
 Offener Punkt a728bbdb26d647115: 1 AK-fremd (build:css baut userauth.css mit; schon unter ad156b0242ddd64f5 Punkt 1 entschieden) | 2 erledigt vom Moderator (README Punkt 8 auf ^1.10 umgeschrieben) | 3 AK-fremd (Randfall 6, Hinweis an Joerg, Kit-Task) | 4 AK-fremd (Route durch VerwaltungCssTest abgedeckt)
 Abweichung a728bbdb26d647115: Fehlalarm: keine Abweichung gemeldet
-Stand: T1–T4 umgesetzt (GATE grün). Nächster Schritt: Echtlauf im Host, Review.
+Offener Punkt a7bfbbb609558e999: 1 erledigt vom Moderator (Nachmessung layout-pruefung 375/1920 px: Überstand der Karte weg; Rest-Befunde SCROLL 791 px und Überdeckung h1/Breadcrumb sind Host-Layout, auch auf /intern ohne userauth) | 2 AK-fremd (overflow-x auto am Kartenbody; Combobox-Liste im Body im Echtlauf unauffällig, Risiko für Dropdowns am Body-Ende vermerkt für den Reviewer)
+Abweichung a7bfbbb609558e999: Fehlalarm: keine Abweichung gemeldet
+Layout: layout: /users, /users/create, /roles/create, /permissions --breiten 375,1920 --lang .kit-card → 0 Befunde der userauth-Seiten (Rest: Host-Layout, Navbar, Breadcrumb mit Teststring, auch /intern: SCROLL 791 px)
+Echtlauf: browser: /users, /roles, /permissions, /users/create, /roles/create, /permissions/create im Host (Port 8225, LARAVELKIT_THEME=kern) — 0 Konsolenfehler, Ajax 200, kit-card/userauth-zeile/kit-tabs__tab sichtbar; Klick auf [data-kit-delete] in /users öffnet den Lösch-Dialog (kit-dialog__overlay ohne hidden)
+Stand: T1–T4 und CSS-Korrektur umgesetzt (GATE grün), Echtlauf grün. Nächster Schritt: Review.

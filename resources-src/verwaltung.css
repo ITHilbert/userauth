@@ -76,3 +76,16 @@
 .data-table {
     width: 100%;
 }
+
+/* Karte im Host-Container (Flex-Item): bleibt in der Breite des Containers, langes Wort bricht um */
+.kit-card {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: break-word;
+}
+
+/* Breite Tabellen in der Karte scrollen, statt im Wort zu brechen */
+.kit-card__body {
+    overflow-x: auto;
+}
