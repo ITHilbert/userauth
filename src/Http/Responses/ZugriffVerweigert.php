@@ -10,7 +10,7 @@ use Illuminate\Routing\Redirector;
 
 /**
  * Einheitliche Antwort der Zugriffs-Middlewares: Gäste zur Anmeldung, fehlende Rechte
- * je nach `userauth.redirect_on_no_permission` zur Anmeldung ('login') oder zur Seite `no-permission`.
+ * je nach `userauth.redirect_on_no_permission` zur Anmeldung ('login'), zur Seite `no-permission` oder ('403') mit Status 403 (HTML und JSON).
  */
 final class ZugriffVerweigert
 {
@@ -26,8 +26,14 @@ final class ZugriffVerweigert
 
     public function fehlendesRecht(): RedirectResponse
     {
-        if ($this->config->get('userauth.redirect_on_no_permission', 'login') === 'login') {
+        $ziel = $this->config->get('userauth.redirect_on_no_permission', 'login');
+
+        if ($ziel === 'login') {
             return $this->nichtAngemeldet();
+        }
+
+        if ($ziel === '403') {
+            abort(403, __('userauth::permission.no-permission'));
         }
 
         return $this->redirect->route('no-permission');

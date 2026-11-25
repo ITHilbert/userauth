@@ -18,7 +18,7 @@ return [
     'redirect_after_login' => '/',
     // Pfad für Redirect nach dem Logout
     'redirect_after_logout' => '/',
-    // Route wenn Rechte fehlen: Weiterleitung zur Login-Seite ('login') oder zur Fehlerseite ('no-permission')
+    // Route wenn Rechte fehlen: Weiterleitung zur Login-Seite ('login'), zur Fehlerseite ('no-permission') oder HTTP 403 ('403')
     'redirect_on_no_permission' => 'login',
 
     // Adresse (absolut oder ab /) eines Passwort-Generators des Hosts für den Button „Passwort erzeugen“ in der
