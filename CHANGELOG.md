@@ -11,6 +11,7 @@
 - Veröffentlichte Verwaltungs-Views müssen neu veröffentlicht werden (siehe README, „Upgrade auf 4.0“).
 
 ### Hinzugefügt
+- `userauth.redirect_on_no_permission` kennt den Wert `'403'`: fehlendes Recht antwortet mit HTTP 403 statt Weiterleitung (Standard bleibt `login`).
 - Route `userauth.assets.verwaltung` (`/userauth/assets/userauth-verwaltung.css`) mit dem CSS der Verwaltungsseiten.
 - Quelle `resources-src/verwaltung.css` und Skript `npm run build:css`, das die CSS-Dateien baut.
 - Die Asset-Routen laufen ohne Session-Cookie (ohne Middleware-Gruppe `web`).
