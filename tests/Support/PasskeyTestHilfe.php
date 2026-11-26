@@ -9,6 +9,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Illuminate\Testing\TestResponse;
 use ITHilbert\UserAuth\Tests\Fixtures\User;
@@ -29,6 +30,16 @@ trait PasskeyTestHilfe
 
     /** @var list<string> */
     protected array $logTexte = [];
+
+    /**
+     * Die Registrierungs-Helfer bestätigen den Benutzer vorher mit seinem Passwort (userauth passkey-bestaetigung,
+     * #2225), damit die übrigen Passkey-Tests den Weg wie vor der Bestätigungspflicht gehen. Tests der Bestätigung
+     * selbst schalten das ab (`$passkeyAutoBestaetigen = false`).
+     */
+    protected bool $passkeyAutoBestaetigen = true;
+
+    /** @var array<string, Carbon> Zeitpunkt der letzten Bestätigung je Sitzung und Benutzer */
+    protected array $passkeyBestaetigtAm = [];
 
     /**
      * @param  array<string, mixed>  $passkey  Werte aus userauth.passkey.*
@@ -113,7 +124,12 @@ trait PasskeyTestHilfe
      */
     protected function registrierungsOptionen(): array
     {
-        $optionen = $this->postJson(route('userauth.passkey.register.options'))->assertOk()->json();
+        $antwort = $this->postJson(route('userauth.passkey.register.options'));
+        if ($this->passkeyAutoBestaetigen && $antwort->status() === 403 && $antwort->json('bestaetigung_erforderlich') === true) {
+            $this->passkeyBestaetigenPerPasswort();
+            $antwort = $this->postJson(route('userauth.passkey.register.options'));
+        }
+        $optionen = $antwort->assertOk()->json();
         $this->assertNotEmpty($optionen['challenge'] ?? null, 'Die Registrierungsoptionen enthalten keine Challenge.');
 
         return $optionen;
@@ -143,12 +159,45 @@ trait PasskeyTestHilfe
     protected function passkeyRegistrieren(User $nutzer, PasskeyGeraet $geraet, string $name = 'Handy', array $abweichung = [], ?array $optionen = null, array $extra = []): TestResponse
     {
         $this->actingAs($nutzer);
-        $optionen ??= $this->registrierungsOptionen();
+        if ($optionen === null) {
+            $optionen = $this->registrierungsOptionen();
+        } else {
+            $this->passkeyVorBestaetigen();
+        }
 
         return $this->postJson(route('userauth.passkey.register'), array_merge(
             ['credential' => $geraet->registrierung($optionen, $abweichung), 'name' => $name],
             $extra,
         ));
+    }
+
+    /** Bestätigt den angemeldeten Benutzer mit dem Passwort der Factory (`password`). */
+    protected function passkeyBestaetigenPerPasswort(): TestResponse
+    {
+        $nutzer = auth()->user();
+        $this->passkeyBestaetigtAm[$this->sitzungsId.'|'.($nutzer?->getAuthIdentifier())] = now();
+
+        return $this->postJson(route('userauth.passkey.bestaetigen'), ['aktuelles_passwort' => 'password']);
+    }
+
+    /**
+     * Für Registrierungen mit vorgegebenen Optionen (keine Options-Anfrage, die die Challenge ersetzen würde): bestätigt
+     * einmal je Sitzung und Benutzer innerhalb von 5 Minuten, damit die Drosselung der Bestätigungsroute nicht greift.
+     * Gibt es die Route noch nicht, passiert nichts.
+     */
+    protected function passkeyVorBestaetigen(): void
+    {
+        $nutzer = auth()->user();
+        if (! $this->passkeyAutoBestaetigen || $nutzer === null || ! Route::has('userauth.passkey.bestaetigen')) {
+            return;
+        }
+
+        $zuletzt = $this->passkeyBestaetigtAm[$this->sitzungsId.'|'.$nutzer->getAuthIdentifier()] ?? null;
+        if ($zuletzt !== null && now()->greaterThanOrEqualTo($zuletzt) && $zuletzt->diffInMinutes(now()) < 5) {
+            return;
+        }
+
+        $this->passkeyBestaetigenPerPasswort();
     }
 
     /**

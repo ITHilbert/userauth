@@ -15,8 +15,17 @@ final class VerbietetImpersonate
 {
     public function handle(Request $request, Closure $next): Response
     {
-        abort_if($request->session()->has('impersonated_by'), 403, (string) __('userauth::passkey.impersonate_gesperrt'));
+        self::abbrechenUnterImpersonate($request);
 
         return $next($request);
+    }
+
+    /**
+     * 403 mit `userauth::passkey.impersonate_gesperrt`, wenn die Sitzung eine Übernahme ist; für Prüfungen, die nur
+     * in einem Teil einer Route gelten (Social-Callback beim Verknüpfen, AK10 von passkey-bestaetigung).
+     */
+    public static function abbrechenUnterImpersonate(Request $request): void
+    {
+        abort_if($request->hasSession() && $request->session()->has('impersonated_by'), 403, (string) __('userauth::passkey.impersonate_gesperrt'));
     }
 }

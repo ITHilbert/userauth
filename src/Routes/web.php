@@ -9,6 +9,7 @@ use ITHilbert\UserAuth\Http\Controllers\BenutzerPasskeysController;
 use ITHilbert\UserAuth\Http\Controllers\ImpersonateController;
 use ITHilbert\UserAuth\Http\Controllers\LoginController;
 use ITHilbert\UserAuth\Http\Controllers\OidcLoginController;
+use ITHilbert\UserAuth\Http\Controllers\PasskeyBestaetigungController;
 use ITHilbert\UserAuth\Http\Controllers\PasskeyController;
 use ITHilbert\UserAuth\Http\Controllers\PasskeyLoginController;
 use ITHilbert\UserAuth\Http\Controllers\PasswordController;
@@ -25,6 +26,7 @@ use ITHilbert\UserAuth\Http\Middleware\EnsurePasskeyEnabled;
 use ITHilbert\UserAuth\Http\Middleware\EnsureRegistrationEnabled;
 use ITHilbert\UserAuth\Http\Middleware\EnsureSocialLoginEnabled;
 use ITHilbert\UserAuth\Http\Middleware\VerbietetImpersonate;
+use ITHilbert\UserAuth\Http\Middleware\VerlangtPasskeyBestaetigung;
 
 /*
 |--------------------------------------------------------------------------
@@ -173,9 +175,16 @@ Route::middleware(['web'])
                 Route::get('/', [PasskeyController::class, 'index'])->name('userauth.passkey.index');
                 // Registrieren und Löschen unter Impersonate gesperrt (AK22), Lesen bleibt möglich
                 Route::middleware([VerbietetImpersonate::class])->group(function () {
-                    Route::post('register/options', [PasskeyController::class, 'optionen'])->name('userauth.passkey.register.options');
-                    Route::post('register', [PasskeyController::class, 'registrieren'])->name('userauth.passkey.register');
+                    // Hinzufügen nur nach Bestätigung per Passwort oder Passkey (passkey-bestaetigung, AK1), Löschen ohne (AK11)
+                    Route::middleware([VerlangtPasskeyBestaetigung::class])->group(function () {
+                        Route::post('register/options', [PasskeyController::class, 'optionen'])->name('userauth.passkey.register.options');
+                        Route::post('register', [PasskeyController::class, 'registrieren'])->name('userauth.passkey.register');
+                    });
                     Route::delete('{id}', [PasskeyController::class, 'destroy'])->whereNumber('id')->name('userauth.passkey.destroy');
+
+                    Route::post('bestaetigen', [PasskeyBestaetigungController::class, 'passwort'])->middleware('throttle:5,1,passkey-bestaetigen')->name('userauth.passkey.bestaetigen');
+                    Route::post('bestaetigen/optionen', [PasskeyBestaetigungController::class, 'optionen'])->middleware('throttle:30,1,passkey-bestaetigen-passkey')->name('userauth.passkey.bestaetigen.optionen');
+                    Route::post('bestaetigen/assertion', [PasskeyBestaetigungController::class, 'assertion'])->middleware('throttle:30,1,passkey-bestaetigen-passkey')->name('userauth.passkey.bestaetigen.assertion');
                 });
             });
 
@@ -186,14 +195,18 @@ Route::middleware(['web'])
 
         // Social Login (404, solange userauth.social.enabled = false)
         Route::middleware([EnsureSocialLoginEnabled::class, 'throttle:30,1'])->group(function () {
-            Route::get('auth/{provider}/redirect', [SocialLoginController::class, 'redirect'])->name('userauth.social.redirect');
+            // Verknüpfen und Lösen unter Impersonate gesperrt (passkey-bestaetigung, AK10); der Callback prüft das selbst,
+            // nur wenn ein Benutzer angemeldet ist (Gäste melden sich dort an)
+            Route::get('auth/{provider}/redirect', [SocialLoginController::class, 'redirect'])->name('userauth.social.redirect')
+                ->middleware(VerbietetImpersonate::class);
             Route::get('auth/{provider}/callback', [SocialLoginController::class, 'callback'])->name('userauth.social.callback');
             Route::get('auth/social/confirm/{token}', [SocialLinkConfirmationController::class, 'show'])->name('userauth.social.confirm');
             Route::post('auth/social/confirm/{token}', [SocialLinkConfirmationController::class, 'store'])->name('userauth.social.confirm.store');
 
             Route::middleware('auth')->group(function () {
                 Route::get('social-accounts', [SocialAccountController::class, 'index'])->name('userauth.social.accounts');
-                Route::delete('social-accounts/{provider}', [SocialAccountController::class, 'disconnect'])->name('userauth.social.disconnect');
+                Route::delete('social-accounts/{provider}', [SocialAccountController::class, 'disconnect'])->name('userauth.social.disconnect')
+                    ->middleware(VerbietetImpersonate::class);
             });
         });
 

@@ -129,6 +129,8 @@ return [
         'rp_name' => env('USERAUTH_PASSKEY_RP_NAME', ''),
         // Erlaubte Ursprünge, kommagetrennt (https://a.lan,https://b.lan), leer = Ursprung aus app.url
         'origins' => env('USERAUTH_PASSKEY_ORIGINS', ''),
+        // Minuten, die eine Bestätigung (Passwort oder Passkey) vor „Passkey hinzufügen“ gilt; unter 1 oder nicht numerisch = 10
+        'bestaetigung_minuten' => env('USERAUTH_PASSKEY_BESTAETIGUNG_MINUTEN', 10),
     ],
 
     // Anmeldung mit Passwort: 'immer' (Standard) | 'ohne_passkey' (gesperrt für Benutzer mit mindestens einem

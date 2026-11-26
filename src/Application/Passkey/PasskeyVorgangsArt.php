@@ -11,4 +11,5 @@ enum PasskeyVorgangsArt: string
 {
     case Anmeldung = 'anmeldung';
     case Registrierung = 'registrierung';
+    case Bestaetigung = 'bestaetigung';
 }

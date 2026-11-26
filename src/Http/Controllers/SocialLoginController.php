@@ -14,6 +14,7 @@ use ITHilbert\UserAuth\Application\SocialLogin\Exceptions\SocialProviderUnavaila
 use ITHilbert\UserAuth\Application\SocialLogin\HandleSocialLogin;
 use ITHilbert\UserAuth\Domain\SocialLogin\Exceptions\SocialLoginException;
 use ITHilbert\UserAuth\Domain\SocialLogin\SocialProvider;
+use ITHilbert\UserAuth\Http\Middleware\VerbietetImpersonate;
 
 final class SocialLoginController extends Controller
 {
@@ -33,6 +34,9 @@ final class SocialLoginController extends Controller
         ConnectSocialAccount $connect,
     ): RedirectResponse {
         $connecting = $request->user() !== null;
+        if ($connecting) {
+            VerbietetImpersonate::abbrechenUnterImpersonate($request);
+        }
 
         try {
             if ($connecting) {

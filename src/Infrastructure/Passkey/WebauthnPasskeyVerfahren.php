@@ -49,12 +49,12 @@ final class WebauthnPasskeyVerfahren implements PasskeyVerfahren
 
     private ?Serializer $serializer = null;
 
-    public function anmeldeOptionen(PasskeyPartei $partei): PasskeyOptionen
+    public function anmeldeOptionen(PasskeyPartei $partei, array $erlaubteKennungen = []): PasskeyOptionen
     {
         $optionen = PublicKeyCredentialRequestOptions::create(
             challenge: random_bytes(32),
             rpId: $partei->rpId,
-            allowCredentials: [],
+            allowCredentials: $this->deskriptoren($erlaubteKennungen),
             userVerification: PublicKeyCredentialRequestOptions::USER_VERIFICATION_REQUIREMENT_REQUIRED,
             timeout: self::TIMEOUT_MS,
         );
@@ -77,13 +77,7 @@ final class WebauthnPasskeyVerfahren implements PasskeyVerfahren
                 residentKey: AuthenticatorSelectionCriteria::RESIDENT_KEY_REQUIREMENT_REQUIRED,
             ),
             attestation: PublicKeyCredentialCreationOptions::ATTESTATION_CONVEYANCE_PREFERENCE_NONE,
-            excludeCredentials: array_map(
-                static fn (string $kennung): PublicKeyCredentialDescriptor => PublicKeyCredentialDescriptor::create(
-                    PublicKeyCredentialDescriptor::CREDENTIAL_TYPE_PUBLIC_KEY,
-                    Base64UrlSafe::decodeNoPadding($kennung),
-                ),
-                $ausgeschlosseneKennungen,
-            ),
+            excludeCredentials: $this->deskriptoren($ausgeschlosseneKennungen),
             timeout: self::TIMEOUT_MS,
         );
 
@@ -134,6 +128,21 @@ final class WebauthnPasskeyVerfahren implements PasskeyVerfahren
                 $this->serializer()->serialize($record, 'json', self::KONTEXT),
             );
         });
+    }
+
+    /**
+     * @param  list<string>  $kennungen  base64url-Kennungen
+     * @return list<PublicKeyCredentialDescriptor>
+     */
+    private function deskriptoren(array $kennungen): array
+    {
+        return array_map(
+            static fn (string $kennung): PublicKeyCredentialDescriptor => PublicKeyCredentialDescriptor::create(
+                PublicKeyCredentialDescriptor::CREDENTIAL_TYPE_PUBLIC_KEY,
+                Base64UrlSafe::decodeNoPadding($kennung),
+            ),
+            $kennungen,
+        );
     }
 
     private function optionen(PublicKeyCredentialRequestOptions|PublicKeyCredentialCreationOptions $optionen): PasskeyOptionen

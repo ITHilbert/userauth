@@ -6,6 +6,10 @@
  *                     data-text-nicht-unterstuetzt="…" data-text-abgebrochen="…" data-text-fehler="…">
  * Einrichten: <form data-passkey-registrieren data-optionen-url="…" data-registrieren-url="…" data-meldung="<id>" …>
  *             mit <input name="name">
+ *             Bestätigung vor dem Hinzufügen: data-bestaetigen-url, data-bestaetigung="<id des Dialogs>", bei Benutzern mit
+ *             Passkey zusätzlich data-bestaetigen-optionen-url und data-bestaetigen-assertion-url, data-text-bestaetigung.
+ *             Antwortet das Hinzufügen mit 403 und bestaetigung_erforderlich, öffnet der Dialog; nach der Bestätigung
+ *             wird das Hinzufügen genau einmal wiederholt.
  */
 (function () {
     'use strict';
@@ -55,6 +59,8 @@
                 if (!antwort.ok) {
                     var fehler = new Error(json.message || '');
                     fehler.serverMeldung = json.message || '';
+                    fehler.status = antwort.status;
+                    fehler.bestaetigungErforderlich = antwort.status === 403 && json.bestaetigung_erforderlich === true;
                     throw fehler;
                 }
                 return json;
@@ -152,9 +158,10 @@
             });
     }
 
-    function registrieren(formular) {
+    function registrieren(formular, wiederholung) {
         var knopf = formular.querySelector('button');
         var feld = formular.querySelector('input[name="name"]');
+        var dialog = formular.dataset.bestaetigung ? document.getElementById(formular.dataset.bestaetigung) : null;
         meldung(formular, '');
         if (knopf) {
             knopf.disabled = true;
@@ -174,11 +181,93 @@
                 window.location.assign(json.redirect || window.location.href);
             })
             .catch(function (fehler) {
-                meldung(formular, fehler.abgebrochen ? formular.dataset.textAbgebrochen : (fehler.serverMeldung || formular.dataset.textFehler));
+                if (fehler.bestaetigungErforderlich && !wiederholung && dialog) {
+                    bestaetigungOeffnen(formular, dialog);
+                } else {
+                    meldung(formular, fehler.abgebrochen ? formular.dataset.textAbgebrochen : (fehler.serverMeldung || formular.dataset.textFehler));
+                }
                 if (knopf) {
                     knopf.disabled = false;
                 }
             });
+    }
+
+    function dialogMeldung(dialog, text) {
+        var ziel = dialog.querySelector('[data-testid="passkey-bestaetigung-meldung"]');
+        if (ziel) {
+            ziel.textContent = text || '';
+            ziel.hidden = !text;
+        }
+    }
+
+    function bestaetigungOeffnen(formular, dialog) {
+        var feld = dialog.querySelector('input[name="aktuelles_passwort"]');
+        dialogMeldung(dialog, '');
+        if (feld) {
+            feld.value = '';
+        }
+        dialog.hidden = false;
+        if (feld) {
+            feld.focus();
+        }
+    }
+
+    // Bestätigung gesendet: bei Erfolg Dialog schließen und das Hinzufügen genau einmal wiederholen
+    function bestaetigen(formular, dialog, knoepfe, anfrage) {
+        dialogMeldung(dialog, '');
+        knoepfe.forEach(function (k) {
+            k.disabled = true;
+        });
+        anfrage()
+            .then(function () {
+                dialog.hidden = true;
+                registrieren(formular, true);
+            })
+            .catch(function (fehler) {
+                dialogMeldung(dialog, fehler.abgebrochen ? formular.dataset.textAbgebrochen : (fehler.serverMeldung || formular.dataset.textBestaetigung || formular.dataset.textFehler));
+            })
+            .then(function () {
+                knoepfe.forEach(function (k) {
+                    k.disabled = false;
+                });
+            });
+    }
+
+    function bestaetigungEinrichten(formular) {
+        var dialog = formular.dataset.bestaetigung ? document.getElementById(formular.dataset.bestaetigung) : null;
+        if (!dialog || !formular.dataset.bestaetigenUrl) {
+            return;
+        }
+        var feld = dialog.querySelector('input[name="aktuelles_passwort"]');
+        var passwortKnopf = dialog.querySelector('[data-testid="passkey-bestaetigung-passwort"]');
+        var passkeyKnopf = dialog.querySelector('[data-testid="passkey-bestaetigung-passkey"]');
+        var knoepfe = [passwortKnopf, passkeyKnopf].filter(Boolean);
+
+        if (passwortKnopf) {
+            passwortKnopf.addEventListener('click', function (ereignis) {
+                ereignis.preventDefault();
+                bestaetigen(formular, dialog, knoepfe, function () {
+                    return senden(formular.dataset.bestaetigenUrl, { aktuelles_passwort: feld ? feld.value : '' });
+                });
+            });
+        }
+        if (passkeyKnopf && formular.dataset.bestaetigenOptionenUrl && formular.dataset.bestaetigenAssertionUrl) {
+            passkeyKnopf.addEventListener('click', function (ereignis) {
+                ereignis.preventDefault();
+                bestaetigen(formular, dialog, knoepfe, function () {
+                    return senden(formular.dataset.bestaetigenOptionenUrl).then(function (json) {
+                        return navigator.credentials.get({ publicKey: anfrageOptionen(json) }).then(function (credential) {
+                            return senden(formular.dataset.bestaetigenAssertionUrl, alsJson(credential));
+                        }, function (fehler) {
+                            if (istAbbruch(fehler)) {
+                                fehler.abgebrochen = true;
+                            }
+                            throw fehler;
+                        });
+                    });
+                });
+            });
+        }
     }
 
     function einrichten() {
@@ -203,9 +292,10 @@
                 meldung(formular, formular.dataset.textNichtUnterstuetzt);
                 return;
             }
+            bestaetigungEinrichten(formular);
             formular.addEventListener('submit', function (ereignis) {
                 ereignis.preventDefault();
-                registrieren(formular);
+                registrieren(formular, false);
             });
         });
     }

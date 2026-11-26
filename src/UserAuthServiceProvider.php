@@ -41,6 +41,7 @@ use ITHilbert\UserAuth\Application\Contracts\MailLinks;
 use ITHilbert\UserAuth\Application\Oidc\Contracts\OidcIdentityProvider;
 use ITHilbert\UserAuth\Application\Oidc\Contracts\OidcVorgaenge;
 use ITHilbert\UserAuth\Application\Passkey\Contracts\PasskeyAnmeldeinformationen;
+use ITHilbert\UserAuth\Application\Passkey\Contracts\PasskeyBestaetigungen;
 use ITHilbert\UserAuth\Application\Passkey\Contracts\PasskeyVerfahren;
 use ITHilbert\UserAuth\Application\Passkey\Contracts\PasskeyVorgaenge;
 use ITHilbert\UserAuth\Application\Passwort\Contracts\PasswortHistorie;
@@ -95,6 +96,7 @@ use ITHilbert\UserAuth\Infrastructure\Oidc\GuzzleOidcIdentityProvider;
 use ITHilbert\UserAuth\Infrastructure\Oidc\OidcHttpClientFactory;
 use ITHilbert\UserAuth\Infrastructure\Oidc\SessionOidcVorgaenge;
 use ITHilbert\UserAuth\Infrastructure\Passkey\DatenbankPasskeyAnmeldeinformationen;
+use ITHilbert\UserAuth\Infrastructure\Passkey\SessionPasskeyBestaetigungen;
 use ITHilbert\UserAuth\Infrastructure\Passkey\SessionPasskeyVorgaenge;
 use ITHilbert\UserAuth\Infrastructure\Passkey\WebauthnPasskeyVerfahren;
 use ITHilbert\UserAuth\Infrastructure\Passwort\BrokerResetTokens;
@@ -113,6 +115,7 @@ use ITHilbert\UserAuth\Listeners\LogAuthenticationAttempt;
 use ITHilbert\UserAuth\Listeners\LogGeloeschteEmailAufloesung;
 use ITHilbert\UserAuth\Listeners\LogPasskeyChange;
 use ITHilbert\UserAuth\Listeners\LogSocialAccountChange;
+use ITHilbert\UserAuth\Listeners\PasskeyBestaetigungVerwerfen;
 use ITHilbert\UserAuth\Listeners\SendSocialAccountLinkedMail;
 use ITHilbert\UserAuth\Listeners\SitzungsgebundeneAnmeldungMarkieren;
 use UnitEnum;
@@ -155,6 +158,7 @@ class UserAuthServiceProvider extends ServiceProvider
             LogAuthenticationAttempt::class
         );
         Event::listen(Login::class, SitzungsgebundeneAnmeldungMarkieren::class);
+        Event::listen([Login::class, Logout::class], PasskeyBestaetigungVerwerfen::class);
 
         Event::listen(SocialAccountLinked::class, [SendSocialAccountLinkedMail::class, 'handle']);
         Event::listen([SocialAccountLinked::class, SocialAccountUnlinked::class], LogSocialAccountChange::class);
@@ -419,6 +423,7 @@ class UserAuthServiceProvider extends ServiceProvider
         $this->app->bind(PasskeyVerfahren::class, WebauthnPasskeyVerfahren::class);
         $this->app->bind(PasskeyVorgaenge::class, SessionPasskeyVorgaenge::class);
         $this->app->bind(PasskeyAnmeldeinformationen::class, DatenbankPasskeyAnmeldeinformationen::class);
+        $this->app->bind(PasskeyBestaetigungen::class, SessionPasskeyBestaetigungen::class);
     }
 
     /**

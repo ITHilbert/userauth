@@ -12,6 +12,16 @@ return [
     'fehler' => [
         'anmeldung' => 'Die Anmeldung mit Passkey ist fehlgeschlagen. Bitte versuchen Sie es erneut.',
         'registrierung' => 'Der Passkey konnte nicht eingerichtet werden. Bitte versuchen Sie es erneut.',
+        'bestaetigung_erforderlich' => 'Bitte bestätigen Sie sich mit Ihrem aktuellen Passwort oder einem vorhandenen Passkey, bevor Sie einen Passkey hinzufügen. Haben Sie kein Passwort, setzen Sie es über „Passwort vergessen“.',
+        'bestaetigung' => 'Die Bestätigung ist fehlgeschlagen. Bitte versuchen Sie es erneut.',
+    ],
+
+    'bestaetigung' => [
+        'titel' => 'Bestätigung',
+        'hinweis' => 'Bitte bestätigen Sie Ihre Identität, bevor Sie einen Passkey hinzufügen.',
+        'passwort' => 'Aktuelles Passwort',
+        'passwort_knopf' => 'Mit Passwort bestätigen',
+        'passkey_knopf' => 'Mit Passkey bestätigen',
     ],
 
     'verwaltung' => [

@@ -13,11 +13,31 @@ use ITHilbert\UserAuth\Domain\Passkey\PasswortLoginModus;
  */
 final class PasskeyEinstellungen
 {
+    public const BESTAETIGUNG_MINUTEN_STANDARD = 10;
+
     public function __construct(private readonly Repository $config) {}
 
     public function enabled(): bool
     {
         return (bool) $this->config->get('userauth.passkey.enabled', false);
+    }
+
+    /**
+     * Dauer der Bestätigung vor „Passkey hinzufügen“ in Minuten (`userauth.passkey.bestaetigung_minuten`);
+     * Werte unter 1 oder nicht numerisch wirken wie der Standard.
+     */
+    public function bestaetigungMinuten(): int
+    {
+        $wert = $this->config->get('userauth.passkey.bestaetigung_minuten');
+        if (is_string($wert)) {
+            $wert = trim($wert);
+        }
+
+        if (! is_numeric($wert) || (float) $wert < 1) {
+            return self::BESTAETIGUNG_MINUTEN_STANDARD;
+        }
+
+        return (int) floor((float) $wert);
     }
 
     public function passwortLoginModus(): PasswortLoginModus

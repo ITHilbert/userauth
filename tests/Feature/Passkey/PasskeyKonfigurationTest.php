@@ -56,7 +56,7 @@ final class PasskeyKonfigurationTest extends TestCase
         $standard = require $this->paket().'/src/Config/config.php';
 
         $this->assertIsArray($standard['passkey'] ?? null, 'Der Block passkey fehlt in config.php.');
-        $this->assertEqualsCanonicalizing(['enabled', 'rp_id', 'rp_name', 'origins'], array_keys($standard['passkey']));
+        $this->assertEqualsCanonicalizing(['enabled', 'rp_id', 'rp_name', 'origins', 'bestaetigung_minuten'], array_keys($standard['passkey']));
         $this->assertFalse($standard['passkey']['enabled']);
         foreach (['rp_id', 'rp_name', 'origins'] as $leer) {
             $this->assertContains($standard['passkey'][$leer], ['', null, []], "Standard von {$leer} ist nicht leer.");
