@@ -8,7 +8,8 @@ use ITHilbert\UserAuth\Infrastructure\Assets\AuthAssetVersion;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Liefert die vorkompilierten CSS-Dateien des Pakets aus (öffentlich, versioniert über ?v=).
+ * Liefert die vorkompilierten CSS-Dateien und das Passkey-Skript des Pakets aus (öffentlich, ohne Sitzung,
+ * versioniert über ?v=).
  */
 final class AuthCssController
 {
@@ -24,12 +25,18 @@ final class AuthCssController
         return $this->datei($assets->verwaltungCssPath());
     }
 
-    private function datei(string $pfad): Response
+    /** `passkey.js` für Login-Knopf und Verwaltungsseite (reines JavaScript, ohne Build). */
+    public function passkey(AuthAssetVersion $assets): Response
+    {
+        return $this->datei($assets->passkeyJsPath(), 'text/javascript; charset=utf-8');
+    }
+
+    private function datei(string $pfad, string $typ = 'text/css; charset=utf-8'): Response
     {
         abort_unless(is_file($pfad), 404);
 
         return response()->file($pfad, [
-            'Content-Type' => 'text/css; charset=utf-8',
+            'Content-Type' => $typ,
             'Cache-Control' => 'public, max-age=31536000, immutable',
         ]);
     }

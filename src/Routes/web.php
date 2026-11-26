@@ -5,9 +5,12 @@ declare(strict_types=1);
 use Illuminate\Foundation\Http\Middleware\InvokeDeferredCallbacks;
 use Illuminate\Support\Facades\Route;
 use ITHilbert\UserAuth\Http\Controllers\AuthCssController;
+use ITHilbert\UserAuth\Http\Controllers\BenutzerPasskeysController;
 use ITHilbert\UserAuth\Http\Controllers\ImpersonateController;
 use ITHilbert\UserAuth\Http\Controllers\LoginController;
 use ITHilbert\UserAuth\Http\Controllers\OidcLoginController;
+use ITHilbert\UserAuth\Http\Controllers\PasskeyController;
+use ITHilbert\UserAuth\Http\Controllers\PasskeyLoginController;
 use ITHilbert\UserAuth\Http\Controllers\PasswordController;
 use ITHilbert\UserAuth\Http\Controllers\PermissionController;
 use ITHilbert\UserAuth\Http\Controllers\RegistrierungController;
@@ -18,8 +21,10 @@ use ITHilbert\UserAuth\Http\Controllers\SocialLoginController;
 use ITHilbert\UserAuth\Http\Controllers\TwoFactorController;
 use ITHilbert\UserAuth\Http\Controllers\UserController;
 use ITHilbert\UserAuth\Http\Middleware\EnsureOidcEnabled;
+use ITHilbert\UserAuth\Http\Middleware\EnsurePasskeyEnabled;
 use ITHilbert\UserAuth\Http\Middleware\EnsureRegistrationEnabled;
 use ITHilbert\UserAuth\Http\Middleware\EnsureSocialLoginEnabled;
+use ITHilbert\UserAuth\Http\Middleware\VerbietetImpersonate;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,6 +40,9 @@ use ITHilbert\UserAuth\Http\Middleware\EnsureSocialLoginEnabled;
 // Asset-Routen ohne Middleware-Gruppe `web`: keine Session, keine Cookies, kein CSRF (statische Antwort, cachebar)
 Route::get('userauth/assets/userauth.css', AuthCssController::class)->name('userauth.assets.css');
 Route::get('userauth/assets/userauth-verwaltung.css', [AuthCssController::class, 'verwaltung'])->name('userauth.assets.verwaltung');
+// Skript der Passkey-Anmeldung, nur mit aktivem Passkey (sonst 404)
+Route::get('userauth/assets/passkey.js', [AuthCssController::class, 'passkey'])->name('userauth.assets.passkey')
+    ->middleware(EnsurePasskeyEnabled::class);
 
 Route::middleware(['web'])
     ->group(function () {
@@ -76,6 +84,8 @@ Route::middleware(['web'])
                 Route::get('edit/{id}', [UserController::class, 'edit'])->name('user.edit')->middleware('hasPermission:user_edit');
                 Route::post('update/{id}', [UserController::class, 'update'])->name('user.update')->middleware('hasPermission:user_edit');
                 Route::delete('delete/{id}', [UserController::class, 'delete'])->name('user.delete')->middleware('hasPermission:user_delete');
+                Route::post('passkeys/reset/{id}', [BenutzerPasskeysController::class, 'zuruecksetzen'])->name('user.passkeys.reset')
+                    ->whereNumber('id')->middleware('hasPermission:user_edit');
             });
 
         // Password edit
@@ -149,6 +159,29 @@ Route::middleware(['web'])
         Route::middleware([EnsureOidcEnabled::class, 'throttle:30,1'])->group(function () {
             Route::get('auth/oidc/redirect', [OidcLoginController::class, 'redirect'])->name('userauth.oidc.redirect');
             Route::get('auth/oidc/callback', [OidcLoginController::class, 'callback'])->name('userauth.oidc.callback');
+        });
+
+        // Anmeldung mit Passkey: Routen immer registriert, 404 solange userauth.passkey.enabled = false (vor der
+        // CSRF-Prüfung, MiddlewarePrioritaet). Anmeldung nur für Gäste und gedrosselt wie OIDC, Verwaltung mit `auth`.
+        Route::middleware([EnsurePasskeyEnabled::class])->prefix('passkey')->group(function () {
+            Route::middleware(['guest', 'throttle:30,1'])->group(function () {
+                Route::post('login/options', [PasskeyLoginController::class, 'optionen'])->name('userauth.passkey.login.options');
+                Route::post('login', [PasskeyLoginController::class, 'anmelden'])->name('userauth.passkey.login');
+            });
+
+            Route::middleware(['auth'])->group(function () {
+                Route::get('/', [PasskeyController::class, 'index'])->name('userauth.passkey.index');
+                // Registrieren und Löschen unter Impersonate gesperrt (AK22), Lesen bleibt möglich
+                Route::middleware([VerbietetImpersonate::class])->group(function () {
+                    Route::post('register/options', [PasskeyController::class, 'optionen'])->name('userauth.passkey.register.options');
+                    Route::post('register', [PasskeyController::class, 'registrieren'])->name('userauth.passkey.register');
+                    Route::delete('{id}', [PasskeyController::class, 'destroy'])->whereNumber('id')->name('userauth.passkey.destroy');
+                });
+            });
+
+            // GET auf die Registrierungsrouten: bei „aus“ 404 über die Middleware statt 405, bei „an“ 405
+            Route::get('register', [PasskeyController::class, 'nurPost']);
+            Route::get('register/options', [PasskeyController::class, 'nurPost']);
         });
 
         // Social Login (404, solange userauth.social.enabled = false)

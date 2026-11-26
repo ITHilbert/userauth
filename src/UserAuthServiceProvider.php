@@ -25,6 +25,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\View\Compilers\BladeCompiler;
 use ITHilbert\UserAuth\App\Console\Commands\AssignRoleCommand;
 use ITHilbert\UserAuth\App\Console\Commands\CreatePermissionCommand;
+use ITHilbert\UserAuth\App\Console\Commands\PasskeysZuruecksetzenCommand;
 use ITHilbert\UserAuth\App\Console\Commands\PruneSocialLinksCommand;
 use ITHilbert\UserAuth\App\Console\Commands\UserAuthCopyFiles;
 use ITHilbert\UserAuth\Application\Auth\Contracts\Anmeldedaten;
@@ -39,6 +40,9 @@ use ITHilbert\UserAuth\Application\Benutzer\Contracts\GeloeschteBenutzer;
 use ITHilbert\UserAuth\Application\Contracts\MailLinks;
 use ITHilbert\UserAuth\Application\Oidc\Contracts\OidcIdentityProvider;
 use ITHilbert\UserAuth\Application\Oidc\Contracts\OidcVorgaenge;
+use ITHilbert\UserAuth\Application\Passkey\Contracts\PasskeyAnmeldeinformationen;
+use ITHilbert\UserAuth\Application\Passkey\Contracts\PasskeyVerfahren;
+use ITHilbert\UserAuth\Application\Passkey\Contracts\PasskeyVorgaenge;
 use ITHilbert\UserAuth\Application\Passwort\Contracts\PasswortHistorie;
 use ITHilbert\UserAuth\Application\Passwort\Contracts\PasswortKonten;
 use ITHilbert\UserAuth\Application\Passwort\Contracts\ResetLinkVersand;
@@ -55,6 +59,7 @@ use ITHilbert\UserAuth\Application\Zugriff\Contracts\RollenRepository;
 use ITHilbert\UserAuth\Application\Zugriff\Zugriffspruefung;
 use ITHilbert\UserAuth\Domain\Benutzer\Events\BenutzerEndgueltigGeloescht;
 use ITHilbert\UserAuth\Domain\Benutzer\Events\BenutzerReaktiviert;
+use ITHilbert\UserAuth\Domain\Passkey\Events\PasskeysZurueckgesetzt;
 use ITHilbert\UserAuth\Domain\Registrierung\Events\EmailBestaetigt;
 use ITHilbert\UserAuth\Domain\Registrierung\Events\KontoRegistriert;
 use ITHilbert\UserAuth\Domain\SocialLogin\Events\SocialAccountLinked;
@@ -71,6 +76,8 @@ use ITHilbert\UserAuth\Http\ViewComposers\AnmeldeKennungComposer;
 use ITHilbert\UserAuth\Http\ViewComposers\AvailableSocialProvidersComposer;
 use ITHilbert\UserAuth\Http\ViewComposers\GeloeschteEmailHinweisComposer;
 use ITHilbert\UserAuth\Http\ViewComposers\OidcKnopfComposer;
+use ITHilbert\UserAuth\Http\ViewComposers\PasskeyAnzahlComposer;
+use ITHilbert\UserAuth\Http\ViewComposers\PasskeyKnopfComposer;
 use ITHilbert\UserAuth\Http\ViewComposers\RegistrierungComposer;
 use ITHilbert\UserAuth\Http\ViewComposers\ThemeComposer;
 use ITHilbert\UserAuth\Http\ViewComposers\VerwaltungThemeHinweisComposer;
@@ -87,6 +94,9 @@ use ITHilbert\UserAuth\Infrastructure\Oidc\GuzzleOidcHttpClientFactory;
 use ITHilbert\UserAuth\Infrastructure\Oidc\GuzzleOidcIdentityProvider;
 use ITHilbert\UserAuth\Infrastructure\Oidc\OidcHttpClientFactory;
 use ITHilbert\UserAuth\Infrastructure\Oidc\SessionOidcVorgaenge;
+use ITHilbert\UserAuth\Infrastructure\Passkey\DatenbankPasskeyAnmeldeinformationen;
+use ITHilbert\UserAuth\Infrastructure\Passkey\SessionPasskeyVorgaenge;
+use ITHilbert\UserAuth\Infrastructure\Passkey\WebauthnPasskeyVerfahren;
 use ITHilbert\UserAuth\Infrastructure\Passwort\BrokerResetTokens;
 use ITHilbert\UserAuth\Infrastructure\Passwort\DatenbankPasswortHistorie;
 use ITHilbert\UserAuth\Infrastructure\Passwort\EloquentPasswortKonten;
@@ -101,6 +111,7 @@ use ITHilbert\UserAuth\Infrastructure\SocialLogin\SocialiteIdentityProvider;
 use ITHilbert\UserAuth\Infrastructure\Zugriff\EloquentRollenRepository;
 use ITHilbert\UserAuth\Listeners\LogAuthenticationAttempt;
 use ITHilbert\UserAuth\Listeners\LogGeloeschteEmailAufloesung;
+use ITHilbert\UserAuth\Listeners\LogPasskeyChange;
 use ITHilbert\UserAuth\Listeners\LogSocialAccountChange;
 use ITHilbert\UserAuth\Listeners\SendSocialAccountLinkedMail;
 use ITHilbert\UserAuth\Listeners\SitzungsgebundeneAnmeldungMarkieren;
@@ -131,6 +142,7 @@ class UserAuthServiceProvider extends ServiceProvider
             AssignRoleCommand::class,
             CreatePermissionCommand::class,
             PruneSocialLinksCommand::class,
+            PasskeysZuruecksetzenCommand::class,
         ]);
 
         $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
@@ -147,6 +159,7 @@ class UserAuthServiceProvider extends ServiceProvider
         Event::listen(SocialAccountLinked::class, [SendSocialAccountLinkedMail::class, 'handle']);
         Event::listen([SocialAccountLinked::class, SocialAccountUnlinked::class], LogSocialAccountChange::class);
         Event::listen([BenutzerReaktiviert::class, BenutzerEndgueltigGeloescht::class], LogGeloeschteEmailAufloesung::class);
+        Event::listen(PasskeysZurueckgesetzt::class, LogPasskeyChange::class);
 
         View::composer(
             ['userauth::login.*', 'userauth::social.accounts.*'],
@@ -155,6 +168,8 @@ class UserAuthServiceProvider extends ServiceProvider
         View::composer('userauth::login.*', GeloeschteEmailHinweisComposer::class);
         View::composer('userauth::login.*', RegistrierungComposer::class);
         View::composer('userauth::login.*', OidcKnopfComposer::class);
+        View::composer('userauth::login.*', PasskeyKnopfComposer::class);
+        View::composer('userauth::user.edit', PasskeyAnzahlComposer::class);
         View::composer([
             'userauth::login.*',
             'userauth::password.forgotten.*',
@@ -170,6 +185,7 @@ class UserAuthServiceProvider extends ServiceProvider
             'userauth::registrierung.bestaetigung',
             'userauth::social.confirm',
             'userauth::social.accounts',
+            'userauth::passkey.index',
         ], ThemeComposer::class);
         View::composer([
             'userauth::user.index',
@@ -313,6 +329,7 @@ class UserAuthServiceProvider extends ServiceProvider
         $this->registerBladeExtensions();
         $this->registerSocialLogin();
         $this->registerOidc();
+        $this->registerPasskey();
         $this->registerZugriffspruefung();
         $this->registerPasswort();
         $this->registerAnmeldung();
@@ -392,6 +409,16 @@ class UserAuthServiceProvider extends ServiceProvider
         $this->app->bind(OidcIdentityProvider::class, GuzzleOidcIdentityProvider::class);
         $this->app->bind(OidcHttpClientFactory::class, GuzzleOidcHttpClientFactory::class);
         $this->app->bind(OidcVorgaenge::class, SessionOidcVorgaenge::class);
+    }
+
+    /**
+     * Port-Bindings der Passkey-Anmeldung (Ports in Application, Adapter mit web-auth/webauthn-lib in Infrastructure).
+     */
+    protected function registerPasskey(): void
+    {
+        $this->app->bind(PasskeyVerfahren::class, WebauthnPasskeyVerfahren::class);
+        $this->app->bind(PasskeyVorgaenge::class, SessionPasskeyVorgaenge::class);
+        $this->app->bind(PasskeyAnmeldeinformationen::class, DatenbankPasskeyAnmeldeinformationen::class);
     }
 
     /**
