@@ -16,11 +16,9 @@
                 @include('userauth::role.formularfelder', ['role' => $role])
             </x-kit::card-body>
             <x-kit::card-footer>
-                <div class="form-group row mb-2">
-                    <div class="col">
-                        <x-kit::button-back :route="route('role')">@lang('userauth::button.back')</x-kit::button-back>
-                        <x-kit::button-save class="float-end">@lang('userauth::button.save')</x-kit::button-save>
-                    </div>
+                <div class="userauth-spalte">
+                    <x-kit::button-back :route="route('role')">@lang('userauth::button.back')</x-kit::button-back>
+                    <x-kit::button-save class="userauth-rechts">@lang('userauth::button.save')</x-kit::button-save>
                 </div>
             </x-kit::card-footer>
         </form>

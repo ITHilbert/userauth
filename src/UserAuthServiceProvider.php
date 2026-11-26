@@ -37,6 +37,8 @@ use ITHilbert\UserAuth\Application\Auth\Events\ZweiFaktorCodeAbgelehnt;
 use ITHilbert\UserAuth\Application\Benutzer\Contracts\Benutzerbilder;
 use ITHilbert\UserAuth\Application\Benutzer\Contracts\GeloeschteBenutzer;
 use ITHilbert\UserAuth\Application\Contracts\MailLinks;
+use ITHilbert\UserAuth\Application\Oidc\Contracts\OidcIdentityProvider;
+use ITHilbert\UserAuth\Application\Oidc\Contracts\OidcVorgaenge;
 use ITHilbert\UserAuth\Application\Passwort\Contracts\PasswortHistorie;
 use ITHilbert\UserAuth\Application\Passwort\Contracts\PasswortKonten;
 use ITHilbert\UserAuth\Application\Passwort\Contracts\ResetLinkVersand;
@@ -68,8 +70,10 @@ use ITHilbert\UserAuth\Http\MiddlewarePrioritaet;
 use ITHilbert\UserAuth\Http\ViewComposers\AnmeldeKennungComposer;
 use ITHilbert\UserAuth\Http\ViewComposers\AvailableSocialProvidersComposer;
 use ITHilbert\UserAuth\Http\ViewComposers\GeloeschteEmailHinweisComposer;
+use ITHilbert\UserAuth\Http\ViewComposers\OidcKnopfComposer;
 use ITHilbert\UserAuth\Http\ViewComposers\RegistrierungComposer;
 use ITHilbert\UserAuth\Http\ViewComposers\ThemeComposer;
+use ITHilbert\UserAuth\Http\ViewComposers\VerwaltungThemeHinweisComposer;
 use ITHilbert\UserAuth\Infrastructure\Auth\EloquentKontoZurKennung;
 use ITHilbert\UserAuth\Infrastructure\Auth\GuardAnmeldedaten;
 use ITHilbert\UserAuth\Infrastructure\Auth\GuardSitzungsanmeldung;
@@ -79,6 +83,10 @@ use ITHilbert\UserAuth\Infrastructure\Auth\SessionOffeneAnmeldungen;
 use ITHilbert\UserAuth\Infrastructure\Benutzer\EloquentGeloeschteBenutzer;
 use ITHilbert\UserAuth\Infrastructure\Benutzer\PublicDiskBenutzerbilder;
 use ITHilbert\UserAuth\Infrastructure\Mail\AppUrlMailLinks;
+use ITHilbert\UserAuth\Infrastructure\Oidc\GuzzleOidcHttpClientFactory;
+use ITHilbert\UserAuth\Infrastructure\Oidc\GuzzleOidcIdentityProvider;
+use ITHilbert\UserAuth\Infrastructure\Oidc\OidcHttpClientFactory;
+use ITHilbert\UserAuth\Infrastructure\Oidc\SessionOidcVorgaenge;
 use ITHilbert\UserAuth\Infrastructure\Passwort\BrokerResetTokens;
 use ITHilbert\UserAuth\Infrastructure\Passwort\DatenbankPasswortHistorie;
 use ITHilbert\UserAuth\Infrastructure\Passwort\EloquentPasswortKonten;
@@ -146,6 +154,7 @@ class UserAuthServiceProvider extends ServiceProvider
         );
         View::composer('userauth::login.*', GeloeschteEmailHinweisComposer::class);
         View::composer('userauth::login.*', RegistrierungComposer::class);
+        View::composer('userauth::login.*', OidcKnopfComposer::class);
         View::composer([
             'userauth::login.*',
             'userauth::password.forgotten.*',
@@ -162,6 +171,18 @@ class UserAuthServiceProvider extends ServiceProvider
             'userauth::social.confirm',
             'userauth::social.accounts',
         ], ThemeComposer::class);
+        View::composer([
+            'userauth::user.index',
+            'userauth::user.create',
+            'userauth::user.edit',
+            'userauth::user.icon',
+            'userauth::role.index',
+            'userauth::role.create',
+            'userauth::role.edit',
+            'userauth::permission.index',
+            'userauth::permission.create',
+            'userauth::permission.edit',
+        ], VerwaltungThemeHinweisComposer::class);
 
         $this->registerGates();
     }
@@ -291,6 +312,7 @@ class UserAuthServiceProvider extends ServiceProvider
     {
         $this->registerBladeExtensions();
         $this->registerSocialLogin();
+        $this->registerOidc();
         $this->registerZugriffspruefung();
         $this->registerPasswort();
         $this->registerAnmeldung();
@@ -360,6 +382,16 @@ class UserAuthServiceProvider extends ServiceProvider
         $this->app->bind(PendingSocialLinkRepository::class, EloquentPendingSocialLinkRepository::class);
         $this->app->bind(PendingSocialLinkPruner::class, EloquentPendingSocialLinkRepository::class);
         $this->app->bind(SocialUserRepository::class, EloquentSocialUserRepository::class);
+    }
+
+    /**
+     * Port-Bindings der OIDC-Anmeldung (Port in Application, Adapter mit Guzzle in Infrastructure).
+     */
+    protected function registerOidc(): void
+    {
+        $this->app->bind(OidcIdentityProvider::class, GuzzleOidcIdentityProvider::class);
+        $this->app->bind(OidcHttpClientFactory::class, GuzzleOidcHttpClientFactory::class);
+        $this->app->bind(OidcVorgaenge::class, SessionOidcVorgaenge::class);
     }
 
     /**

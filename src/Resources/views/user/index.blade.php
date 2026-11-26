@@ -11,7 +11,7 @@
         <x-kit::card-body>
             @include('include.message')
 
-            <table class="table table-bordered data-table table-sm table-hover">
+            <table class="userauth-tabelle data-table">
                 <thead>
                 <tr>
                     <th>@lang('userauth::user.id')</th>

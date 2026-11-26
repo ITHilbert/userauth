@@ -15,21 +15,21 @@
 
                 {{-- Bild --}}
                 @if (config('userauth.user.image'))
-                    <div class="form-group row mb-2">
-                        <label for="image" class="col-md-4 col-form-label text-md-right">@lang('userauth::user.image')</label>
-                        <div class="col-md-6">
+                    <div class="userauth-zeile">
+                        <label for="image" class="userauth-zeile__label">@lang('userauth::user.image')</label>
+                        <div class="userauth-zeile__feld">
                             <x-kit::input-file-img name="image" />
                         </div>
                     </div>
                 @endif
             </x-kit::card-body>
             <x-kit::card-footer>
-                <div class="form-group row mb-2">
-                    <div class="col">
+                <div class="userauth-spalte">
+                    <div>
                         <x-kit::button-back type="button" onclick="window.history.back();">@lang('userauth::button.back')</x-kit::button-back>
                     </div>
-                    <div class="col">
-                        <x-kit::button-save class="float-end">@lang('userauth::button.save')</x-kit::button-save>
+                    <div class="userauth-rechts">
+                        <x-kit::button-save>@lang('userauth::button.save')</x-kit::button-save>
                     </div>
                 </div>
             </x-kit::card-footer>

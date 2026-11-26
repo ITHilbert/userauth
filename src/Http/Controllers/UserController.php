@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Validation\ValidationException;
 use ITHilbert\LaravelKit\Helpers\Breadcrumb;
-use ITHilbert\LaravelKit\Helpers\HButton;
 use ITHilbert\UserAuth\Application\Auth\AnmeldeEinstellungen;
 use ITHilbert\UserAuth\Application\Benutzer\Contracts\Benutzerbilder;
 use ITHilbert\UserAuth\Application\Benutzer\GeloeschteEmailAufloesen;
@@ -23,6 +22,7 @@ use ITHilbert\UserAuth\Application\Benutzer\GeloeschteEmailAufloesung;
 use ITHilbert\UserAuth\Application\Passwort\PasswortSetzen;
 use ITHilbert\UserAuth\Domain\Benutzer\Exceptions\EmailGehoertGeloeschtemBenutzerException;
 use ITHilbert\UserAuth\Entities\Role;
+use ITHilbert\UserAuth\Http\Formular\Zeilenbuttons;
 use ITHilbert\UserAuth\Http\PasswortAblehnung;
 use ITHilbert\UserAuth\Http\Requests\NutzerSpeichernRequest;
 use ITHilbert\UserAuth\Infrastructure\Auth\UserModel;
@@ -50,16 +50,10 @@ final class UserController extends Controller
 
             return DataTables::of($this->nutzerlistenZeilen())
                 ->addColumn('action', function (array $row) use ($darfBearbeiten, $darfLoeschen) {
-                    $ausgabe = '<div style="white-space: nowrap;">';
-                    if ($darfBearbeiten) {
-                        $ausgabe .= HButton::edit(route('user.edit', $row['id']), '');
-                    }
-                    if ($darfLoeschen) {
-                        $ausgabe .= HButton::delete($row['id'], '');
-                    }
-                    $ausgabe .= '</div>';
-
-                    return $ausgabe;
+                    return Zeilenbuttons::render(
+                        $darfBearbeiten ? route('user.edit', $row['id']) : null,
+                        $darfLoeschen ? $row['id'] : null,
+                    );
                 })
                 ->rawColumns(['action'])
                 ->make(true);

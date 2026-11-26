@@ -26,6 +26,11 @@ final class SocialiteIdentityProvider implements SocialIdentityProvider
 
     public function isAvailable(SocialProvider $provider): bool
     {
+        // OIDC läuft nicht über Socialite (eigener Adapter Infrastructure\Oidc)
+        if (! $provider->istSocialLogin()) {
+            return false;
+        }
+
         $missing = $this->missingKeys($provider);
 
         if ($missing === []) {
@@ -107,6 +112,7 @@ final class SocialiteIdentityProvider implements SocialIdentityProvider
     {
         return match ($provider) {
             SocialProvider::Google => GoogleProvider::class,
+            SocialProvider::Oidc => throw new SocialProviderUnavailableException,
         };
     }
 

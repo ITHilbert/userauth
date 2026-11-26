@@ -12,6 +12,7 @@ use Illuminate\Validation\ValidationException;
 use ITHilbert\UserAuth\Application\Auth\Abmelden;
 use ITHilbert\UserAuth\Application\Auth\AuthenticationNextStep;
 use ITHilbert\UserAuth\Application\Auth\MitPasswortAnmelden;
+use ITHilbert\UserAuth\Application\Oidc\OidcVerfuegbarkeit;
 use ITHilbert\UserAuth\Domain\Registrierung\Exceptions\EmailNochNichtBestaetigtException;
 use ITHilbert\UserAuth\Traits\Auth\AuthenticatesUsers;
 
@@ -30,8 +31,16 @@ final class LoginController extends Controller
         $this->middleware('guest')->except('logout');
     }
 
-    public function showLoginForm(): View
+    /**
+     * Mit `userauth.oidc.auto_redirect` gehen Gäste direkt zum Anmeldedienst; `?lokal=1` zeigt das Formular
+     * (Ziel aller OIDC-Fehlerweiterleitungen, daher keine Schleife).
+     */
+    public function showLoginForm(Request $request, OidcVerfuegbarkeit $oidc): View|RedirectResponse
     {
+        if (! $request->boolean('lokal') && $oidc->automatischWeiterleiten()) {
+            return redirect()->route('userauth.oidc.redirect');
+        }
+
         return view('userauth::login');
     }
 

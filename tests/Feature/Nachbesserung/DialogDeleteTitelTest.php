@@ -12,7 +12,7 @@ use ITHilbert\UserAuth\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
- * Titel im Lösch-Dialog der Listen. Abgedeckt: AK5 (userauth-nachbesserung).
+ * Titel im Lösch-Dialog der Listen. Abgedeckt: AK5 (userauth-nachbesserung), umgestellt auf das Blade-Markup (kern-umstellung AK10).
  */
 final class DialogDeleteTitelTest extends TestCase
 {
@@ -25,6 +25,7 @@ final class DialogDeleteTitelTest extends TestCase
         parent::setUp();
 
         View::addLocation(__DIR__.'/../../Fixtures/views');
+        config(['laravelkit.theme' => 'kern']);
 
         $jetzt = now();
         DB::table('roles')->insert([
@@ -63,41 +64,39 @@ final class DialogDeleteTitelTest extends TestCase
     }
 
     /**
-     * Die Props der Insel `data-vue="dialog-delete"` als Array.
-     *
-     * @return array<string, mixed>
+     * Der Dialog (Blade-Markup der Partial `partials/loeschen`, seit kern-umstellung ohne Vue-Insel).
      */
-    private function inselProps(string $html): array
+    private function dialog(string $html): \DOMElement
     {
         $dom = new \DOMDocument;
         @$dom->loadHTML('<?xml encoding="utf-8"?>'.$html);
-        $inseln = (new \DOMXPath($dom))->query('//*[@data-vue="dialog-delete"]');
-        $this->assertSame(1, $inseln->length, 'Die Seite enthält genau eine Insel dialog-delete');
-        $props = json_decode($inseln->item(0)->getAttribute('data-props'), true);
-        $this->assertIsArray($props);
+        $dialoge = (new \DOMXPath($dom))->query('//div[contains(concat(" ", normalize-space(@class), " "), " kit-dialog__content ")][@role="dialog"]');
+        $this->assertSame(1, $dialoge->length, 'Die Seite enthält genau einen Lösch-Dialog');
 
-        return $props;
+        return $dialoge->item(0);
     }
 
     // AK5 (userauth-nachbesserung), Randfall „Titel steht in data-props“ (userauth-admin-views)
     #[DataProvider('listen')]
-    public function test_ak5_dialog_delete_bekommt_den_titel_als_titel_in_data_props(string $uri, string $erwarteterTitel): void
+    public function test_ak5_dialog_bekommt_den_titel_als_titel(string $uri, string $erwarteterTitel): void
     {
-        $props = $this->inselProps($this->seiteAbrufen($uri));
+        $dialog = $this->dialog($this->seiteAbrufen($uri));
 
-        $this->assertSame($erwarteterTitel, $props['titel'] ?? null);
+        $titel = (new \DOMXPath($dialog->ownerDocument))->query('.//*[contains(concat(" ", normalize-space(@class), " "), " kit-dialog__title ")]', $dialog);
+        $this->assertSame(1, $titel->length);
+        $this->assertSame($erwarteterTitel, trim($titel->item(0)->textContent));
     }
 
     // AK5 (userauth-nachbesserung)
     #[DataProvider('listen')]
-    public function test_ak5_dialog_delete_hat_kein_attribut_title_mehr(string $uri, string $erwarteterTitel): void
+    public function test_ak5_dialog_hat_kein_attribut_title(string $uri, string $erwarteterTitel): void
     {
         $html = $this->seiteAbrufen($uri);
 
-        // Gegenprobe: die Insel mit ihrem Text ist vorhanden, nur das alte Attribut fehlt
-        $this->assertIsString($this->inselProps($html)['body'] ?? null);
-        $this->assertSame(1, preg_match('/<[^>]*data-vue="dialog-delete"[^>]*>/', $html, $treffer));
-        $this->assertDoesNotMatchRegularExpression('/\stitle\s*=/', $treffer[0]);
+        // Gegenprobe: der Dialog mit seinem Titel ist vorhanden, nur das Attribut title fehlt
+        $dialog = $this->dialog($html);
+        $this->assertSame($erwarteterTitel, trim((new \DOMXPath($dialog->ownerDocument))->query('.//*[contains(concat(" ", normalize-space(@class), " "), " kit-dialog__title ")]', $dialog)->item(0)->textContent));
+        $this->assertFalse($dialog->hasAttribute('title'));
         $this->assertStringNotContainsString('<dialog-delete', $html);
     }
 }

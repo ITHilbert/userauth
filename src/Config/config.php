@@ -18,7 +18,7 @@ return [
     'redirect_after_login' => '/',
     // Pfad für Redirect nach dem Logout
     'redirect_after_logout' => '/',
-    // Route wenn Rechte fehlen: Weiterleitung zur Login-Seite ('login') oder zur Fehlerseite ('no-permission')
+    // Route wenn Rechte fehlen: Weiterleitung zur Login-Seite ('login'), zur Fehlerseite ('no-permission') oder HTTP 403 ('403')
     'redirect_on_no_permission' => 'login',
 
     // Adresse (absolut oder ab /) eines Passwort-Generators des Hosts für den Button „Passwort erzeugen“ in der
@@ -90,6 +90,29 @@ return [
         'allowed_domains' => [],
         // Gültigkeit des Bestätigungslinks für das Verknüpfen unbestätigter Konten
         'pending_link_ttl_minutes' => 60,
+    ],
+
+    // Anmeldung über den eigenen Anmeldedienst (OpenID Connect, z. B. Authelia unter https://auth.lan).
+    // Redirect-URI beim Anbieter: https://<app>/auth/oidc/callback (Route userauth.oidc.callback).
+    // „Konfiguriert“ = enabled und issuer, client_id, client_secret nicht leer; sonst kein Knopf, keine Weiterleitung.
+    'oidc' => [
+        // Schaltet die Routen /auth/oidc/… und den Knopf ein/aus (aus = Routen liefern 404)
+        'enabled' => env('USERAUTH_OIDC_ENABLED', false),
+        // Issuer des Anbieters, z. B. https://auth.lan (Discovery unter <issuer>/.well-known/openid-configuration)
+        'issuer' => env('USERAUTH_OIDC_ISSUER', ''),
+        'client_id' => env('USERAUTH_OIDC_CLIENT_ID', ''),
+        'client_secret' => env('USERAUTH_OIDC_CLIENT_SECRET', ''),
+        // Pfad zum CA-Bundle für alle Aufrufe an den Anbieter (z. B. lan-root-ca); leer = Standard-Zertifikate
+        'ca_bundle' => env('USERAUTH_OIDC_CA_BUNDLE', ''),
+        'button_text' => env('USERAUTH_OIDC_BUTTON_TEXT', 'Mit IT-Hilbert anmelden'),
+        // Unbekannte Benutzer (kein verknüpfter sub, keine passende E-Mail) automatisch anlegen?
+        'auto_create' => env('USERAUTH_OIDC_AUTO_CREATE', false),
+        // Rollen-Key (roles.role) für automatisch angelegte Benutzer ohne passende Gruppe
+        'default_role' => env('USERAUTH_OIDC_DEFAULT_ROLE', 'user'),
+        // Gruppen des Anbieters => Rolle bei Neuanlage, z. B. 'admins=admin,devs=dev' (erste passende gilt)
+        'group_roles' => env('USERAUTH_OIDC_GROUP_ROLES', ''),
+        // Login-Seite leitet Gäste direkt zum Anbieter weiter (/login?lokal=1 zeigt weiter das Formular)
+        'auto_redirect' => env('USERAUTH_OIDC_AUTO_REDIRECT', false),
     ],
 
     // Selbstregistrierung per E-Mail und Passwort (Routen /register …; aus = Routen liefern 404)

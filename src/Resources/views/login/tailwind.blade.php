@@ -109,11 +109,23 @@
             </div>
         @endif
 
-        @if (in_array('google', $availableSocialProviders ?? [], true))
+        @if (($oidcKnopf ?? null) || in_array('google', $availableSocialProviders ?? [], true))
             <div class="relative my-6">
                 <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-200"></div></div>
                 <div class="relative flex justify-center"><span class="bg-white px-3 text-xs text-gray-500">@lang('userauth::social.or')</span></div>
             </div>
+        @endif
+
+        @if ($oidcKnopf ?? null)
+            <a
+                href="{{ route('userauth.oidc.redirect') }}"
+                class="w-full mb-3 inline-flex items-center justify-center border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium text-sm rounded-lg px-4 py-2.5 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            >
+                {{ $oidcKnopf }}
+            </a>
+        @endif
+
+        @if (in_array('google', $availableSocialProviders ?? [], true))
             <a
                 href="{{ route('userauth.social.redirect', 'google') }}"
                 class="w-full inline-flex items-center justify-center gap-3 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium text-sm rounded-lg px-4 py-2.5 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"

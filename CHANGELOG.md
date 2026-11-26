@@ -1,5 +1,29 @@
 # Changelog
 
+## 4.1.0 – 2026-11-26
+
+### Hinzugefügt
+- Anmeldung über den eigenen Anmeldedienst per OpenID Connect (Authelia, #2204): Knopf auf der Login-Seite, Routen `userauth.oidc.redirect` (`/auth/oidc/redirect`) und `userauth.oidc.callback` (`/auth/oidc/callback`), Config-Block `userauth.oidc` (`USERAUTH_OIDC_*`, Standard aus). Verknüpfung über `sub` bzw. eindeutige E-Mail in `user_social_accounts` (Anbieter `oidc`), Neuanlage mit Rolle aus Gruppen nur mit `auto_create`, kein Zwei-Faktor-Code, optional Auto-Redirect mit `/login?lokal=1` als Rückfall. README-Abschnitt „Anmeldung über Authelia“.
+- Abhängigkeiten `firebase/php-jwt` (`^6.4 || ^7.0`) und `guzzlehttp/guzzle` (`^7.8`).
+- Neue Sprachdateien `oidc.php` (de und en).
+
+## 4.0.0 – 2026-11-21
+
+### Geändert (inkompatibel)
+- Die Verwaltungsseiten (Benutzer, Rollen, Rechte, Benutzerbild) brauchen das Kit-Theme `kern` (`LARAVELKIT_THEME=kern`, Einstellung `laravelkit.theme`). Mit einem anderen Theme rendern sie, schreiben aber je Request eine Warnung ins Log.
+- Ihre Optik kommt vom Paket: vorkompiliertes CSS mit Kit-Basis und Tailwind-Theme des Kits, ohne Preflight. Die Klassen sind `kit-…` und `userauth-…` statt Bootstrap-Klassen. Die Auth-Seiten (Login, Registrierung, Passwort, Social) bleiben unverändert.
+- Der Lösch-Dialog ist Blade plus Inline-Skript statt Vue-Insel `dialog-delete`. `initLoeschen()` und `mountInseln()` sind dafür nicht mehr nötig.
+- Die Zeilenbuttons der Listen (Bearbeiten, Löschen) sind Kit-Components (`button-edit`, `button-delete`) statt `HButton`.
+- `ithilbert/laravel-kit` ab `^1.10` (erster Release mit Theme `kern`).
+- Veröffentlichte Verwaltungs-Views müssen neu veröffentlicht werden (siehe README, „Upgrade auf 4.0“).
+
+### Hinzugefügt
+- `userauth.redirect_on_no_permission` kennt den Wert `'403'`: fehlendes Recht antwortet mit HTTP 403 statt Weiterleitung (Standard bleibt `login`).
+- Route `userauth.assets.verwaltung` (`/userauth/assets/userauth-verwaltung.css`) mit dem CSS der Verwaltungsseiten.
+- Quelle `resources-src/verwaltung.css` und Skript `npm run build:css`, das die CSS-Dateien baut.
+- Die Asset-Routen laufen ohne Session-Cookie (ohne Middleware-Gruppe `web`).
+- Der Lösch-Dialog ist auf 32rem Breite begrenzt; die statischen Tabellen der Rollen- und Rechteformulare stehen in `userauth-tabelle-rahmen` und scrollen dort.
+
 ## 3.5.3 – 2026-11-21
 
 ### Behoben

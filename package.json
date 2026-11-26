@@ -2,7 +2,7 @@
     "name": "ithilbert-userauth-assets",
     "private": true,
     "scripts": {
-        "build:css": "tailwindcss -i ./resources-src/userauth.css -o ./src/Resources/assets/css/userauth.css --minify"
+        "build:css": "tailwindcss -i ./resources-src/userauth.css -o ./src/Resources/assets/css/userauth.css --minify && NODE_PATH=$PWD/node_modules tailwindcss -i ./resources-src/verwaltung.css -o ./src/Resources/assets/css/userauth-verwaltung.css --minify"
     },
     "devDependencies": {
         "@tailwindcss/cli": "^4.0.0",
