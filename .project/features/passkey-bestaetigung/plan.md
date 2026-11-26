@@ -30,3 +30,5 @@ Offener Punkt a35a8852ac156651e: keine
 Abweichung a35a8852ac156651e: Fehlalarm: keine Abweichung gemeldet
 Review 0/2: 1 muss (Randfall 1 Anzeige des Hinweises), 0 sollte, 3 kann — Behebung auf fix/passkey-hinweis-2225, Nachprüfung folgt
 Stand: Review-Fund behoben (GATE grün), Nachprüfung offen.
+Review 1/2: 0 muss, 0 sollte, 1 kann — Nachprüfung freigegeben (pruefung-nachpruefung.md)
+Stand: freigegeben, im Sammel-Branch; Release userauth 4.4.0 am Laufende.
