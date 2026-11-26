@@ -156,9 +156,9 @@ final class AdminViewsSkripteTest extends TestCase
     /**
      * Führt die Skripte der Seite aus wie bei einem Host mit Modul-Bundle (`window.DataTable` erst nach dem Laden, ohne jQuery).
      *
-     * @return array{fehler: ?string, fehlerVorBundle: ?string, aufrufe: list<mixed>, optionen: list<array<string, mixed>>, funktionen: list<string>, jqueryZugriffe: list<string>, jqueryAufrufe: list<mixed>, jqueryGeladen: bool}
+     * @return array{fehler: ?string, fehlerVorBundle: ?string, aufrufe: list<mixed>, optionen: list<array<string, mixed>>, funktionen: list<string>, jqueryZugriffe: list<string>, jqueryAufrufe: list<mixed>, jqueryGeladen: bool, aufrufeVorDomReady: ?int}
      */
-    private function skriptLaufen(string $seite, bool $mitJquery = false): array
+    private function skriptLaufen(string $seite, bool $mitJquery = false, bool $nachtraeglich = false): array
     {
         $html = $this->seite($seite);
         $manifest = $this->manifest($html);
@@ -167,21 +167,21 @@ final class AdminViewsSkripteTest extends TestCase
             $this->assertCount(1, array_filter($manifest, fn (array $s) => $s['typ'] === 'inline' && str_contains($s['code'], 'new DataTable(')), 'genau ein Inline-Skript mit der DataTable-Initialisierung');
         }
 
-        return $this->manifestLaufen($manifest, $mitJquery);
+        return $this->manifestLaufen($manifest, $mitJquery, $nachtraeglich);
     }
 
     /**
      * @param  list<array{typ: string, code: string, src: string, spaeter: bool}>  $manifest
-     * @return array{fehler: ?string, fehlerVorBundle: ?string, aufrufe: list<mixed>, optionen: list<array<string, mixed>>, funktionen: list<string>, jqueryZugriffe: list<string>, jqueryAufrufe: list<mixed>, jqueryGeladen: bool}
+     * @return array{fehler: ?string, fehlerVorBundle: ?string, aufrufe: list<mixed>, optionen: list<array<string, mixed>>, funktionen: list<string>, jqueryZugriffe: list<string>, jqueryAufrufe: list<mixed>, jqueryGeladen: bool, aufrufeVorDomReady: ?int}
      */
-    private function manifestLaufen(array $manifest, bool $mitJquery = false): array
+    private function manifestLaufen(array $manifest, bool $mitJquery = false, bool $nachtraeglich = false): array
     {
         $datei = tempnam(sys_get_temp_dir(), 'userauth-skript-');
         $this->assertNotFalse($datei);
 
         try {
             file_put_contents($datei, json_encode($manifest, JSON_THROW_ON_ERROR));
-            $ausgabe = shell_exec('node '.escapeshellarg(__DIR__.'/../Fixtures/inline-skript-lauf.mjs').' '.escapeshellarg($datei).($mitJquery ? ' mit-jquery' : '').' 2>&1');
+            $ausgabe = shell_exec('node '.escapeshellarg(__DIR__.'/../Fixtures/inline-skript-lauf.mjs').' '.escapeshellarg($datei).($mitJquery ? ' mit-jquery' : '').($nachtraeglich ? ' nachtraeglich' : '').' 2>&1');
         } finally {
             @unlink($datei);
         }
@@ -437,6 +437,33 @@ final class AdminViewsSkripteTest extends TestCase
         $this->assertStringContainsString('<h1', $html, 'Verwaltungsseite ist vollständig');
         $this->assertStringContainsString('</html>', $html);
         $this->assertGreaterThanOrEqual(1, substr_count($html, 'new DataTable('), 'Skript der Seite steht in der Seite');
+    }
+
+    // ================================================================== AK6 (#2267) — Skripte nach DOMContentLoaded eingefügt
+
+    // AK6
+    #[DataProvider('listen')]
+    public function test_ak6_nach_dom_content_loaded_eingefuegtes_skript_initialisiert_sofort_genau_einmal(string $seite): void
+    {
+        $this->layout('stack');
+
+        $lauf = $this->skriptLaufen($seite, false, true);
+
+        $this->assertNull($lauf['fehler']);
+        $this->assertSame(['.data-table'], $lauf['aufrufe'], 'new DataTable(\'.data-table\', …) genau einmal, obwohl DOMContentLoaded nicht mehr feuert');
+        $this->assertCount(1, $lauf['optionen']);
+    }
+
+    // AK6
+    #[DataProvider('listen')]
+    public function test_ak6_ready_state_loading_wartet_auf_dom_content_loaded_und_initialisiert_genau_einmal(string $seite): void
+    {
+        $this->layout('stack');
+
+        $lauf = $this->skriptLaufen($seite);
+
+        $this->assertSame(0, $lauf['aufrufeVorDomReady'], 'Gegenprobe: vor DOMContentLoaded kein Aufruf');
+        $this->assertSame(['.data-table'], $lauf['aufrufe'], 'nach DOMContentLoaded genau einmal');
     }
 
     // ================================================================== AK4 — Sprachdatei
