@@ -18,7 +18,7 @@ return [
 
     'bestaetigung' => [
         'titel' => 'Bestätigung',
-        'hinweis' => 'Bitte bestätigen Sie Ihre Identität, bevor Sie einen Passkey hinzufügen.',
+        'hinweis' => 'Bitte bestätigen Sie Ihre Identität, bevor Sie einen Passkey hinzufügen. Haben Sie Ihr Passwort nicht zur Hand, nutzen Sie „Passwort vergessen“ auf der Anmeldeseite.',
         'passwort' => 'Aktuelles Passwort',
         'passwort_knopf' => 'Mit Passwort bestätigen',
         'passkey_knopf' => 'Mit Passkey bestätigen',

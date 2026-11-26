@@ -26,3 +26,7 @@ Abweichung a05558fcb87f9186f: Fehlalarm: keine Abweichung gemeldet
 Echtlauf: entfällt (Paket ohne eigenen Host im Automode; Skript im node-Fixture 8/8 gegen echtes passkey.js, Seite je Theme per Feature-Test, ganze Paket-Suite 2530 Tests grün) — Browserprüfung mit Login siehe „Für Joerg“
 Layout: entfällt (Dialog-Markup im vorhandenen Kit-Stil, keine Layout-AK)
 Stand: T1–T3 umgesetzt, GATE grün, Paket-Suite 2530 grün; Review offen (Risiko kritisch).
+Offener Punkt a35a8852ac156651e: keine
+Abweichung a35a8852ac156651e: Fehlalarm: keine Abweichung gemeldet
+Review 0/2: 1 muss (Randfall 1 Anzeige des Hinweises), 0 sollte, 3 kann — Behebung auf fix/passkey-hinweis-2225, Nachprüfung folgt
+Stand: Review-Fund behoben (GATE grün), Nachprüfung offen.
