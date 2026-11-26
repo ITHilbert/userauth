@@ -294,3 +294,34 @@ test('AK8 Benutzer ohne Passkey hat nur die Passwortabfrage', async () => {
 
     assert.equal(s.credentials.erstellt, 1);
 });
+
+// Randfall 1 (Satz 2): Der Weg „Passwort vergessen“ aus der 403-Meldung muss im Dialog sichtbar bleiben.
+test('Randfall1 die Server-Meldung der 403 bleibt im geoeffneten Dialog sichtbar', async () => {
+    const hinweis = 'Hinweis-X: Passwort ueber Passwort vergessen setzen.';
+    const s = aufbau({ antworten: { [URLS.optionen]: [{ status: 403, json: { message: hinweis, bestaetigung_erforderlich: true } }] } });
+
+    await absenden(s);
+
+    assert.equal(s.dialog.hidden, false, 'Der Aufbau greift nicht: Dialog ist nicht offen.');
+    assert.equal(s.dialogMeldung.hidden, false, 'Die Meldung im Dialog ist ausgeblendet.');
+    assert.ok(s.dialogMeldung.textContent.includes(hinweis), 'Die Server-Meldung der 403 steht nicht im Meldungselement des Dialogs.');
+    assert.equal(sichtbareMeldungen(s).filter((t) => t.includes(hinweis)).length, 1, 'Die Meldung erscheint nicht genau einmal.');
+});
+
+// Randfall 1 (Satz 2): Gegenprobe, die Meldung wird bei Fehler ersetzt und nach Erfolg nicht mitgezogen.
+test('Randfall1 Meldung wird bei neuem Fehler ersetzt und nach erfolgreicher Bestaetigung ist der Dialog zu', async () => {
+    const hinweis = 'Hinweis-X: Passwort vergessen.';
+    const s = aufbau({ antworten: { [URLS.optionen]: [{ status: 403, json: { message: hinweis, bestaetigung_erforderlich: true } }, OPTIONEN], [URLS.bestaetigen]: [{ status: 422, json: { message: 'Passwort falsch.' } }, { status: 204 }], [URLS.registrieren]: [{ status: 200, json: { redirect: '/passkey' } }] } });
+
+    await absenden(s);
+    assert.ok(s.dialogMeldung.textContent.includes(hinweis), 'Der Aufbau greift nicht: Hinweis fehlt nach der 403.');
+    s.passwort.value = 'falsch';
+    await klick(s.pwKnopf);
+    assert.ok(s.dialogMeldung.textContent.includes('Passwort falsch.'));
+    assert.ok(!s.dialogMeldung.textContent.includes(hinweis), 'Alter Hinweis steht doppelt/neben der neuen Meldung.');
+
+    s.passwort.value = 'richtig';
+    await klick(s.pwKnopf);
+    assert.equal(s.dialog.hidden, true);
+    assert.equal(s.credentials.erstellt, 1);
+});

@@ -100,4 +100,21 @@ final class PasskeyBestaetigungSeiteTest extends TestCase
         $this->einzeln($seite, '//*[@data-testid="passkey-bestaetigung"]//*[@data-testid="passkey-bestaetigung-passkey"]', 'Knopf Passkey');
         $this->einzeln($seite, '//*[@data-testid="passkey-bestaetigung"]//*[@data-testid="passkey-bestaetigung-passwort"]', 'Knopf Passwort');
     }
+
+    // Randfall 1 (Satz 2): Der feste Dialogtext nennt den Weg „Passwort vergessen“ (Server-Meldung allein wird nicht gesehen)
+    #[DataProvider('themes')]
+    public function test_randfall1_dialog_nennt_den_weg_passwort_vergessen_in_de_und_en(string $theme): void
+    {
+        $this->actingAs($this->nutzer());
+        $erwartet = ['de' => ['Passwort vergessen', 'Forgot password'], 'en' => ['Forgot password', 'Passwort vergessen']];
+
+        foreach ($erwartet as $sprache => [$soll, $fremd]) {
+            app()->setLocale($sprache);
+            $seite = $this->seite($theme);
+            $dialog = $this->einzeln($seite, '//*[@data-testid="passkey-bestaetigung"]', "Dialog {$sprache}");
+
+            $this->assertStringContainsString($soll, $dialog->textContent, "Der Dialog ({$sprache}) nennt den Weg „{$soll}“ nicht.");
+            $this->assertStringNotContainsString($fremd, $dialog->textContent, "Der Dialog ({$sprache}) zeigt die falsche Sprache.");
+        }
+    }
 }
