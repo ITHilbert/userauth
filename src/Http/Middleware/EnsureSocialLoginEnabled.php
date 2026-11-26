@@ -11,7 +11,7 @@ use ITHilbert\UserAuth\Domain\SocialLogin\SocialProvider;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Liefert 404, wenn Social Login abgeschaltet ist oder der {provider} nicht aktiviert ist.
+ * Liefert 404, wenn Social Login abgeschaltet ist oder der {provider} nicht aktiviert oder kein Social-Anbieter ist (`oidc`).
  * Prüfung zur Request-Zeit, damit Konfigurationsänderungen sofort wirken.
  */
 final class EnsureSocialLoginEnabled
@@ -27,7 +27,7 @@ final class EnsureSocialLoginEnabled
         if ($provider !== null) {
             $provider = $provider instanceof SocialProvider ? $provider : SocialProvider::tryFrom((string) $provider);
 
-            abort_unless($provider !== null && $this->settings->isProviderEnabled($provider), 404);
+            abort_unless($provider !== null && $provider->istSocialLogin() && $this->settings->isProviderEnabled($provider), 404);
         }
 
         return $next($request);

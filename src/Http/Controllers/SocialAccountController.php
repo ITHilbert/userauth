@@ -17,7 +17,7 @@ final class SocialAccountController extends Controller
     public function index(Request $request, ListSocialAccounts $accounts): View
     {
         return view('userauth::social.accounts', [
-            'providers' => SocialProvider::cases(),
+            'providers' => SocialProvider::socialLogin(),
             'linked' => $accounts->handle($request->user()->getAuthIdentifier()),
         ]);
     }

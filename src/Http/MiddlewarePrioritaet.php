@@ -10,6 +10,7 @@ use Illuminate\Routing\Router;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use ITHilbert\UserAuth\Http\Middleware\EnforcePasswordPolicy;
+use ITHilbert\UserAuth\Http\Middleware\EnsureOidcEnabled;
 use ITHilbert\UserAuth\Http\Middleware\EnsureRegistrationEnabled;
 use ITHilbert\UserAuth\Http\Middleware\EnsureSocialLoginEnabled;
 use ITHilbert\UserAuth\Http\Middleware\hasPermission;
@@ -37,7 +38,7 @@ final class MiddlewarePrioritaet
     public const VORPRUEFUNGEN = [EnforcePasswordPolicy::class, TwoFactorMiddleware::class];
 
     /** @var list<class-string> Middlewares, die eine abgeschaltete Funktion mit 404 beantworten */
-    public const SCHALTER = [EnsureRegistrationEnabled::class, EnsureSocialLoginEnabled::class];
+    public const SCHALTER = [EnsureRegistrationEnabled::class, EnsureSocialLoginEnabled::class, EnsureOidcEnabled::class];
 
     /** @var list<class-string> */
     public const RECHTE = [hasPermission::class, hasPermissionAnd::class, hasPermissionOr::class, hasRole::class, isAdmin::class, isDev::class];

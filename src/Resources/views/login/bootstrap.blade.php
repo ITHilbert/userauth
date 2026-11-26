@@ -53,6 +53,9 @@
                       @if (session('userauth_bestaetigung_offen') && ($registrierungAktiv ?? false))
                         <div class="text-center mb-3"><a href="{{ route('register.bestaetigung') }}">@lang('userauth::registrierung.link_erneut_anfordern')</a></div>
                       @endif
+                      @if ($oidcKnopf ?? null)
+                        <a class="btn btn-phoenix-primary w-100 mb-3" href="{{ route('userauth.oidc.redirect') }}">{{ $oidcKnopf }}</a>
+                      @endif
                       @if (in_array('google', $availableSocialProviders ?? [], true))
                         <a class="btn btn-phoenix-secondary w-100 mb-3 d-inline-flex align-items-center justify-content-center gap-2" href="{{ route('userauth.social.redirect', 'google') }}">
                           @include('userauth::partials.google-logo')
@@ -61,6 +64,8 @@
                         @if ($geloeschteEmailHinweis ?? false)
                           <p class="text-700 fs--1 mb-3">@lang('userauth::social.hinweis_geloeschtes_konto')</p>
                         @endif
+                      @endif
+                      @if (($oidcKnopf ?? null) || in_array('google', $availableSocialProviders ?? [], true))
                         <div class="position-relative">
                           <hr class="bg-200 mt-4 mb-4" />
                           <div class="divider-content-center bg-white">@lang('userauth::social.or')</div>

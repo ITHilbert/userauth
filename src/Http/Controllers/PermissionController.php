@@ -12,11 +12,11 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
 use ITHilbert\LaravelKit\Helpers\Breadcrumb;
-use ITHilbert\LaravelKit\Helpers\HButton;
 use ITHilbert\UserAuth\Entities\Permission;
 use ITHilbert\UserAuth\Entities\PermissionGroup;
 use ITHilbert\UserAuth\Http\Formular\EinzelrechtNamenPruefung;
 use ITHilbert\UserAuth\Http\Formular\GruppenNamenPruefung;
+use ITHilbert\UserAuth\Http\Formular\Zeilenbuttons;
 use ITHilbert\UserAuth\Http\Requests\PermissionGruppeRequest;
 use ITHilbert\UserAuth\Traits\Format;
 use Yajra\DataTables\Facades\DataTables;
@@ -43,18 +43,12 @@ final class PermissionController extends Controller
                             return $row->getName();
                     }) */
                 ->addColumn('action', function ($row) use ($user) {
-                    $ausgabe = '<div style="white-space: nowrap;">';
-                    if ($row->id > 3) {
-                        if ($user->hasPermission('permission_edit')) {
-                            $ausgabe .= HButton::edit(route('permission.edit', $row->id), '');
-                        }
-                        if ($user->hasPermission('permission_delete')) {
-                            $ausgabe .= HButton::delete($row->id, '');
-                        }
-                    }
-                    $ausgabe .= '</div>';
+                    $offen = $row->id > 3;
 
-                    return $ausgabe;
+                    return Zeilenbuttons::render(
+                        $offen && $user->hasPermission('permission_edit') ? route('permission.edit', $row->id) : null,
+                        $offen && $user->hasPermission('permission_delete') ? $row->id : null,
+                    );
                 })
                 ->rawColumns(['action'])
                 ->make(true);

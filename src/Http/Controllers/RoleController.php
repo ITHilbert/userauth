@@ -11,10 +11,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
 use ITHilbert\LaravelKit\Helpers\Breadcrumb;
-use ITHilbert\LaravelKit\Helpers\HButton;
 use ITHilbert\UserAuth\Domain\Zugriff\Rolle;
 use ITHilbert\UserAuth\Entities\PermissionGroup;
 use ITHilbert\UserAuth\Entities\Role;
+use ITHilbert\UserAuth\Http\Formular\Zeilenbuttons;
 use ITHilbert\UserAuth\Http\Requests\RolleSpeichernRequest;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -38,18 +38,12 @@ final class RoleController extends Controller
                             return $row->getName();
                     }) */
                 ->addColumn('action', function ($row) use ($user) {
-                    $ausgabe = '<div style="white-space: nowrap;">';
-                    if (! $this->istGeschuetzt($row)) {
-                        if ($user->hasPermission('role_edit')) {
-                            $ausgabe .= HButton::edit(route('role.edit', $row->id), '');
-                        }
-                        if ($user->hasPermission('role_delete')) {
-                            $ausgabe .= HButton::delete($row->id, '');
-                        }
-                    }
-                    $ausgabe .= '</div>';
+                    $offen = ! $this->istGeschuetzt($row);
 
-                    return $ausgabe;
+                    return Zeilenbuttons::render(
+                        $offen && $user->hasPermission('role_edit') ? route('role.edit', $row->id) : null,
+                        $offen && $user->hasPermission('role_delete') ? $row->id : null,
+                    );
                 })
                 ->rawColumns(['action'])
                 ->make(true);

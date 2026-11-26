@@ -42,7 +42,7 @@ final class AdminViewsSkripteTest extends TestCase
     {
         View::addLocation(__DIR__.'/../Fixtures/views');
         View::getFinder()->prependLocation(__DIR__.'/../Fixtures/skripteviews/'.$variante);
-        config(['laravelkit.theme' => 'tailwind']);
+        config(['laravelkit.theme' => 'kern']);
 
         $jetzt = now();
         foreach ([[1, 'admin', 'Admin'], [self::ROLLE_EDITOR, 'editor', 'Editor']] as [$id, $name, $anzeige]) {
@@ -163,7 +163,8 @@ final class AdminViewsSkripteTest extends TestCase
         $html = $this->seite($seite);
         $manifest = $this->manifest($html);
         if (in_array($seite, self::LISTEN, true)) {
-            $this->assertCount(1, array_filter($manifest, fn (array $s) => $s['typ'] === 'inline'), 'genau ein Inline-Skript auf der Seite');
+            // Neben der DataTable-Initialisierung steht das Inline-Skript des Lösch-Dialogs (kern-umstellung AK7/AK8).
+            $this->assertCount(1, array_filter($manifest, fn (array $s) => $s['typ'] === 'inline' && str_contains($s['code'], 'new DataTable(')), 'genau ein Inline-Skript mit der DataTable-Initialisierung');
         }
 
         return $this->manifestLaufen($manifest, $mitJquery);

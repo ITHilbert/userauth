@@ -43,7 +43,7 @@ final class PasswortErzeugenTest extends TestCase
 
         View::addLocation(__DIR__.'/../Fixtures/views');
         View::getFinder()->prependLocation(__DIR__.'/../Fixtures/skripteviews/stack');
-        config(['laravelkit.theme' => 'tailwind', 'userauth.password_policy.enabled' => false]);
+        config(['laravelkit.theme' => 'kern', 'userauth.password_policy.enabled' => false]);
 
         $jetzt = now();
         DB::table('roles')->insert([
@@ -189,7 +189,7 @@ final class PasswortErzeugenTest extends TestCase
         $xp = $this->xpath($this->mitAdresse($art));
         $this->assertFormularGerendert($xp);
 
-        $zeile = '//input[@name="password"]/ancestor::div[contains(@class,"form-group")][1]';
+        $zeile = '//input[@name="password"]/ancestor::div[contains(@class,"userauth-zeile")][1]';
         foreach (['data-passwort-erzeugen', 'data-passwort-kopieren'] as $attribut) {
             $alle = $xp->query('//button['.'@'.$attribut.']');
             $this->assertSame(1, $alle->length, 'genau ein Button '.$attribut);
@@ -197,7 +197,7 @@ final class PasswortErzeugenTest extends TestCase
             $this->assertSame(1, $xp->query($zeile.'//button[@'.$attribut.']')->length, 'beim Feld password');
         }
         $this->assertSame(1, $xp->query($zeile.'//*[@data-passwort-hinweis]')->length, 'Hinweis-Element beim Feld password');
-        $this->assertSame(0, $xp->query('//input[@name="password2"]/ancestor::div[contains(@class,"form-group")][1]//button[@data-passwort-erzeugen or @data-passwort-kopieren]')->length, 'nicht beim Feld password2');
+        $this->assertSame(0, $xp->query('//input[@name="password2"]/ancestor::div[contains(@class,"userauth-zeile")][1]//button[@data-passwort-erzeugen or @data-passwort-kopieren]')->length, 'nicht beim Feld password2');
     }
 
     // AK3
