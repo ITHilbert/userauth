@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.3.1 – 2026-11-26
+
+### Geändert
+- `userauth-verwaltung.css` mit laravel-kit 1.12.1 neu gebaut: Knöpfe „Neu“ und „Speichern“ sind Navy (Primär), „Bearbeiten“ ist Sekundär (weiß mit blauem Rahmen), „Löschen“ bleibt rot (#2265).
+
 ## 4.3.0 – 2026-11-26
 
 ### Geändert
