@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 4.1.0 – 2026-11-26
 
 ### Hinzugefügt
 - Anmeldung über den eigenen Anmeldedienst per OpenID Connect (Authelia, #2204): Knopf auf der Login-Seite, Routen `userauth.oidc.redirect` (`/auth/oidc/redirect`) und `userauth.oidc.callback` (`/auth/oidc/callback`), Config-Block `userauth.oidc` (`USERAUTH_OIDC_*`, Standard aus). Verknüpfung über `sub` bzw. eindeutige E-Mail in `user_social_accounts` (Anbieter `oidc`), Neuanlage mit Rolle aus Gruppen nur mit `auto_create`, kein Zwei-Faktor-Code, optional Auto-Redirect mit `/login?lokal=1` als Rückfall. README-Abschnitt „Anmeldung über Authelia“.

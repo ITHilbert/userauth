@@ -29,7 +29,7 @@ composer require ithilbert/userauth
 | Cache-Store | nicht `array` (z. B. `file`, `database`, `redis`) | Zähler der 2FA-Fehlversuche, Sperre „Code erneut senden“, Drosselungen |
 | Session-Treiber | speichert zwischen Requests (nicht `array`) | Offene Zwei-Faktor-Anmeldung liegt in der Session |
 
-Ein `dev-main` des Pakets ist nicht mehr nötig: `ithilbert/laravel-kit` ist ab Version `1.10` als Release verfügbar. Solange dieser Release fehlt, lässt sich das Paket nur gegen `dev-main` bzw. den Workspace des Kits auflösen.
+Ein `dev-main` des Kits ist nicht nötig: `ithilbert/laravel-kit` ist ab Version `1.10` als Release verfügbar.
 
 ### Eigene Testumgebung (Paket-Entwicklung)
 
@@ -506,7 +506,7 @@ Siehe [Voraussetzungen und Abhängigkeiten](#voraussetzungen-und-abhängigkeiten
 
 ## Upgrade auf 4.0
 
-Version 4.0.0 (2026-11-21). Die Verwaltungsseiten (Benutzer, Rollen, Rechte, Benutzerbild) nutzen das Kit-Theme `kern`: Die Klassen sind `kit-…` und `userauth-…` statt Bootstrap-Klassen. Die Auth-Seiten (Login, Registrierung, Passwort, Social) bleiben unverändert.
+Seit Version 4.0.0 (Stand 2026-11-21, ausgeliefert mit 4.1.0, die auch die OIDC-Anmeldung enthält). Die Verwaltungsseiten (Benutzer, Rollen, Rechte, Benutzerbild) nutzen das Kit-Theme `kern`: Die Klassen sind `kit-…` und `userauth-…` statt Bootstrap-Klassen. Die Auth-Seiten (Login, Registrierung, Passwort, Social) bleiben unverändert.
 
 1. **Theme setzen:** In der `.env` des Hosts `LARAVELKIT_THEME=kern` eintragen (Einstellung `laravelkit.theme`). Mit einem anderen Theme rendern die Verwaltungsseiten zwar, schreiben aber je Request eine Warnung ins Log.
 2. **CSS kommt vom Paket:** Die Route `userauth.assets.verwaltung` liefert `/userauth/assets/userauth-verwaltung.css` vorkompiliert aus. Die Datei enthält `vue3/kit.css` und das Tailwind-Theme des Kits, aber ohne Preflight. Der Host muss die Optik nicht selbst stylen. Das Layout `userauth::layouts.afterLogin` bindet die Datei ein.
