@@ -24,3 +24,11 @@ Echtlauf: browser: Host-Server auf Port 8147 mit OIDC-Env und CA-Bundle (mkcert)
 Review: Pflicht (Risiko kritisch, Anmeldung, neue Routen)
 Stand: T1 umgesetzt, GATE grün (164 Tests), AK20 wartet auf Test.
 Review 0/2: 1 muss (formal, Rechtegrenze-Zeile in der Spec, behoben), 0 sollte, 3 kann; Nachprüfung: Hook grenze Exit 0
+
+## T2 [pro] Auto-Redirect als Standard, Abmeldeseite (AK21–AK23, #2226)
+— Tests: tests/Feature/Oidc/OidcAutoRedirectStandardTest.php
+Bestehende Tests: tests/Feature/Oidc/OidcLoginSeiteTest.php tests/Feature/Oidc/OidcAblaufTest.php tests/Feature/PasswordLoginTwoFactorTest.php
+Hinweis: `test_ak18_config_enthaelt_den_block_oidc…` in OidcLoginSeiteTest prüft Standard `auto_redirect = false` und muss vom test-writer auf `true` angepasst werden (Test gehört T2 mit).
+Branch: `feature/oidc-auto-redirect` (Paket-Repo, von main), Host-Stapel `stapel/2026-11-26-1717`. Spec-Lücke zu oidc-authelia, selbst freigegeben (Automode, Auftrag Joerg Telegram 922/924).
+Review: Pflicht (Anmeldung, Sicherheitsbezug)
+Stand: Spec ergänzt (AK21–AK23), Tests folgen.

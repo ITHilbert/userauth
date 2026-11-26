@@ -22,7 +22,7 @@ Config-Schlüssel `userauth.oidc.*` (Quelle `.env`):
 | `USERAUTH_OIDC_AUTO_CREATE` | `auto_create` | `false` |
 | `USERAUTH_OIDC_DEFAULT_ROLE` | `default_role` | `user` |
 | `USERAUTH_OIDC_GROUP_ROLES` | `group_roles` | leer; Format `gruppe=rolle,gruppe2=rolle2` (z. B. `admins=admin`) |
-| `USERAUTH_OIDC_AUTO_REDIRECT` | `auto_redirect` | `false` |
+| `USERAUTH_OIDC_AUTO_REDIRECT` | `auto_redirect` | `true` (ab #2226; vorher `false`) |
 
 „Konfiguriert“ heißt: `enabled` und `issuer`, `client_id`, `client_secret` nicht leer.
 
@@ -47,6 +47,9 @@ Config-Schlüssel `userauth.oidc.*` (Quelle `.env`):
 - **AK18** Gegeben `composer.json`, `config.php`, README und CHANGELOG, dann steht `firebase/php-jwt` (`^6.4 || ^7.0`) und `guzzlehttp/guzzle` in `require`, `config.php` enthält den Block `oidc` mit allen Schlüsseln der Tabelle, die README hat den Abschnitt „Anmeldung über Authelia“ (alle `.env`-Werte, Redirect-URI, Hinweis zur CA `lan-root-ca`/`USERAUTH_OIDC_CA_BUNDLE`, lokale Anmeldung als Rückfall, `?lokal=1`), der CHANGELOG nennt die Änderung.
 - **AK19** Gegeben der Aufbau des Pakets, dann folgt OIDC der Schichtung des Social Logins (Port in `Application`, Adapter in `Infrastructure`, Anwendungsfall `HandleOidcLogin`, Controller dünn); der bestehende Schichtentest `SocialLoginLayerDependencyTest` bleibt grün und deckt die neuen Klassen ab.
 - **AK20** Gegeben ein aktiver Benutzer, dessen E-Mail lokal noch nicht bestätigt ist (Selbstregistrierung), wenn er sich per OIDC über die E-Mail-Zuordnung (AK10) anmeldet, dann gilt seine E-Mail danach als bestätigt, sein lokales Passwort ist ungültig gemacht (Schutz vor Übernahme durch jemanden, der die Adresse vorab registriert hat) und seine „Angemeldet bleiben“-Token sind widerrufen; bei bereits bestätigter E-Mail bleiben Passwort und Token unverändert. (Ergänzt im Automode 2026-11-26 nach Coder-Abweichung.)
+- **AK21** (#2226, Spec-Lücke, Auftrag Joerg Telegram 922/924, 2026-11-26) Gegeben OIDC aktiv und konfiguriert und `USERAUTH_OIDC_AUTO_REDIRECT` nicht gesetzt (Standard `true`), wenn ein Gast `GET /login` ohne `lokal=1` aufruft, dann leitet die Anwendung auf `userauth.oidc.redirect` weiter; ist `USERAUTH_OIDC_AUTO_REDIRECT=false` gesetzt, dann erscheint das Formular samt Knopf. Ohne aktives, konfiguriertes OIDC bleibt `GET /login` unverändert (Formular). Die Ziel-Adresse (`intended`) bleibt über die Weiterleitung erhalten: ruft ein Gast eine geschützte Seite auf und meldet sich per OIDC an, dann landet er nach dem Callback auf dieser Seite.
+- **AK22** (#2226) Gegeben Auto-Redirect aktiv (OIDC aktiv, konfiguriert, `auto_redirect = true`), wenn ein Benutzer sich abmeldet (`POST /logout`, auch als Gast bzw. beim Abbruch der Zwei-Faktor-Anmeldung), dann leitet die Anwendung auf `login?abgemeldet=1` weiter statt auf `userauth.redirect_after_logout`. Gegeben ein Gast ruft `GET /login?abgemeldet=1` auf, dann erfolgt keine automatische Weiterleitung zum Anbieter; die Seite zeigt eine Abmeldemeldung (übersetzt de/en), den Knopf „Wieder anmelden“ (Link auf `userauth.oidc.redirect`, Text aus `button_text`) und das Anmeldeformular (wie `?lokal=1`). Ist der Auto-Redirect nicht aktiv, dann gilt die Abmeldung wie bisher (`redirect_after_logout`).
+- **AK23** (#2226) Gegeben README, CHANGELOG und `config.php`, dann beschreiben sie den neuen Standard (`USERAUTH_OIDC_AUTO_REDIRECT` = `true`, `false` schaltet ab), den Notzugang `/login?lokal=1`, die Abmeldeseite `?abgemeldet=1` und dass alle Fehler im OIDC-Ablauf auf `login?lokal=1` führen (keine Schleife); der CHANGELOG nennt Version 4.3.0.
 
 ## Randfälle
 - Randfall 1: `groups` fehlt oder ist kein Array → leere Gruppenliste, keine Fehlermeldung.
