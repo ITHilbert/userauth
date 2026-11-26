@@ -38,3 +38,6 @@ Echtlauf: browser: nicht möglich (kein Echtlauf-Login im Paket-Host); ersatzwei
 Abweichung aa84aca11dae2da93: keine
 Offener Punkt aa84aca11dae2da93: keine
 Stand: T2 umgesetzt, GATE grün (105 Tests), Suite Oidc/SocialLogin 181 grün. Review am Ende des Stapels.
+Review 0/2 (#2226): 1 muss (Passkey-Test rot durch neuen Standard), 0 sollte, 3 kann — pruefung-2226.md
+Entscheidung (selbst, Automode): Auto-Redirect hat Vorrang vor dem Passkey-Knopf; mit OIDC und Passkey erreicht man den Passkey-Knopf über /login?lokal=1 (oder ?abgemeldet=1); Betreiber stellen USERAUTH_OIDC_AUTO_REDIRECT=false, wenn Passkey direkt auf /login stehen soll. Umkehrbar per Env. Test-Aufbau PasskeyLoginSeiteTest ausdrücklich auf auto_redirect=false (test-writer ab73f399f7b38a999).
+Stand: Muss-Fund behoben (nur Test-Aufbau), ganze Suite läuft einmal im Schritt 5; keine zweite Nachprüfung (reine Testanpassung, Produktivcode unverändert).
