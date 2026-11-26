@@ -28,7 +28,7 @@ final class ListAvailableSocialProviders
 
         $available = [];
 
-        foreach (SocialProvider::cases() as $provider) {
+        foreach (SocialProvider::socialLogin() as $provider) {
             if ($this->settings->isProviderEnabled($provider) && $this->identityProvider->isAvailable($provider)) {
                 $available[] = $provider->value;
             }

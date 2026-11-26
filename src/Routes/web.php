@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 use ITHilbert\UserAuth\Http\Controllers\AuthCssController;
 use ITHilbert\UserAuth\Http\Controllers\ImpersonateController;
 use ITHilbert\UserAuth\Http\Controllers\LoginController;
+use ITHilbert\UserAuth\Http\Controllers\OidcLoginController;
 use ITHilbert\UserAuth\Http\Controllers\PasswordController;
 use ITHilbert\UserAuth\Http\Controllers\PermissionController;
 use ITHilbert\UserAuth\Http\Controllers\RegistrierungController;
@@ -16,6 +17,7 @@ use ITHilbert\UserAuth\Http\Controllers\SocialLinkConfirmationController;
 use ITHilbert\UserAuth\Http\Controllers\SocialLoginController;
 use ITHilbert\UserAuth\Http\Controllers\TwoFactorController;
 use ITHilbert\UserAuth\Http\Controllers\UserController;
+use ITHilbert\UserAuth\Http\Middleware\EnsureOidcEnabled;
 use ITHilbert\UserAuth\Http\Middleware\EnsureRegistrationEnabled;
 use ITHilbert\UserAuth\Http\Middleware\EnsureSocialLoginEnabled;
 
@@ -140,6 +142,13 @@ Route::middleware(['web'])
         Route::middleware(['web', 'auth'])->group(function () {
             Route::post('impersonate/{id}', [ImpersonateController::class, 'impersonate'])->name('userauth.impersonate');
             Route::post('impersonate-leave', [ImpersonateController::class, 'leave'])->name('userauth.impersonate.leave');
+        });
+
+        // Anmeldung über den eigenen Anmeldedienst (OIDC): Routen immer registriert, 404 solange
+        // userauth.oidc.enabled = false; vor den Social-Routen, damit auth/oidc/… nicht als {provider} greift
+        Route::middleware([EnsureOidcEnabled::class, 'throttle:30,1'])->group(function () {
+            Route::get('auth/oidc/redirect', [OidcLoginController::class, 'redirect'])->name('userauth.oidc.redirect');
+            Route::get('auth/oidc/callback', [OidcLoginController::class, 'callback'])->name('userauth.oidc.callback');
         });
 
         // Social Login (404, solange userauth.social.enabled = false)

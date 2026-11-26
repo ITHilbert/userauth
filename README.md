@@ -652,6 +652,58 @@ Unterstützt werden Laravel 12 und 13. `ithilbert/laravel-kit` wird ab `^1.2` be
 
 ---
 
+## Anmeldung über Authelia
+
+Neben Passwort und Google kann sich ein Benutzer über den eigenen Anmeldedienst anmelden (OpenID Connect, z. B. Authelia unter `https://auth.lan`): Authorization-Code-Flow, `client_secret_post`, Scopes `openid profile email groups`, id_token mit RS256. Ohne `USERAUTH_OIDC_ENABLED=true` bleibt alles wie bisher; die Routen antworten dann mit 404.
+
+### Einrichtung
+
+Beim Anbieter einen Client anlegen mit der Redirect-URI (fest, Route `userauth.oidc.callback`):
+```
+https://<app>.lan/auth/oidc/callback
+```
+
+Dann in der `.env` des Hosts:
+```dotenv
+# Schalter (Standard: false)
+USERAUTH_OIDC_ENABLED=true
+# Issuer; die Endpunkte kommen per Discovery aus <issuer>/.well-known/openid-configuration
+USERAUTH_OIDC_ISSUER=https://auth.lan
+USERAUTH_OIDC_CLIENT_ID=meine-app
+USERAUTH_OIDC_CLIENT_SECRET=geheim
+# CA-Bundle für alle Aufrufe an den Anbieter, leer = Standard-Zertifikate des Systems
+USERAUTH_OIDC_CA_BUNDLE=/etc/ssl/certs/lan-root-ca.pem
+# Text des Knopfs auf der Login-Seite (Standard: „Mit IT-Hilbert anmelden“)
+USERAUTH_OIDC_BUTTON_TEXT="Mit IT-Hilbert anmelden"
+# Unbekannte Benutzer automatisch anlegen (Standard: false = „Konto nicht vorhanden“)
+USERAUTH_OIDC_AUTO_CREATE=false
+# Rolle neu angelegter Benutzer ohne passende Gruppe (Rollen-Key, Standard: user)
+USERAUTH_OIDC_DEFAULT_ROLE=user
+# Gruppen des Anbieters => Rolle bei Neuanlage; die erste passende Zuordnung gilt
+USERAUTH_OIDC_GROUP_ROLES=admins=admin
+# Login-Seite leitet Gäste direkt zum Anbieter weiter (Standard: false)
+USERAUTH_OIDC_AUTO_REDIRECT=false
+```
+
+„Konfiguriert“ heißt: `USERAUTH_OIDC_ENABLED` an und Issuer, Client-ID und Client-Secret gesetzt. Fehlt einer der Werte, erscheint kein Knopf und es gibt keine automatische Weiterleitung.
+
+**Zertifikat (CA `lan-root-ca`):** Die `.lan`-Dienste nutzen Zertifikate der eigenen CA `lan-root-ca`. Kennt das System des Hosts sie nicht, `USERAUTH_OIDC_CA_BUNDLE` auf die PEM-Datei der CA setzen; sie gilt für Discovery, Token, JWKS und Userinfo. Zeigt der Pfad auf keine Datei, scheitert die Anmeldung mit einer allgemeinen Meldung (Grund im Log).
+
+### Verhalten
+
+- Ein verknüpfter Benutzer (`user_social_accounts`, Anbieter `oidc`, Kennung `sub`) wird angemeldet, unabhängig von seiner E-Mail.
+- Sonst wird genau ein aktiver Benutzer mit derselben E-Mail (ohne Beachtung der Groß-/Kleinschreibung) verknüpft und angemeldet, ohne Bestätigungsmail. Mehrere Benutzer mit der E-Mail, eine andere `oidc`-Verknüpfung oder ein gelöschter Benutzer mit der E-Mail führen zu einer Fehlermeldung.
+- Neuanlage nur mit `USERAUTH_OIDC_AUTO_CREATE=true`; die Rolle kommt aus `USERAUTH_OIDC_GROUP_ROLES`, sonst `USERAUTH_OIDC_DEFAULT_ROLE`. Rollen bestehender Benutzer ändern sich nie.
+- Kein Zwei-Faktor-Code: Der Anmeldedienst prüft die Anmeldung selbst.
+- Abmelden bleibt lokal (kein Single Logout am Anbieter).
+- Fehlermeldungen sind allgemein gehalten; das Log nennt die Fehlerart, nie Tokens, Codes oder das Client-Secret.
+
+### Lokale Anmeldung als Rückfall
+
+Das Anmeldeformular mit Passwort bleibt immer erreichbar. Mit `USERAUTH_OIDC_AUTO_REDIRECT=true` zeigt `/login?lokal=1` das Formular samt Knopf; alle Fehler im OIDC-Ablauf leiten dorthin (keine Weiterleitungsschleife). Ist der Anmeldedienst gestört, melden sich Benutzer dort mit Passwort an.
+
+---
+
 ## Social Login (Google)
 
 Das Package unterstützt Social Login über Google mit sicherer Account-Verknüpfung für bestehende Nutzer.

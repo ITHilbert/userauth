@@ -6,6 +6,7 @@ namespace ITHilbert\UserAuth\Tests\Feature\Oidc;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Testing\TestResponse;
 use ITHilbert\UserAuth\Application\Oidc\Contracts\OidcIdentityProvider;
@@ -19,7 +20,7 @@ use ITHilbert\UserAuth\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
- * Zuordnung der OIDC-Identität zu einem Benutzer, Rollen bei Neuanlage (AK9 bis AK12, Randfall 4).
+ * Zuordnung der OIDC-Identität zu einem Benutzer, Rollen bei Neuanlage (AK9 bis AK12, AK20, Randfall 4).
  * Der Port zum Anbieter ist ein Fake; der Weg läuft über die HTTP-Routen.
  */
 final class OidcZuordnungTest extends TestCase
@@ -173,6 +174,44 @@ final class OidcZuordnungTest extends TestCase
         // Gegenprobe: eine andere, unbekannte E-Mail wird mit derselben Einstellung angelegt
         $this->anmelden('sub-2', 'frisch@firma.de')->assertRedirect('/');
         $this->assertDatabaseHas('users', ['email' => 'frisch@firma.de']);
+    }
+
+    // AK20
+    public function test_ak20_offenes_selbstregistriertes_konto_wird_bestaetigt_und_verliert_passwort_und_remember_token(): void
+    {
+        $user = $this->makeUser(['email' => 'offen@firma.de', 'self_registered' => true, 'remember_token' => 'altes-token'], verified: false);
+        $alterHash = (string) $user->fresh()->password;
+
+        // Gegenprobe: vorher gilt das lokale Passwort, E-Mail unbestätigt, Token gesetzt
+        $this->assertTrue(Hash::check('password', $alterHash));
+        $this->assertNull($user->fresh()->email_verified_at);
+
+        $this->anmelden('sub-offen', 'offen@firma.de')->assertRedirect('/');
+
+        $this->assertAuthenticatedAs($user);
+        $this->assertDatabaseHas('user_social_accounts', ['user_id' => $user->getKey(), 'provider_user_id' => 'sub-offen']);
+        $neu = $user->fresh();
+        $this->assertNotNull($neu->email_verified_at, 'Die E-Mail gilt nicht als bestätigt.');
+        $this->assertFalse(Hash::check('password', (string) $neu->password), 'Das alte Passwort ist noch gültig.');
+        $this->assertNotSame($alterHash, (string) $neu->password);
+        $this->assertNotSame('altes-token', $neu->remember_token, 'Das remember_token wurde nicht widerrufen.');
+    }
+
+    // AK20
+    public function test_ak20_bestaetigtes_konto_behaelt_passwort_und_remember_token(): void
+    {
+        $user = $this->makeUser(['email' => 'fertig@firma.de', 'self_registered' => true, 'remember_token' => 'bleibt-token']);
+        $alterHash = (string) $user->fresh()->password;
+
+        $this->anmelden('sub-fertig', 'fertig@firma.de')->assertRedirect('/');
+
+        // Gegenprobe: die Verknüpfung entstand, der Ablauf lief also durch
+        $this->assertAuthenticatedAs($user);
+        $this->assertDatabaseHas('user_social_accounts', ['user_id' => $user->getKey(), 'provider_user_id' => 'sub-fertig']);
+        $neu = $user->fresh();
+        $this->assertSame($alterHash, (string) $neu->password);
+        $this->assertTrue(Hash::check('password', (string) $neu->password));
+        $this->assertSame('bleibt-token', $neu->remember_token);
     }
 
     /**

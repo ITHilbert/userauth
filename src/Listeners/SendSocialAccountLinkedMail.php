@@ -14,6 +14,11 @@ final class SendSocialAccountLinkedMail
 
     public function handle(SocialAccountLinked $event): void
     {
+        // Verknüpfung mit dem eigenen Anmeldedienst (OIDC): keine Mail, der Benutzer hat sich dort selbst angemeldet
+        if (! $event->provider->istSocialLogin()) {
+            return;
+        }
+
         $this->mailer->to($event->userEmail)->send(new SocialAccountLinkedMail($event->provider->label()));
     }
 }
