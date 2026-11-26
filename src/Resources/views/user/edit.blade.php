@@ -26,6 +26,24 @@
                 </div>
             </x-kit::card-footer>
         </form>
+
+        @if (($passkeyAnzahl ?? null) !== null)
+            <x-kit::card-body>
+                <div class="userauth-spalte">
+                    <div>
+                        @lang('userauth::passkey.benutzer.anzahl'): <span data-testid="passkey-anzahl">{{ $passkeyAnzahl }}</span>
+                    </div>
+                    @if ($passkeyAnzahl > 0)
+                        <div class="userauth-rechts">
+                            <form method="POST" action="{{ route('user.passkeys.reset', $user->id) }}" onsubmit="return confirm({{ \Illuminate\Support\Js::from(__('userauth::passkey.benutzer.zuruecksetzen_frage')) }})">
+                                @csrf
+                                <x-kit::button type="submit" variant="danger">@lang('userauth::passkey.benutzer.zuruecksetzen')</x-kit::button>
+                            </form>
+                        </div>
+                    @endif
+                </div>
+            </x-kit::card-body>
+        @endif
     </x-kit::card-main>
 @stop
 

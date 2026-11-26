@@ -32,6 +32,7 @@
             </div>
         @endif
 
+        @if ($passwortFormular ?? true)
         <form method="POST" action="{{ route('login') }}" novalidate>
             @csrf
 
@@ -101,6 +102,7 @@
                 Anmelden
             </button>
         </form>
+        @endif
 
         @if ($registrierungAktiv ?? false)
             <div class="mt-6 text-center text-sm text-gray-500">
@@ -109,11 +111,28 @@
             </div>
         @endif
 
-        @if (($oidcKnopf ?? null) || in_array('google', $availableSocialProviders ?? [], true))
+        @if (($passwortFormular ?? true) && (($passkeyAktiv ?? false) || ($oidcKnopf ?? null) || in_array('google', $availableSocialProviders ?? [], true)))
             <div class="relative my-6">
                 <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-200"></div></div>
                 <div class="relative flex justify-center"><span class="bg-white px-3 text-xs text-gray-500">@lang('userauth::social.or')</span></div>
             </div>
+        @endif
+
+        @if ($passkeyAktiv ?? false)
+            <button
+                type="button"
+                data-testid="passkey-login"
+                data-passkey-login
+                data-optionen-url="{{ route('userauth.passkey.login.options') }}"
+                data-anmelden-url="{{ route('userauth.passkey.login') }}"
+                data-meldung="passkey-meldung"
+                data-text-nicht-unterstuetzt="{{ __('userauth::passkey.nicht_unterstuetzt') }}"
+                data-text-abgebrochen="{{ __('userauth::passkey.abgebrochen') }}"
+                data-text-fehler="{{ __('userauth::passkey.fehler.anmeldung') }}"
+                class="w-full mb-3 inline-flex items-center justify-center border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium text-sm rounded-lg px-4 py-2.5 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            >@lang('userauth::passkey.knopf')</button>
+            <p id="passkey-meldung" class="mb-3 text-xs text-red-600" role="alert" hidden></p>
+            <script src="{{ $passkeySkript }}" defer></script>
         @endif
 
         @if ($oidcKnopf ?? null)

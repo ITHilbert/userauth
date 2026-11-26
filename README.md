@@ -704,6 +704,68 @@ Das Anmeldeformular mit Passwort bleibt immer erreichbar. Mit `USERAUTH_OIDC_AUT
 
 ---
 
+## Anmeldung mit Passkey
+
+Benutzer melden sich mit einem Passkey an (WebAuthn: Fingerabdruck, Gesichtserkennung, Geräte-PIN oder Sicherheitsschlüssel). Der Passkey ersetzt das Passwort; die Benutzerverifikation am Gerät ist Pflicht, daher entfällt der Zwei-Faktor-Code. Die Passkeys sind „discoverable“: Der Benutzer wählt am Gerät sein Konto und gibt keine E-Mail ein. Grundlage ist `web-auth/webauthn-lib` (`^5.3`); Apps mit Authelia bleiben bei OIDC.
+
+### Einrichtung
+
+| `.env` | Config | Standard | Bedeutung |
+|---|---|---|---|
+| `USERAUTH_PASSKEY_ENABLED` | `userauth.passkey.enabled` | `false` | Schalter; aus = alle Passkey-Routen antworten mit 404, kein Knopf auf der Login-Seite |
+| `USERAUTH_PASSKEY_RP_ID` | `userauth.passkey.rp_id` | leer = Host aus `APP_URL` | Domain der Passkeys (Relying Party ID) |
+| `USERAUTH_PASSKEY_RP_NAME` | `userauth.passkey.rp_name` | leer = `APP_NAME` | Name, den das Gerät beim Einrichten zeigt |
+| `USERAUTH_PASSKEY_ORIGINS` | `userauth.passkey.origins` | leer = Ursprung aus `APP_URL` | erlaubte Ursprünge, kommagetrennt (`https://a.lan,https://b.lan`) |
+| `USERAUTH_PASSWORT_LOGIN` | `userauth.passwort_login` | `immer` | Anmeldung mit Passwort: `immer`, `ohne_passkey` oder `nie`; jeder andere Wert wirkt wie `immer` |
+
+Beispiel „nur Passkey“:
+```dotenv
+USERAUTH_PASSKEY_ENABLED=true
+USERAUTH_PASSWORT_LOGIN=ohne_passkey
+```
+
+Danach `php artisan migrate` (Tabelle `user_passkeys`). Das Skript für Knopf und Einrichtung liefert das Paket selbst (Route `userauth.assets.passkey`, reines JavaScript ohne Build); der Host muss nichts einbinden.
+
+Hinweise:
+- **HTTPS ist Pflicht.** Browser bieten Passkeys nur in sicheren Kontexten an; einzige Ausnahme ist `localhost` für die Entwicklung.
+- **`rp_id` nicht mehr ändern, wenn Passkeys existieren.** Ein Passkey gilt nur für seine Domain; nach einer Änderung meldet keiner der eingetragenen Passkeys mehr an. `USERAUTH_PASSKEY_RP_ID` darf die Domain selbst oder eine übergeordnete Domain des Ursprungs sein.
+- Mehrere Ursprünge (z. B. `https://app.lan` und `https://www.app.lan`) stehen in `USERAUTH_PASSKEY_ORIGINS`; ist die Liste gesetzt, gilt der Ursprung aus `APP_URL` nur, wenn er darin steht.
+
+### Betriebsarten
+
+| Betriebsart | Einstellung |
+|---|---|
+| Passkey und Passwort | `USERAUTH_PASSKEY_ENABLED=true`, `USERAUTH_PASSWORT_LOGIN=immer` |
+| nur Passkey | `USERAUTH_PASSKEY_ENABLED=true`, `USERAUTH_PASSWORT_LOGIN=ohne_passkey` (bzw. `nie`) |
+| nur OIDC | `USERAUTH_PASSKEY_ENABLED=false`, `USERAUTH_PASSWORT_LOGIN=nie`, OIDC an (siehe „Anmeldung über Authelia“) |
+
+- `ohne_passkey`: Wer mindestens einen Passkey hat, meldet sich nicht mehr mit Passwort an (Meldung wie bei falschen Zugangsdaten). Benutzer ohne Passkey melden sich weiter mit Passwort an und richten danach ihren Passkey ein.
+- `nie`: Die Passwort-Anmeldung ist für alle gesperrt; die Login-Seite zeigt kein Passwortformular, nur Passkey-, OIDC- und Google-Knopf. „Passwort vergessen“ setzt weiter ein Passwort, meldet aber nicht an.
+- OIDC und Google behalten ihre eigenen Schalter.
+
+### Passkeys verwalten
+
+Angemeldete Benutzer verwalten ihre Passkeys unter `/passkey` (Route `userauth.passkey.index`): Liste mit Name, angelegt am und zuletzt benutzt, Löschen und „Passkey hinzufügen“. Verlinken Sie die Seite im Menü des Hosts. Neue Konten bekommen ihren ersten Passkey nach der ersten Anmeldung auf anderem Weg (Passwort, OIDC, Google); Gäste können keinen Passkey anlegen.
+
+**Zweitgerät einrichten:** Empfehlen Sie den Benutzern, einen zweiten Passkey auf einem weiteren Gerät (z. B. Handy und Laptop) oder einen Sicherheitsschlüssel einzurichten. Mit `nie` und ohne OIDC- oder Google-Verknüpfung warnt die Seite, dass ohne Passkey kein Zugang mehr bleibt; das Löschen des letzten Passkeys ist trotzdem erlaubt.
+
+### Wiederherstellung
+
+Eine Wiederherstellung per Mail gibt es in dieser Version nicht. Hat ein Benutzer keinen Zugang mehr:
+- **Administrator:** In der Benutzerverwaltung (Bearbeiten, Recht `user_edit`) stehen die Anzahl der Passkeys und der Knopf „Passkeys zurücksetzen“ (Route `user.passkeys.reset`). Er löscht alle Passkeys des Benutzers.
+- **Artisan-Befehl:** `php artisan userauth:passkeys-zuruecksetzen <email>` löscht alle Passkeys des aktiven Benutzers mit dieser E-Mail und meldet die Anzahl. Bei unbekannter oder mehrdeutiger E-Mail endet er mit einem Fehlercode und löscht nichts.
+
+Danach meldet sich der Benutzer auf anderem Weg an (mit `ohne_passkey` wieder mit Passwort) und richtet einen neuen Passkey ein. Das Audit-Log (falls aktiv) vermerkt das Zurücksetzen als `passkeys_reset`; die Anmeldung per Passkey erscheint wie jede Anmeldung als `login`.
+
+### Sicherheit
+
+- Jede Challenge gilt 5 Minuten und genau einen Versuch, auch einen gescheiterten.
+- Geprüft werden Challenge, Ursprung, `rpId`, Benutzer-Präsenz und -Verifikation, Signatur und Signaturzähler (ein Zähler, der nicht steigt, gilt als Klon-Verdacht). Keine Attestation-Prüfung (`attestation = none`).
+- Gelöschte Benutzer und Selbstregistrierte mit offener E-Mail-Bestätigung werden nicht angemeldet. Beim endgültigen Löschen eines Benutzers werden seine Passkeys mitgelöscht.
+- Fehlermeldungen sind allgemein; das Log nennt nur die Fehlerart, nie Challenge, Antwort des Browsers oder Schlüssel.
+
+---
+
 ## Social Login (Google)
 
 Das Package unterstützt Social Login über Google mit sicherer Account-Verknüpfung für bestehende Nutzer.

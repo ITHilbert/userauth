@@ -6,13 +6,15 @@ namespace ITHilbert\UserAuth\Infrastructure\Assets;
 
 /**
  * Liefert Pfad und Cache-Busting-Version der vorkompilierten Package-CSS
- * (`userauth.css` der Auth-Seiten, `userauth-verwaltung.css` der Verwaltungsseiten).
+ * (`userauth.css` der Auth-Seiten, `userauth-verwaltung.css` der Verwaltungsseiten) und des Passkey-Skripts.
  */
 final class AuthAssetVersion
 {
     private ?string $cssVersion = null;
 
     private ?string $verwaltungCssVersion = null;
+
+    private ?string $passkeyJsVersion = null;
 
     public function cssPath(): string
     {
@@ -32,6 +34,16 @@ final class AuthAssetVersion
     public function verwaltungCssVersion(): string
     {
         return $this->verwaltungCssVersion ??= $this->version($this->verwaltungCssPath());
+    }
+
+    public function passkeyJsPath(): string
+    {
+        return dirname(__DIR__, 2).'/Resources/assets/js/passkey.js';
+    }
+
+    public function passkeyJsVersion(): string
+    {
+        return $this->passkeyJsVersion ??= $this->version($this->passkeyJsPath());
     }
 
     /** 12-stelliger Hash des Inhalts, `0`, wenn die Datei fehlt. */

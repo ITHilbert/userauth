@@ -6,6 +6,7 @@ namespace ITHilbert\UserAuth\Application\Auth;
 
 use ITHilbert\UserAuth\Application\Auth\Contracts\Anmeldedaten;
 use ITHilbert\UserAuth\Application\Auth\Contracts\KontoZurKennung;
+use ITHilbert\UserAuth\Application\Passkey\PasswortLoginSperre;
 use ITHilbert\UserAuth\Application\Registrierung\Contracts\RegistrierungsKonten;
 use ITHilbert\UserAuth\Domain\Registrierung\Exceptions\EmailNochNichtBestaetigtException;
 
@@ -16,6 +17,8 @@ use ITHilbert\UserAuth\Domain\Registrierung\Exceptions\EmailNochNichtBestaetigtE
  * CompleteAuthentication – bei aktiver 2FA erst nach dem Code (AK14).
  * Konten aus der Selbstregistrierung mit offener Bestätigung werden nicht angemeldet (auch kein 2FA-Code);
  * andere Konten mit leerem `email_verified_at` (Admin, Seeder, Social Login) melden sich an wie bisher.
+ * Sperrt `userauth.passwort_login` das Passwort für den Benutzer, gilt die Anmeldung wie mit falschen Zugangsdaten
+ * (kein Hinweis, dass das Passwort stimmt; passkey-login AK12, AK13).
  */
 final class MitPasswortAnmelden
 {
@@ -25,6 +28,7 @@ final class MitPasswortAnmelden
         private readonly RegistrierungsKonten $registrierungsKonten,
         private readonly AnmeldeEinstellungen $anmeldeEinstellungen,
         private readonly KontoZurKennung $kontoZurKennung,
+        private readonly PasswortLoginSperre $passwortLoginSperre,
     ) {}
 
     /**
@@ -45,7 +49,7 @@ final class MitPasswortAnmelden
             $nutzer = $this->anmeldedaten->pruefen($zugangsdaten, $angemeldetBleiben);
         }
 
-        if ($nutzer === null) {
+        if ($nutzer === null || $this->passwortLoginSperre->gesperrt($nutzer)) {
             return null;
         }
 

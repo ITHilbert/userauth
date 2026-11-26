@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.2.0 – unveröffentlicht
+
+### Hinzugefügt
+- Anmeldung mit Passkey (WebAuthn, #2220): Knopf „Mit Passkey anmelden“ auf der Login-Seite (beide Themes), discoverable Passkeys mit Pflicht zur Benutzerverifikation, kein Zwei-Faktor-Code. Routen `userauth.passkey.login.options`, `userauth.passkey.login`, `userauth.passkey.index` (`/passkey`), `userauth.passkey.register.options`, `userauth.passkey.register`, `userauth.passkey.destroy` und Skript-Route `userauth.assets.passkey`; alle antworten mit 404, solange `USERAUTH_PASSKEY_ENABLED` aus ist (Standard).
+- Config-Block `userauth.passkey` (`USERAUTH_PASSKEY_ENABLED`, `USERAUTH_PASSKEY_RP_ID`, `USERAUTH_PASSKEY_RP_NAME`, `USERAUTH_PASSKEY_ORIGINS`) und `userauth.passwort_login` (`USERAUTH_PASSWORT_LOGIN`: `immer`, `ohne_passkey`, `nie`).
+- Verwaltungsseite der eigenen Passkeys, „Passkeys zurücksetzen“ in der Benutzerverwaltung (Route `user.passkeys.reset`, Recht `user_edit`) und Befehl `userauth:passkeys-zuruecksetzen {email}`; Audit-Ereignis `passkeys_reset`.
+- Migration `user_passkeys`, Abhängigkeit `web-auth/webauthn-lib` (`^5.3`), Sprachdateien `passkey.php` (de und en), README-Abschnitt „Anmeldung mit Passkey“.
+
 ## 4.1.1 – 2026-11-26
 
 ### Geändert

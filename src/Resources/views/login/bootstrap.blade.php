@@ -53,6 +53,17 @@
                       @if (session('userauth_bestaetigung_offen') && ($registrierungAktiv ?? false))
                         <div class="text-center mb-3"><a href="{{ route('register.bestaetigung') }}">@lang('userauth::registrierung.link_erneut_anfordern')</a></div>
                       @endif
+                      @if ($passkeyAktiv ?? false)
+                        <button type="button" class="btn btn-phoenix-primary w-100 mb-3" data-testid="passkey-login" data-passkey-login
+                          data-optionen-url="{{ route('userauth.passkey.login.options') }}"
+                          data-anmelden-url="{{ route('userauth.passkey.login') }}"
+                          data-meldung="passkey-meldung"
+                          data-text-nicht-unterstuetzt="{{ __('userauth::passkey.nicht_unterstuetzt') }}"
+                          data-text-abgebrochen="{{ __('userauth::passkey.abgebrochen') }}"
+                          data-text-fehler="{{ __('userauth::passkey.fehler.anmeldung') }}">@lang('userauth::passkey.knopf')</button>
+                        <div id="passkey-meldung" class="text-danger fs--1 mb-3" role="alert" hidden></div>
+                        <script src="{{ $passkeySkript }}" defer></script>
+                      @endif
                       @if ($oidcKnopf ?? null)
                         <a class="btn btn-phoenix-primary w-100 mb-3" href="{{ route('userauth.oidc.redirect') }}">{{ $oidcKnopf }}</a>
                       @endif
@@ -65,7 +76,7 @@
                           <p class="text-700 fs--1 mb-3">@lang('userauth::social.hinweis_geloeschtes_konto')</p>
                         @endif
                       @endif
-                      @if (($oidcKnopf ?? null) || in_array('google', $availableSocialProviders ?? [], true))
+                      @if (($passwortFormular ?? true) && (($passkeyAktiv ?? false) || ($oidcKnopf ?? null) || in_array('google', $availableSocialProviders ?? [], true)))
                         <div class="position-relative">
                           <hr class="bg-200 mt-4 mb-4" />
                           <div class="divider-content-center bg-white">@lang('userauth::social.or')</div>
@@ -77,6 +88,7 @@
                         <hr class="bg-200 mt-5 mb-4" />
                         <div class="divider-content-center bg-white">or use email</div>
                       </div> --}}
+                      @if ($passwortFormular ?? true)
                       {{-- Kennung: E-Mail, Benutzername oder beides (userauth.anmeldung_per) --}}
                       @php($kennungFeld ??= 'email')
                       <div class="mb-3 text-start">
@@ -108,6 +120,7 @@
                         </div>
                       </div>
                       <button class="btn btn-primary w-100 mb-3">Login</button>
+                      @endif
                       @if ($registrierungAktiv ?? false)
                         <div class="text-center">@lang('userauth::registrierung.noch_kein_konto') <a class="fs--1 fw-bold" href="{{ route('register') }}">@lang('userauth::registrierung.registrieren')</a></div>
                       @endif

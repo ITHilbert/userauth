@@ -24,3 +24,18 @@ Stand: Spec und Plan geschrieben, selbst freigegeben (Automode).
 
 Tests: 99 Fälle rot (73 Errors, 19 Failures, Meldungen nennen fehlende Routen, Tabelle, Verzeichnis, Config), Schichtungs-Gegenproben grün; Rot-Nachweis vom Moderator wiederholt 2026-11-26 15:37.
 Entscheidung Moderator: T1–T4 laufen in einem Coder-Durchgang [senior] (gemeinsame Dateien Config, Views, Provider; Zeitgrenze des Laufs).
+
+Offener Punkt a169527f199173f00: AK-fremd (Annahme ohne_passkey sperrt auch bei passkey.enabled=false, wörtlich AK12; Admin-Reset/Artisan hebt auf; in README und Für Joerg vermerkt)
+Offener Punkt a169527f199173f00: AK-fremd (Name über 100 Zeichen wird abgelehnt statt gekürzt, AK10 lässt beides zu)
+Offener Punkt a169527f199173f00: AK-fremd (credential_id base64url string(255), längere Kennungen abgelehnt)
+Offener Punkt a169527f199173f00: AK-fremd (Benutzer-Handle HMAC der Benutzer-ID mit app.key, keine E-Mail, AK9)
+Offener Punkt a169527f199173f00: AK-fremd (GET-Platzhalter auf passkey/register* wegen bestehendem RegistrierungTest)
+Offener Punkt a169527f199173f00: AK-fremd (user.name der Registrierungsoptionen ist die E-Mail, nur für die Kontoauswahl am Gerät, nicht in der Handle)
+Offener Punkt a169527f199173f00: AK-fremd (Drossel-Zähler mit OIDC-Routen geteilt, wie Social/OIDC untereinander)
+Offener Punkt a169527f199173f00: AK-fremd (gesperrte Passwort-Anmeldung erzeugt kein failed-Audit-Ereignis, Zugangsdaten waren gültig)
+Annahme im Code: src/Application/Passkey/PasskeyRegistrierungVorbereiten.php:16 → Test PasskeyRegistrierenTest (Vorgang gilt nur für den Benutzer, AK10)
+Annahme im Code: src/Http/ViewComposers/PasskeyKnopfComposer.php:13 → Test PasskeyLoginSeiteTest (Knopf nur bei aktivem Passkey, AK2)
+Layout: entfällt (Knopf und Verwaltungsliste mit vorhandenen Klassen, feste Beschriftungen, keine variablen Längen)
+Echtlauf: browser: Host-Server Port 8150 mit USERAUTH_PASSKEY_ENABLED=true, Migration user_passkeys auf Entwicklungs-DB vorwärts gelaufen: /login zeigt „Mit Passkey anmelden“ (1 sichtbar, 0 Konsolenfehler), /userauth/assets/passkey.js 200 text/javascript, POST /passkey/login/options ohne CSRF-Token 419 (Seite trägt meta csrf-token, Skript sendet X-CSRF-TOKEN); der native WebAuthn-Dialog (Fingerabdruck) ist ohne Gerät nicht auslösbar, die Kryptoprüfung belegen die 99 Tests mit echter ES256-Signatur.
+Review: Pflicht (Risiko kritisch, Anmeldung, neue Routen, Migration)
+Stand: T1–T4 umgesetzt, GATE grün (200 Tests), Paket-Suite 2463 grün (Coder), userauth.css neu gebaut.

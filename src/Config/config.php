@@ -115,6 +115,24 @@ return [
         'auto_redirect' => env('USERAUTH_OIDC_AUTO_REDIRECT', false),
     ],
 
+    // Anmeldung mit Passkey (WebAuthn: Fingerabdruck, Gesichtserkennung, Geräte-PIN, Sicherheitsschlüssel).
+    // HTTPS ist Pflicht (außer localhost). rp_id nicht mehr ändern, sobald Passkeys eingetragen sind – sie gelten
+    // nur für diese Domain.
+    'passkey' => [
+        // Schaltet die Routen /passkey/… und den Knopf auf der Login-Seite ein/aus (aus = Routen liefern 404)
+        'enabled' => env('USERAUTH_PASSKEY_ENABLED', false),
+        // Domain der Passkeys (Relying Party ID), leer = Host aus app.url
+        'rp_id' => env('USERAUTH_PASSKEY_RP_ID', ''),
+        // Name der Anwendung, den das Gerät beim Anlegen zeigt, leer = app.name
+        'rp_name' => env('USERAUTH_PASSKEY_RP_NAME', ''),
+        // Erlaubte Ursprünge, kommagetrennt (https://a.lan,https://b.lan), leer = Ursprung aus app.url
+        'origins' => env('USERAUTH_PASSKEY_ORIGINS', ''),
+    ],
+
+    // Anmeldung mit Passwort: 'immer' (Standard) | 'ohne_passkey' (gesperrt für Benutzer mit mindestens einem
+    // Passkey) | 'nie' (für alle gesperrt, z. B. nur OIDC); jeder andere Wert wirkt wie 'immer'
+    'passwort_login' => env('USERAUTH_PASSWORT_LOGIN', 'immer'),
+
     // Selbstregistrierung per E-Mail und Passwort (Routen /register …; aus = Routen liefern 404)
     'registration' => [
         // Schaltet Registrierung, Bestätigungslink und „Link erneut anfordern“ ein/aus
