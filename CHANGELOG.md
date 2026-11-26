@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.3.2 – 2026-11-26
+
+### Behoben
+- Listen (Benutzer, Rollen, Rechte) starten auch, wenn Host-Skripte erst nach `DOMContentLoaded` eingefügt werden: Ist `document.readyState` schon `interactive` oder `complete`, initialisiert das Inline-Skript sofort; sonst wie bisher nach `DOMContentLoaded` (#2267).
+
 ## 4.3.1 – 2026-11-26
 
 ### Geändert

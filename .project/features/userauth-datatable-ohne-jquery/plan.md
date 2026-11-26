@@ -19,3 +19,9 @@ Stand: T1 umgesetzt, GATE-Tests grün (PHP 339, JS 62), Echtlauf grün. Host: wi
 Bestehende Tests: tests/Feature/AdminViewsKitTest.php tests/Feature/VerwaltungKernMarkupTest.php
 Marketing: entfällt (kein Seitendesign)
 Review: entfällt (Bugfix, kleiner Skript-Fix, kein Sicherheitsbezug, keine Route)
+Echtlauf: entfällt (Skriptstart-Logik, im node-Fixture mit readyState loading/complete nachgewiesen, Hosts ohne Browser-Zugang im Automode; GATE grün, 363 Tests)
+Layout: entfällt (nur Skript-Logik, keine Darstellungsänderung)
+Offener Punkt aa486688b13e650f3: AK-fremd (IIFE statt globaler Funktion, Verhalten gleich)
+Abweichung aa486688b13e650f3: Fehlalarm: keine Abweichung gemeldet
+Annahme im Code: keine neuen Annahme-Kommentare
+Stand: T2 umgesetzt (AK6), GATE grün.
