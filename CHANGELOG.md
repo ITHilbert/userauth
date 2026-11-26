@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.1.1 – 2026-11-26
+
+### Geändert
+- `guzzlehttp/guzzle` erlaubt jetzt `^7.8 || ^8.0` (#2218). Apps mit Guzzle 8 werden bei `composer update` nicht mehr auf Guzzle 7 zurückgestuft. Die OIDC-Tests laufen mit Guzzle 7.17 und 8.6 grün.
+
 ## 4.1.0 – 2026-11-26
 
 ### Hinzugefügt
