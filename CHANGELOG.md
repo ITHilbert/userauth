@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.2.0 – unveröffentlicht
+## 4.2.0 – 2026-11-26
 
 ### Hinzugefügt
 - Anmeldung mit Passkey (WebAuthn, #2220): Knopf „Mit Passkey anmelden“ auf der Login-Seite (beide Themes), discoverable Passkeys mit Pflicht zur Benutzerverifikation, kein Zwei-Faktor-Code. Routen `userauth.passkey.login.options`, `userauth.passkey.login`, `userauth.passkey.index` (`/passkey`), `userauth.passkey.register.options`, `userauth.passkey.register`, `userauth.passkey.destroy` und Skript-Route `userauth.assets.passkey`; alle antworten mit 404, solange `USERAUTH_PASSKEY_ENABLED` aus ist (Standard).
