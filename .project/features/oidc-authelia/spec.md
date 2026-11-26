@@ -2,6 +2,7 @@
 
 Art: Feature (neue Anmeldeart, zwei neue Routen).
 Risiko: kritisch (Anmeldung, Zugänge, neue Routen, Token-Prüfung).
+Rechtegrenze: Anmeldung — Gast wird nur mit gültigem, signiertem id_token und dem state der eigenen Sitzung angemeldet (Tests AK4, AK7)
 Selbst freigegeben im Automode (Stapel 2026-11-26-1316): Auftrag Joerg (Telegram 870/872, 2026-11-26) steht im Task; Annahmen siehe Protokoll und „Entscheidungsspielraum“.
 Marketing: entfällt (keine neue Seite; nur ein Knopf auf der vorhandenen Login-Seite).
 

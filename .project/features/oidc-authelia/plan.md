@@ -23,3 +23,4 @@ Layout: entfällt (nur ein Link-Knopf mit vorhandenen Klassen, feste Beschriftun
 Echtlauf: browser: Host-Server auf Port 8147 mit OIDC-Env und CA-Bundle (mkcert): /login zeigt „Mit IT-Hilbert anmelden“ mit Link auf /auth/oidc/redirect; Redirect liefert 302 auf https://auth.lan/api/oidc/authorization mit state, nonce, scope; Callback mit falschem state → 302 auf /login?lokal=1. Vollständiger Anmeldelauf gegen Authelia nicht möglich (kein Client-Secret).
 Review: Pflicht (Risiko kritisch, Anmeldung, neue Routen)
 Stand: T1 umgesetzt, GATE grün (164 Tests), AK20 wartet auf Test.
+Review 0/2: 1 muss (formal, Rechtegrenze-Zeile in der Spec, behoben), 0 sollte, 3 kann; Nachprüfung: Hook grenze Exit 0
