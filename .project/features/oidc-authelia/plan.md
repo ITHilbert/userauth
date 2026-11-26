@@ -32,3 +32,9 @@ Hinweis: `test_ak18_config_enthaelt_den_block_oidc…` in OidcLoginSeiteTest pr�
 Branch: `feature/oidc-auto-redirect` (Paket-Repo, von main), Host-Stapel `stapel/2026-11-26-1717`. Spec-Lücke zu oidc-authelia, selbst freigegeben (Automode, Auftrag Joerg Telegram 922/924).
 Review: Pflicht (Anmeldung, Sicherheitsbezug)
 Stand: Spec ergänzt (AK21–AK23), Tests folgen.
+Annahme im Code: src/Config/config.php:114 → Test OidcAutoRedirectStandardTest (Standard true wirkt nur bei aktivem, konfiguriertem OIDC, AK21)
+Layout: entfällt (nur Hinweiskasten mit vorhandenen Klassen, feste Beschriftung)
+Echtlauf: browser: nicht möglich (kein Echtlauf-Login im Paket-Host); ersatzweise Host-Server Port 8148 mit OIDC-Env per curl: GET /login → 302 /auth/oidc/redirect; /login?lokal=1 → 200 mit Knopf und Passwortfeld; /login?abgemeldet=1 → 200 mit „Sie wurden abgemeldet“, Knopf und Formular; /auth/oidc/redirect (auth.lan hier nicht erreichbar) → 302 /login?lokal=1 (keine Schleife).
+Abweichung aa84aca11dae2da93: keine
+Offener Punkt aa84aca11dae2da93: keine
+Stand: T2 umgesetzt, GATE grün (105 Tests), Suite Oidc/SocialLogin 181 grün. Review am Ende des Stapels.

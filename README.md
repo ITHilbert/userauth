@@ -681,8 +681,8 @@ USERAUTH_OIDC_AUTO_CREATE=false
 USERAUTH_OIDC_DEFAULT_ROLE=user
 # Gruppen des Anbieters => Rolle bei Neuanlage; die erste passende Zuordnung gilt
 USERAUTH_OIDC_GROUP_ROLES=admins=admin
-# Login-Seite leitet Gäste direkt zum Anbieter weiter (Standard: false)
-USERAUTH_OIDC_AUTO_REDIRECT=false
+# Login-Seite leitet Gäste direkt zum Anbieter weiter (Standard: true; false schaltet ab)
+USERAUTH_OIDC_AUTO_REDIRECT=true
 ```
 
 „Konfiguriert“ heißt: `USERAUTH_OIDC_ENABLED` an und Issuer, Client-ID und Client-Secret gesetzt. Fehlt einer der Werte, erscheint kein Knopf und es gibt keine automatische Weiterleitung.
@@ -700,7 +700,7 @@ USERAUTH_OIDC_AUTO_REDIRECT=false
 
 ### Lokale Anmeldung als Rückfall
 
-Das Anmeldeformular mit Passwort bleibt immer erreichbar. Mit `USERAUTH_OIDC_AUTO_REDIRECT=true` zeigt `/login?lokal=1` das Formular samt Knopf; alle Fehler im OIDC-Ablauf leiten dorthin (keine Weiterleitungsschleife). Ist der Anmeldedienst gestört, melden sich Benutzer dort mit Passwort an.
+Das Anmeldeformular mit Passwort bleibt immer erreichbar. `USERAUTH_OIDC_AUTO_REDIRECT` ist standardmäßig `true`: Ist OIDC aktiv und konfiguriert, leitet `/login` Gäste direkt zum Anbieter weiter (`false` schaltet das ab). Nach dem Abmelden führt der Weg auf `/login?abgemeldet=1`: Meldung „Sie wurden abgemeldet“, Knopf und Formular, keine Weiterleitung (sonst meldete der Anbieter sofort wieder an). Notzugang: `/login?lokal=1` zeigt das Formular samt Knopf; alle Fehler im OIDC-Ablauf leiten dorthin (keine Weiterleitungsschleife). Ist der Anmeldedienst gestört, melden sich Benutzer dort mit Passwort an.
 
 ---
 
