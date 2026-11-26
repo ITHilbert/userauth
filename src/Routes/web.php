@@ -24,6 +24,7 @@ use ITHilbert\UserAuth\Http\Middleware\EnsureOidcEnabled;
 use ITHilbert\UserAuth\Http\Middleware\EnsurePasskeyEnabled;
 use ITHilbert\UserAuth\Http\Middleware\EnsureRegistrationEnabled;
 use ITHilbert\UserAuth\Http\Middleware\EnsureSocialLoginEnabled;
+use ITHilbert\UserAuth\Http\Middleware\VerbietetImpersonate;
 
 /*
 |--------------------------------------------------------------------------
@@ -170,9 +171,12 @@ Route::middleware(['web'])
 
             Route::middleware(['auth'])->group(function () {
                 Route::get('/', [PasskeyController::class, 'index'])->name('userauth.passkey.index');
-                Route::post('register/options', [PasskeyController::class, 'optionen'])->name('userauth.passkey.register.options');
-                Route::post('register', [PasskeyController::class, 'registrieren'])->name('userauth.passkey.register');
-                Route::delete('{id}', [PasskeyController::class, 'destroy'])->whereNumber('id')->name('userauth.passkey.destroy');
+                // Registrieren und Löschen unter Impersonate gesperrt (AK22), Lesen bleibt möglich
+                Route::middleware([VerbietetImpersonate::class])->group(function () {
+                    Route::post('register/options', [PasskeyController::class, 'optionen'])->name('userauth.passkey.register.options');
+                    Route::post('register', [PasskeyController::class, 'registrieren'])->name('userauth.passkey.register');
+                    Route::delete('{id}', [PasskeyController::class, 'destroy'])->whereNumber('id')->name('userauth.passkey.destroy');
+                });
             });
 
             // GET auf die Registrierungsrouten: bei „aus“ 404 über die Middleware statt 405, bei „an“ 405

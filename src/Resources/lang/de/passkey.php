@@ -35,6 +35,8 @@ return [
         'zurueckgesetzt' => ':anzahl Passkey(s) gelöscht.',
     ],
 
+    'impersonate_gesperrt' => 'Unter einer Benutzerübernahme ist diese Aktion nicht erlaubt.',
+
     'benutzer' => [
         'anzahl' => 'Passkeys',
         'zuruecksetzen' => 'Passkeys zurücksetzen',

@@ -42,3 +42,4 @@ Stand: T1–T4 umgesetzt, GATE grün (200 Tests), Paket-Suite 2463 grün (Coder)
 
 Abweichung Review aabe08b4a5894439b: Spec ergänzt (AK22, Impersonate-Sperre; Test folgt vom test-writer)
 Review 0/2: 1 muss, 0 sollte, 3 kann
+Review 0/2 behoben: Impersonate-Sperre (a47044ba629956520, GATE grün), Nachprüfung folgt.

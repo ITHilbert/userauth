@@ -35,6 +35,8 @@ return [
         'zurueckgesetzt' => ':anzahl passkey(s) deleted.',
     ],
 
+    'impersonate_gesperrt' => 'This action is not allowed while impersonating a user.',
+
     'benutzer' => [
         'anzahl' => 'Passkeys',
         'zuruecksetzen' => 'Reset passkeys',
