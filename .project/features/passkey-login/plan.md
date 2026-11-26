@@ -39,3 +39,6 @@ Layout: entfällt (Knopf und Verwaltungsliste mit vorhandenen Klassen, feste Bes
 Echtlauf: browser: Host-Server Port 8150 mit USERAUTH_PASSKEY_ENABLED=true, Migration user_passkeys auf Entwicklungs-DB vorwärts gelaufen: /login zeigt „Mit Passkey anmelden“ (1 sichtbar, 0 Konsolenfehler), /userauth/assets/passkey.js 200 text/javascript, POST /passkey/login/options ohne CSRF-Token 419 (Seite trägt meta csrf-token, Skript sendet X-CSRF-TOKEN); der native WebAuthn-Dialog (Fingerabdruck) ist ohne Gerät nicht auslösbar, die Kryptoprüfung belegen die 99 Tests mit echter ES256-Signatur.
 Review: Pflicht (Risiko kritisch, Anmeldung, neue Routen, Migration)
 Stand: T1–T4 umgesetzt, GATE grün (200 Tests), Paket-Suite 2463 grün (Coder), userauth.css neu gebaut.
+
+Abweichung Review aabe08b4a5894439b: Spec ergänzt (AK22, Impersonate-Sperre; Test folgt vom test-writer)
+Review 0/2: 1 muss, 0 sollte, 3 kann
