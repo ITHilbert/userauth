@@ -18,7 +18,7 @@
                     <th>@lang('userauth::user.name')</th>
                     <th>@lang('userauth::user.email')</th>
                     <th>@lang('userauth::user.role')</th>
-                    <th width="165px">
+                    <th>
                         @hasPermission('user_create')
                             <x-kit::button-create :route="route('user.create')">@lang('userauth::button.addUser')</x-kit::button-create>
                         @endhasPermission()

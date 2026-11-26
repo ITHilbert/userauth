@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.3.3 – 2026-11-26
+
+### Behoben
+- Optik der Verwaltungslisten (Benutzer, Rollen, Rechte) bei schmalen Breiten: Spaltenköpfe brechen nicht mehr im Wort um (z. B. „E-Mail“ bei 375 px), der Knopf „Neuer Benutzer“ bleibt einzeilig; die feste Breite der Knopfspalte entfällt (#2178).
+
 ## 4.3.2 – 2026-11-26
 
 ### Behoben
