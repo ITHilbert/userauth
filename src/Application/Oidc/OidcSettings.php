@@ -63,7 +63,7 @@ final class OidcSettings
 
     public function autoRedirect(): bool
     {
-        return (bool) $this->config->get('userauth.oidc.auto_redirect', false);
+        return (bool) $this->config->get('userauth.oidc.auto_redirect', true);
     }
 
     public function defaultRole(): string

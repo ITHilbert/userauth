@@ -111,8 +111,10 @@ return [
         'default_role' => env('USERAUTH_OIDC_DEFAULT_ROLE', 'user'),
         // Gruppen des Anbieters => Rolle bei Neuanlage, z. B. 'admins=admin,devs=dev' (erste passende gilt)
         'group_roles' => env('USERAUTH_OIDC_GROUP_ROLES', ''),
-        // Login-Seite leitet Gäste direkt zum Anbieter weiter (/login?lokal=1 zeigt weiter das Formular)
-        'auto_redirect' => env('USERAUTH_OIDC_AUTO_REDIRECT', false),
+        // Login-Seite leitet Gäste direkt zum Anbieter weiter (Standard: true; nur wenn OIDC aktiv und konfiguriert ist).
+        // Notzugang: /login?lokal=1 zeigt weiter das Formular; false schaltet die Weiterleitung ab.
+        // Nach dem Abmelden zeigt /login?abgemeldet=1 eine Meldung mit Knopf und Formular statt sofort weiterzuleiten.
+        'auto_redirect' => env('USERAUTH_OIDC_AUTO_REDIRECT', true),
     ],
 
     // Anmeldung mit Passkey (WebAuthn: Fingerabdruck, Gesichtserkennung, Geräte-PIN, Sicherheitsschlüssel).

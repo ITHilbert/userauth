@@ -33,11 +33,11 @@ final class LoginController extends Controller
 
     /**
      * Mit `userauth.oidc.auto_redirect` gehen Gäste direkt zum Anmeldedienst; `?lokal=1` zeigt das Formular
-     * (Ziel aller OIDC-Fehlerweiterleitungen, daher keine Schleife).
+     * (Ziel aller OIDC-Fehlerweiterleitungen, daher keine Schleife); `?abgemeldet=1` (nach dem Abmelden) leitet ebenfalls nicht weiter.
      */
     public function showLoginForm(Request $request, OidcVerfuegbarkeit $oidc): View|RedirectResponse
     {
-        if (! $request->boolean('lokal') && $oidc->automatischWeiterleiten()) {
+        if (! $request->boolean('lokal') && ! $request->boolean('abgemeldet') && $oidc->automatischWeiterleiten()) {
             return redirect()->route('userauth.oidc.redirect');
         }
 
@@ -84,9 +84,13 @@ final class LoginController extends Controller
     /**
      * Abmelden bzw. offene Zwei-Faktor-Anmeldung abbrechen (auch als Gast, AK20).
      */
-    public function logout(Request $request): RedirectResponse
+    public function logout(Request $request, OidcVerfuegbarkeit $oidc): RedirectResponse
     {
         $this->abmelden->handle();
+
+        if ($oidc->automatischWeiterleiten()) {
+            return redirect()->route('login', ['abgemeldet' => 1]);
+        }
 
         return redirect(config('userauth.redirect_after_logout', '/home'));
     }

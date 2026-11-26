@@ -233,7 +233,7 @@ final class OidcLoginSeiteTest extends TestCase
         );
         $this->assertFalse($standard['oidc']['enabled']);
         $this->assertFalse($standard['oidc']['auto_create']);
-        $this->assertFalse($standard['oidc']['auto_redirect']);
+        $this->assertTrue($standard['oidc']['auto_redirect']);
         $this->assertSame('Mit IT-Hilbert anmelden', $standard['oidc']['button_text']);
         $this->assertSame('user', $standard['oidc']['default_role']);
         foreach (['issuer', 'client_id', 'client_secret', 'ca_bundle', 'group_roles'] as $leer) {

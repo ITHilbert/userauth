@@ -146,6 +146,7 @@ final class PasskeyLoginSeiteTest extends TestCase
         foreach (['enabled' => true, 'issuer' => 'https://auth.example.test', 'client_id' => 'c', 'client_secret' => 's'] as $schluessel => $wert) {
             config()->set("userauth.oidc.{$schluessel}", $wert);
         }
+        config()->set('userauth.oidc.auto_redirect', false);
 
         $seite = $this->seite();
         $this->assertSame(1, $this->passwortFeld($seite), 'Aufbau: bei „immer“ steht das Passwortformular da.');

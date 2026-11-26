@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.3.0 – 2026-11-26
+
+### Geändert
+- Auto-Redirect ist jetzt Standard (#2226): `USERAUTH_OIDC_AUTO_REDIRECT` steht auf `true`. Ist OIDC aktiv und konfiguriert, leitet `/login` Gäste direkt zum Anbieter weiter; `USERAUTH_OIDC_AUTO_REDIRECT=false` schaltet das ab, `/login?lokal=1` bleibt der Notzugang mit Formular.
+- Abmelden führt bei aktivem Auto-Redirect auf `/login?abgemeldet=1` statt auf `redirect_after_logout`: Abmeldemeldung (de und en), Knopf und Formular, keine Weiterleitung.
+
 ## 4.2.0 – 2026-11-26
 
 ### Hinzugefügt
