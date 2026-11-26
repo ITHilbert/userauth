@@ -21,3 +21,6 @@ Bestehende Tests: tests/Feature/PasswordLoginTwoFactorTest.php tests/Feature/Oid
 — Tests: tests/Feature/Passkey/PasskeyKonfigurationTest.php
 
 Stand: Spec und Plan geschrieben, selbst freigegeben (Automode).
+
+Tests: 99 Fälle rot (73 Errors, 19 Failures, Meldungen nennen fehlende Routen, Tabelle, Verzeichnis, Config), Schichtungs-Gegenproben grün; Rot-Nachweis vom Moderator wiederholt 2026-11-26 15:37.
+Entscheidung Moderator: T1–T4 laufen in einem Coder-Durchgang [senior] (gemeinsame Dateien Config, Views, Provider; Zeitgrenze des Laufs).
