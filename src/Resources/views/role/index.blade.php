@@ -17,7 +17,7 @@
                         <th>@lang('userauth::role.id')</th>
                         <th>@lang('userauth::role.role_display')</th>
                         <th>@lang('userauth::role.role')</th>
-                        <th width="165px">
+                        <th>
                             @hasPermission('role_create')
                                 <x-kit::button-create :route="route('role.create')">@lang('userauth::button.addRole')</x-kit::button-create>
                             @endhasPermission()
@@ -39,23 +39,31 @@
 
 @push('userauth-scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    new DataTable('.data-table', {
-        processing: true,
-        serverSide: true,
-        responsive: true,
-        language: { url: "{{ asset("vendor/laravelkit/DataTable_DE.json") }}" },
-        ajax: {
-            url: "{{ route('role') }}",
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-        },
-        columns: [
-            { data: 'id', name: 'id' },
-            { data: 'role_display', name: 'role_display' },
-            { data: 'role', name: 'role' },
-            { data: 'action', name: 'action', orderable: false, searchable: false },
-        ],
-    });
-});
+(function () {
+    function start() {
+        new DataTable('.data-table', {
+            processing: true,
+            serverSide: true,
+            responsive: true,
+            language: { url: "{{ asset("vendor/laravelkit/DataTable_DE.json") }}" },
+            ajax: {
+                url: "{{ route('role') }}",
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            },
+            columns: [
+                { data: 'id', name: 'id' },
+                { data: 'role_display', name: 'role_display' },
+                { data: 'role', name: 'role' },
+                { data: 'action', name: 'action', orderable: false, searchable: false },
+            ],
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', start);
+    } else {
+        start();
+    }
+})();
 </script>
 @endpush

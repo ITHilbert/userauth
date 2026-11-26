@@ -7,7 +7,11 @@
 // Ohne jQuery (userauth-datatable-ohne-jquery): `$` und `jQuery` sind nicht definiert; jeder Zugriff wird in
 // `jqueryZugriffe` gezählt und wirft einen ReferenceError. Mit dem zweiten Argument `mit-jquery` ist jQuery geladen
 // (Randfall 1): Aufrufe landen in `jqueryAufrufe`.
-// Aufruf: node inline-skript-lauf.mjs <manifest.json> [mit-jquery]
+// Modus `nachtraeglich` (#2267, AK6): Der Host fügt die Skripte erst nach DOMContentLoaded ein. `window.DataTable` steht
+// bereit, `document.readyState` ist 'complete', alle Skripte laufen in Dokument-Reihenfolge, DOMContentLoaded wird
+// nicht erneut gefeuert (nur Timer laufen ab).
+// `aufrufeVorDomReady` zählt die DataTable-Aufrufe unmittelbar vor dem Feuern von DOMContentLoaded.
+// Aufruf: node inline-skript-lauf.mjs <manifest.json> [mit-jquery] [nachtraeglich]
 // Manifest: [{ "typ": "inline"|"src", "code": "<Quelltext>", "src": "<url>", "spaeter": bool }]
 // Ausgabe: JSON {fehlerVorBundle, fehler, aufrufe, optionen, funktionen, jqueryZugriffe, jqueryAufrufe}.
 import fs from 'node:fs';
@@ -18,10 +22,11 @@ const listener = [];
 const timer = [];
 const aufrufe = [];
 const optionen = [];
-const mitJquery = process.argv[3] === 'mit-jquery';
+const nachtraeglich = process.argv.slice(3).includes('nachtraeglich');
+const mitJquery = process.argv.slice(3).includes('mit-jquery');
 const jqueryZugriffe = [];
 const jqueryAufrufe = [];
-const ergebnis = { fehlerVorBundle: null, fehler: null, aufrufe, optionen, funktionen: [], jqueryZugriffe, jqueryAufrufe, jqueryGeladen: false };
+const ergebnis = { fehlerVorBundle: null, fehler: null, aufrufe, optionen, funktionen: [], jqueryZugriffe, jqueryAufrufe, jqueryGeladen: false, aufrufeVorDomReady: null };
 let bundleLaeuft = false;
 
 const beiFehler = (e) => {
@@ -88,9 +93,11 @@ if (!mitJquery) {
     }
 }
 
-// Phase 1: Skripte, die der Browser sofort ausführt.
-for (const s of manifest) {
-    if (!s.spaeter) ausfuehren(s.code);
+// Phase 1: Skripte, die der Browser sofort ausführt (nachträglich: erst nach dem Bundle).
+if (!nachtraeglich) {
+    for (const s of manifest) {
+        if (!s.spaeter) ausfuehren(s.code);
+    }
 }
 
 // Phase 2: das Modul-Bundle läuft, DataTables 2 steht als `window.DataTable` bereit.
@@ -109,18 +116,30 @@ if (mitJquery) {
     kontext.$ = jq;
     kontext.jQuery = jq;
 }
+if (nachtraeglich) {
+    document.readyState = 'complete';
+    for (const s of manifest) ausfuehren(s.code);
+    ergebnis.aufrufeVorDomReady = aufrufe.length;
+    try {
+        while (timer.length) timer.shift()();
+    } catch (e) {
+        beiFehler(e);
+    }
+} else {
 document.readyState = 'interactive';
 for (const s of manifest) {
     if (s.spaeter) ausfuehren(s.code);
 }
 
 try {
+    ergebnis.aufrufeVorDomReady = aufrufe.length;
     for (const [art, fn] of [...listener]) if (art === 'DOMContentLoaded') fn({ type: art });
     document.readyState = 'complete';
     for (const [art, fn] of [...listener]) if (art === 'load') fn({ type: art });
     while (timer.length) timer.shift()();
 } catch (e) {
     beiFehler(e);
+}
 }
 
 ergebnis.jqueryGeladen = mitJquery && typeof kontext.$ === 'function' && typeof kontext.jQuery === 'function';

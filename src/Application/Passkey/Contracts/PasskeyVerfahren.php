@@ -18,9 +18,12 @@ use ITHilbert\UserAuth\Application\Passkey\PasskeyPartei;
 interface PasskeyVerfahren
 {
     /**
-     * Optionen für `navigator.credentials.get` (discoverable: leere `allowCredentials`).
+     * Optionen für `navigator.credentials.get`; ohne Kennungen discoverable (leere `allowCredentials`), sonst nur
+     * diese Passkeys (Bestätigung des angemeldeten Benutzers).
+     *
+     * @param  list<string>  $erlaubteKennungen  base64url-Kennungen
      */
-    public function anmeldeOptionen(PasskeyPartei $partei): PasskeyOptionen;
+    public function anmeldeOptionen(PasskeyPartei $partei, array $erlaubteKennungen = []): PasskeyOptionen;
 
     /**
      * Optionen für `navigator.credentials.create`.

@@ -1,5 +1,23 @@
 # Changelog
 
+## 4.4.0 – 2026-11-26
+
+### Hinzugefügt
+- Passkey hinzufügen verlangt eine Bestätigung per aktuellem Passwort oder vorhandenem Passkey; sie gilt `USERAUTH_PASSKEY_BESTAETIGUNG_MINUTEN` Minuten (Standard 10, Config `userauth.passkey.bestaetigung_minuten`). Die Verwaltungsseite fragt über einen Dialog ab und wiederholt das Hinzufügen einmal (#2225). Der Dialog nennt den Weg „Passwort vergessen“ und zeigt die Meldung des Servers an (#2225).
+
+### Geändert
+- Unter Impersonate sind die Passkey-Bestätigung sowie das Anlegen und Lösen von Social-Verknüpfungen gesperrt (403) (#2225).
+
+## 4.3.3 – 2026-11-26
+
+### Behoben
+- Optik der Verwaltungslisten (Benutzer, Rollen, Rechte) bei schmalen Breiten: Spaltenköpfe brechen nicht mehr im Wort um (z. B. „E-Mail“ bei 375 px), der Knopf „Neuer Benutzer“ bleibt einzeilig; die feste Breite der Knopfspalte entfällt (#2178).
+
+## 4.3.2 – 2026-11-26
+
+### Behoben
+- Listen (Benutzer, Rollen, Rechte) starten auch, wenn Host-Skripte erst nach `DOMContentLoaded` eingefügt werden: Ist `document.readyState` schon `interactive` oder `complete`, initialisiert das Inline-Skript sofort; sonst wie bisher nach `DOMContentLoaded` (#2267).
+
 ## 4.3.1 – 2026-11-26
 
 ### Geändert

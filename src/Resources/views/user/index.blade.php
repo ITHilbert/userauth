@@ -18,7 +18,7 @@
                     <th>@lang('userauth::user.name')</th>
                     <th>@lang('userauth::user.email')</th>
                     <th>@lang('userauth::user.role')</th>
-                    <th width="165px">
+                    <th>
                         @hasPermission('user_create')
                             <x-kit::button-create :route="route('user.create')">@lang('userauth::button.addUser')</x-kit::button-create>
                         @endhasPermission()
@@ -40,24 +40,32 @@
 
 @push('userauth-scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    new DataTable('.data-table', {
-        processing: true,
-        serverSide: true,
-        responsive: true,
-        language: { url: "{{ asset("vendor/laravelkit/DataTable_DE.json") }}" },
-        ajax: {
-            url: "{{ route('user') }}",
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-        },
-        columns: [
-            { data: 'id', name: 'id' },
-            { data: 'name', name: 'name' },
-            { data: 'email', name: 'email' },
-            { data: 'RoleName', name: 'RoleName' },
-            { data: 'action', name: 'action', orderable: false, searchable: false },
-        ],
-    });
-});
+(function () {
+    function start() {
+        new DataTable('.data-table', {
+            processing: true,
+            serverSide: true,
+            responsive: true,
+            language: { url: "{{ asset("vendor/laravelkit/DataTable_DE.json") }}" },
+            ajax: {
+                url: "{{ route('user') }}",
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            },
+            columns: [
+                { data: 'id', name: 'id' },
+                { data: 'name', name: 'name' },
+                { data: 'email', name: 'email' },
+                { data: 'RoleName', name: 'RoleName' },
+                { data: 'action', name: 'action', orderable: false, searchable: false },
+            ],
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', start);
+    } else {
+        start();
+    }
+})();
 </script>
 @endpush

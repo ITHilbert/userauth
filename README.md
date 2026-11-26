@@ -716,6 +716,7 @@ Benutzer melden sich mit einem Passkey an (WebAuthn: Fingerabdruck, Gesichtserke
 | `USERAUTH_PASSKEY_RP_ID` | `userauth.passkey.rp_id` | leer = Host aus `APP_URL` | Domain der Passkeys (Relying Party ID) |
 | `USERAUTH_PASSKEY_RP_NAME` | `userauth.passkey.rp_name` | leer = `APP_NAME` | Name, den das Gerät beim Einrichten zeigt |
 | `USERAUTH_PASSKEY_ORIGINS` | `userauth.passkey.origins` | leer = Ursprung aus `APP_URL` | erlaubte Ursprünge, kommagetrennt (`https://a.lan,https://b.lan`) |
+| `USERAUTH_PASSKEY_BESTAETIGUNG_MINUTEN` | `userauth.passkey.bestaetigung_minuten` | `10` | Minuten, die die Bestätigung vor „Passkey hinzufügen“ gilt; unter 1 oder nicht numerisch wirkt wie 10 |
 | `USERAUTH_PASSWORT_LOGIN` | `userauth.passwort_login` | `immer` | Anmeldung mit Passwort: `immer`, `ohne_passkey` oder `nie`; jeder andere Wert wirkt wie `immer` |
 
 Beispiel „nur Passkey“:
@@ -746,6 +747,8 @@ Hinweise:
 ### Passkeys verwalten
 
 Angemeldete Benutzer verwalten ihre Passkeys unter `/passkey` (Route `userauth.passkey.index`): Liste mit Name, angelegt am und zuletzt benutzt, Löschen und „Passkey hinzufügen“. Verlinken Sie die Seite im Menü des Hosts. Neue Konten bekommen ihren ersten Passkey nach der ersten Anmeldung auf anderem Weg (Passwort, OIDC, Google); Gäste können keinen Passkey anlegen.
+
+**Bestätigung vor „Passkey hinzufügen“:** Wer einen Passkey hinzufügen will, bestätigt sich vorher mit dem aktuellen Passwort oder mit einem vorhandenen Passkey (Passwort und Passkey sind gleichwertig); die Bestätigung gilt `USERAUTH_PASSKEY_BESTAETIGUNG_MINUTEN` Minuten (Standard 10) und nur für den bestätigten Benutzer. Die Verwaltungsseite fragt bei Bedarf selbst ab. Benutzer ohne nutzbares Passwort und ohne Passkey setzen zuerst über „Passwort vergessen“ ein Passwort. Unter Impersonate sind die Bestätigung, alle Passkey-Schreibaktionen und das Anlegen oder Lösen von Social-Verknüpfungen gesperrt (403).
 
 **Zweitgerät einrichten:** Empfehlen Sie den Benutzern, einen zweiten Passkey auf einem weiteren Gerät (z. B. Handy und Laptop) oder einen Sicherheitsschlüssel einzurichten. Mit `nie` und ohne OIDC- oder Google-Verknüpfung warnt die Seite, dass ohne Passkey kein Zugang mehr bleibt; das Löschen des letzten Passkeys ist trotzdem erlaubt.
 

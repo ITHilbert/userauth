@@ -64,7 +64,7 @@
     }
 
     .userauth-tabelle th {
-        @apply font-semibold text-gray-900;
+        @apply font-semibold text-gray-900 whitespace-nowrap;
     }
 }
 

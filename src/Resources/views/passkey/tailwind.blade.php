@@ -53,6 +53,13 @@
                 data-optionen-url="{{ route('userauth.passkey.register.options') }}"
                 data-registrieren-url="{{ route('userauth.passkey.register') }}"
                 data-meldung="passkey-meldung"
+                data-bestaetigen-url="{{ route('userauth.passkey.bestaetigen') }}"
+                data-bestaetigung="passkey-bestaetigung"
+                @if ($uebersicht->passkeys !== [])
+                data-bestaetigen-optionen-url="{{ route('userauth.passkey.bestaetigen.optionen') }}"
+                data-bestaetigen-assertion-url="{{ route('userauth.passkey.bestaetigen.assertion') }}"
+                @endif
+                data-text-bestaetigung="{{ __('userauth::passkey.fehler.bestaetigung') }}"
                 data-text-nicht-unterstuetzt="{{ __('userauth::passkey.nicht_unterstuetzt') }}"
                 data-text-abgebrochen="{{ __('userauth::passkey.registrierung_abgebrochen') }}"
                 data-text-fehler="{{ __('userauth::passkey.fehler.registrierung') }}"
@@ -71,6 +78,17 @@
                     class="w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold text-sm rounded-lg px-4 py-2.5 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                 >@lang('userauth::passkey.verwaltung.hinzufuegen_knopf')</button>
             </form>
+            <div id="passkey-bestaetigung" data-testid="passkey-bestaetigung" class="mt-4 rounded-lg border border-gray-200 p-4" hidden>
+                <h3 class="text-sm font-medium text-gray-900 mb-1">@lang('userauth::passkey.bestaetigung.titel')</h3>
+                <p class="mb-3 text-xs text-gray-500">@lang('userauth::passkey.bestaetigung.hinweis')</p>
+                <label for="passkey-aktuelles-passwort" class="block text-sm font-medium text-gray-700 mb-1">@lang('userauth::passkey.bestaetigung.passwort')</label>
+                <input type="password" id="passkey-aktuelles-passwort" name="aktuelles_passwort" autocomplete="current-password" class="w-full mb-3 rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                <p data-testid="passkey-bestaetigung-meldung" class="mb-3 text-xs text-red-600" role="alert" hidden></p>
+                <button type="button" data-testid="passkey-bestaetigung-passwort" class="w-full mb-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-lg px-4 py-2.5 transition-colors">@lang('userauth::passkey.bestaetigung.passwort_knopf')</button>
+                @if ($uebersicht->passkeys !== [])
+                    <button type="button" data-testid="passkey-bestaetigung-passkey" class="w-full border border-indigo-600 text-indigo-600 hover:bg-indigo-50 font-semibold text-sm rounded-lg px-4 py-2.5 transition-colors">@lang('userauth::passkey.bestaetigung.passkey_knopf')</button>
+                @endif
+            </div>
         </div>
         <script src="{{ route('userauth.assets.passkey', ['v' => $authAssetVersion->passkeyJsVersion()]) }}" defer></script>
     </div>
