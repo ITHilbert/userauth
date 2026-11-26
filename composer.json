@@ -29,6 +29,8 @@
         "illuminate/routing": "^12.0 || ^13.0",
         "illuminate/mail": "^12.0 || ^13.0",
         "illuminate/validation": "^12.0 || ^13.0",
+        "firebase/php-jwt": "^6.4 || ^7.0",
+        "guzzlehttp/guzzle": "^7.8",
         "ithilbert/laravel-kit": "^1.10",
         "laravel/socialite": "^5.0",
         "nesbot/carbon": "^2.0 || ^3.0",
