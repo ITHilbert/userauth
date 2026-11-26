@@ -182,7 +182,7 @@
             })
             .catch(function (fehler) {
                 if (fehler.bestaetigungErforderlich && !wiederholung && dialog) {
-                    bestaetigungOeffnen(formular, dialog);
+                    bestaetigungOeffnen(formular, dialog, fehler.serverMeldung);
                 } else {
                     meldung(formular, fehler.abgebrochen ? formular.dataset.textAbgebrochen : (fehler.serverMeldung || formular.dataset.textFehler));
                 }
@@ -200,9 +200,9 @@
         }
     }
 
-    function bestaetigungOeffnen(formular, dialog) {
+    function bestaetigungOeffnen(formular, dialog, meldungText) {
         var feld = dialog.querySelector('input[name="aktuelles_passwort"]');
-        dialogMeldung(dialog, '');
+        dialogMeldung(dialog, meldungText || '');
         if (feld) {
             feld.value = '';
         }

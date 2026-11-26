@@ -18,7 +18,7 @@ return [
 
     'bestaetigung' => [
         'titel' => 'Confirmation',
-        'hinweis' => 'Please confirm your identity before adding a passkey.',
+        'hinweis' => 'Please confirm your identity before adding a passkey. If you do not have your password at hand, use “Forgot password” on the sign-in page.',
         'passwort' => 'Current password',
         'passwort_knopf' => 'Confirm with password',
         'passkey_knopf' => 'Confirm with passkey',
