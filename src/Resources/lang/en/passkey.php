@@ -16,6 +16,14 @@ return [
         'bestaetigung' => 'The confirmation failed. Please try again.',
     ],
 
+    'bestaetigung' => [
+        'titel' => 'Confirmation',
+        'hinweis' => 'Please confirm your identity before adding a passkey.',
+        'passwort' => 'Current password',
+        'passwort_knopf' => 'Confirm with password',
+        'passkey_knopf' => 'Confirm with passkey',
+    ],
+
     'verwaltung' => [
         'title' => 'Passkeys',
         'leer' => 'You have not set up a passkey yet.',

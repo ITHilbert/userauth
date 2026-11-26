@@ -16,6 +16,14 @@ return [
         'bestaetigung' => 'Die Bestätigung ist fehlgeschlagen. Bitte versuchen Sie es erneut.',
     ],
 
+    'bestaetigung' => [
+        'titel' => 'Bestätigung',
+        'hinweis' => 'Bitte bestätigen Sie Ihre Identität, bevor Sie einen Passkey hinzufügen.',
+        'passwort' => 'Aktuelles Passwort',
+        'passwort_knopf' => 'Mit Passwort bestätigen',
+        'passkey_knopf' => 'Mit Passkey bestätigen',
+    ],
+
     'verwaltung' => [
         'title' => 'Passkeys',
         'leer' => 'Sie haben noch keinen Passkey eingerichtet.',

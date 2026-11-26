@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.4.0 – 2026-11-26
+
+### Hinzugefügt
+- Passkey hinzufügen verlangt eine Bestätigung per aktuellem Passwort oder vorhandenem Passkey; sie gilt `USERAUTH_PASSKEY_BESTAETIGUNG_MINUTEN` Minuten (Standard 10, Config `userauth.passkey.bestaetigung_minuten`). Die Verwaltungsseite fragt über einen Dialog ab und wiederholt das Hinzufügen einmal (#2225).
+
+### Geändert
+- Unter Impersonate sind die Passkey-Bestätigung sowie das Anlegen und Lösen von Social-Verknüpfungen gesperrt (403) (#2225).
+
 ## 4.3.3 – 2026-11-26
 
 ### Behoben

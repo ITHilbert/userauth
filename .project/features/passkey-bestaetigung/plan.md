@@ -21,3 +21,8 @@ Offener Punkt a7a64d70c8cc6c1bd: 1 Widerspruch Konfigurationstest AK19 (passkey-
 Abweichung a7a64d70c8cc6c1bd: Spec ergänzt (AK13 in spec.md, Commit mit diesem Stand; Test vom test-writer vor dem Review)
 Annahme im Code: src/Routes/web.php:199 → trifft nicht zu, weil nur Erläuterung (Gäste melden sich dort an), Test SocialImpersonateTest Gast-Fall | src/Application/Passkey/Contracts/PasskeyBestaetigungen.php:8 → Test PasskeyBestaetigungTest Randfall 2 | src/Application/Passkey/PasskeyBestaetigungVorbereiten.php:16 → Test PasskeyBestaetigungAssertionTest AK5
 Stand: T1 umgesetzt (GATE grün, 104 Tests), T2/T3 offen, AK13 braucht Test.
+Offener Punkt a05558fcb87f9186f: keine
+Abweichung a05558fcb87f9186f: Fehlalarm: keine Abweichung gemeldet
+Echtlauf: entfällt (Paket ohne eigenen Host im Automode; Skript im node-Fixture 8/8 gegen echtes passkey.js, Seite je Theme per Feature-Test, ganze Paket-Suite 2530 Tests grün) — Browserprüfung mit Login siehe „Für Joerg“
+Layout: entfällt (Dialog-Markup im vorhandenen Kit-Stil, keine Layout-AK)
+Stand: T1–T3 umgesetzt, GATE grün, Paket-Suite 2530 grün; Review offen (Risiko kritisch).
