@@ -13,3 +13,15 @@ Abweichung aae8b240a2d1e14a4: Fehlalarm: keine Abweichung gemeldet
 Echtlauf: browser: /users, /roles, /permissions im Host (Port 8225) — 0 Konsolenfehler, Ajax 200, 10/8/8 Zeilen sichtbar. Einschränkung: Host lädt jQuery (DataTables 1.13 im Bundle); Lauf ganz ohne jQuery nur im node-Fixture (AK2), weil der Hook fremder-server.sh meinen Scratch-Server mit DataTables 2 blockte.
 Annahme im Code: keine neuen Annahme-Kommentare
 Stand: T1 umgesetzt, GATE-Tests grün (PHP 339, JS 62), Echtlauf grün. Host: window.DataTable in resources/js/app.js ergänzt.
+
+## T2 [junior] Listen starten auch nach DOMContentLoaded (AK6, #2267)
+— Tests: tests/Feature/AdminViewsSkripteTest.php (Fixture tests/Fixtures/inline-skript-lauf.mjs, neuer Modus „nachtraeglich“)
+Bestehende Tests: tests/Feature/AdminViewsKitTest.php tests/Feature/VerwaltungKernMarkupTest.php
+Marketing: entfällt (kein Seitendesign)
+Review: entfällt (Bugfix, kleiner Skript-Fix, kein Sicherheitsbezug, keine Route)
+Echtlauf: entfällt (Skriptstart-Logik, im node-Fixture mit readyState loading/complete nachgewiesen, Hosts ohne Browser-Zugang im Automode; GATE grün, 363 Tests)
+Layout: entfällt (nur Skript-Logik, keine Darstellungsänderung)
+Offener Punkt aa486688b13e650f3: AK-fremd (IIFE statt globaler Funktion, Verhalten gleich)
+Abweichung aa486688b13e650f3: Fehlalarm: keine Abweichung gemeldet
+Annahme im Code: keine neuen Annahme-Kommentare
+Stand: T2 umgesetzt (AK6), GATE grün.
