@@ -17,7 +17,7 @@
                     <th>@lang('userauth::permission.id')</th>
                     <th>@lang('userauth::permission.permission_display')</th>
                     <th>@lang('userauth::permission.permission')</th>
-                    <th width="165px">
+                    <th>
                         @hasPermission('permission_create')
                             <x-kit::button-create :route="route('permission.create')">@lang('userauth::button.addPermission')</x-kit::button-create>
                         @endhasPermission

@@ -17,7 +17,7 @@
                         <th>@lang('userauth::role.id')</th>
                         <th>@lang('userauth::role.role_display')</th>
                         <th>@lang('userauth::role.role')</th>
-                        <th width="165px">
+                        <th>
                             @hasPermission('role_create')
                                 <x-kit::button-create :route="route('role.create')">@lang('userauth::button.addRole')</x-kit::button-create>
                             @endhasPermission()
