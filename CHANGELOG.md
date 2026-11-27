@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.7.1 – 2026-11-28
+
+### Geändert
+- `userauth-verwaltung.css`: Knöpfe des Lösch-Dialogs (Component `<x-kit::dialog-delete>`) stehen rechtsbündig mit Lücke und Abstand oben; die ungenutzte Klasse `.userauth-dialog-aktionen` entfällt (#2454).
+
 ## 4.7.0 – 2026-11-27
 
 ### Geändert

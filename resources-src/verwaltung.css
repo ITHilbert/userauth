@@ -42,10 +42,6 @@
         @apply ml-auto flex flex-wrap items-center justify-end gap-2;
     }
 
-    .userauth-dialog-aktionen {
-        @apply mt-4 flex justify-end gap-2;
-    }
-
     .userauth-mitte {
         @apply text-center;
     }
@@ -120,6 +116,26 @@ table.userauth-tabelle {
 /* Lösch-Dialog: Kit setzt ohne Layer max-width 100vw; diese Regel steht danach und begrenzt auf 32rem */
 .kit-dialog__content {
     max-width: min(32rem, calc(100vw - 2rem));
+}
+
+/*
+ * Knöpfe direkt in .kit-dialog__content (ohne Wrapper): Titel und Text auf volle Breite,
+ * Knöpfe rechtsbündig in einer Zeile mit Abstand oben (altes Aussehen von .userauth-dialog-aktionen).
+ */
+.kit-dialog__content {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.kit-dialog__content > .kit-dialog__title,
+.kit-dialog__content > p {
+    flex: 0 0 100%;
+}
+
+.kit-dialog__content > .kit-button {
+    margin-top: 1rem;
 }
 
 /* ------------------------------------------------------------------ DataTables-Optik (datatables-optik, #2369) */
