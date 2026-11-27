@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ITHilbert\UserAuth\Http\Requests;
 
+use ITHilbert\UserAuth\Rules\HaeufigesPasswortRule;
+
 /**
  * Eingaberegeln für ein neues Passwort (Ändern und Zurücksetzen). Die Wiederverwendung prüft der
  * UseCase `PasswortSetzen` – beim Zurücksetzen erst nach gültigem Token.
@@ -11,12 +13,18 @@ namespace ITHilbert\UserAuth\Http\Requests;
 final class NeuesPasswortRegeln
 {
     /**
-     * @return array<string, list<string>>
+     * @return array<string, list<mixed>>
      */
     public static function regeln(): array
     {
+        $password = ['required', 'string', 'min:'.self::minLaenge(), 'confirmed'];
+
+        if (filter_var(config('userauth.passwort.haeufige_ablehnen', false), FILTER_VALIDATE_BOOLEAN)) {
+            $password[] = new HaeufigesPasswortRule;
+        }
+
         return [
-            'password' => ['required', 'string', 'min:'.self::minLaenge(), 'confirmed'],
+            'password' => $password,
             'password_confirmation' => ['required', 'same:password'],
         ];
     }
