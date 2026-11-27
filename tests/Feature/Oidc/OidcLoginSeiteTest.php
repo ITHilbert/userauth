@@ -265,9 +265,10 @@ final class OidcLoginSeiteTest extends TestCase
             $this->assertStringContainsString($stichwort, $abschnitt, "README-Abschnitt nennt {$stichwort} nicht.");
         }
 
-        // jüngster Eintrag steht oben: die ersten Zeilen nennen die Änderung
-        $neuesterEintrag = substr((string) file_get_contents(dirname(__DIR__, 3).'/CHANGELOG.md'), 0, 2500);
-        $this->assertMatchesRegularExpression('/oidc|authelia/i', $neuesterEintrag);
+        // Der Abschnitt der Einführungsversion (4.1.0) nennt die Anmeldung; unabhängig vom Abstand zum Dateianfang
+        $changelog = (string) file_get_contents(dirname(__DIR__, 3).'/CHANGELOG.md');
+        $this->assertSame(1, preg_match('/^## 4\.1\.0\b.*?(?=^## |\z)/ms', $changelog, $treffer), 'Abschnitt 4.1.0 fehlt im CHANGELOG.');
+        $this->assertMatchesRegularExpression('/oidc|authelia/i', $treffer[0]);
     }
 
     // AK19
