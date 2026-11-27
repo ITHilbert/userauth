@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.5.0 – 2026-11-27
+
+### Hinzugefügt
+- Neue Passwörter können gegen eine mitgelieferte Liste häufiger Passwörter geprüft werden: Config `userauth.passwort.haeufige_ablehnen` (Standard `false`, `USERAUTH_PASSWORT_HAEUFIGE_ABLEHNEN`); Groß-/Kleinschreibung und Randleerzeichen zählen nicht, keine Abfrage bei einem Drittdienst (#2342).
+
 ## 4.4.0 – 2026-11-26
 
 ### Hinzugefügt

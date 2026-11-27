@@ -64,8 +64,11 @@ return [
 
     // Passwort-Regeln für neue Passwörter (Ändern, Zurücksetzen, Admin, Registrierung).
     // min_laenge: Mindestlänge in Zeichen (Standard 8); ungültige Werte (nicht ganzzahlig, kleiner 1, leer) wirken wie 8.
+    // haeufige_ablehnen: true = Passwörter aus der mitgelieferten Liste häufiger Passwörter werden abgelehnt
+    // (ohne Beachtung von Groß-/Kleinschreibung und Randleerzeichen); Standard false.
     'passwort' => [
         'min_laenge' => env('USERAUTH_PASSWORT_MIN_LAENGE', 8),
+        'haeufige_ablehnen' => env('USERAUTH_PASSWORT_HAEUFIGE_ABLEHNEN', false),
     ],
 
     // Aktiviert das Audit Log
