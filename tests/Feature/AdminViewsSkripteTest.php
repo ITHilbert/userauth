@@ -139,6 +139,10 @@ final class AdminViewsSkripteTest extends TestCase
         preg_match_all('#<script([^>]*)>(.*?)</script>#is', $html, $treffer, PREG_SET_ORDER);
         $liste = [];
         foreach ($treffer as [, $attribute, $inhalt]) {
+            if (preg_match('/type\s*=\s*["\']?module/i', $attribute) === 1 && str_contains($inhalt, 'initLoeschDialog')) {
+                // Modul-Skript des Lösch-Dialogs (Kit-Modul über die Asset-Route, #2449): läuft im Browser als ES-Modul, nicht im vm-Lauf
+                continue;
+            }
             $spaeter = preg_match('/\b(defer|async)\b|type\s*=\s*["\']?module/i', $attribute) === 1;
             if (preg_match('/\ssrc\s*=\s*["\']([^"\']*)["\']/i', $attribute, $quelle) === 1) {
                 if (str_ends_with($quelle[1], 'permission.js')) {
@@ -163,7 +167,7 @@ final class AdminViewsSkripteTest extends TestCase
         $html = $this->seite($seite);
         $manifest = $this->manifest($html);
         if (in_array($seite, self::LISTEN, true)) {
-            // Neben der DataTable-Initialisierung steht das Inline-Skript des Lösch-Dialogs (kern-umstellung AK7/AK8).
+            // Neben der DataTable-Initialisierung steht das Modul-Skript des Lösch-Dialogs (kern-umstellung AK7/AK8, #2449; im Manifest übersprungen).
             $this->assertCount(1, array_filter($manifest, fn (array $s) => $s['typ'] === 'inline' && str_contains($s['code'], 'new DataTable(')), 'genau ein Inline-Skript mit der DataTable-Initialisierung');
         }
 
