@@ -33,6 +33,7 @@ return [
     'link_ungueltig' => 'The password reset link is invalid or has expired. Please request a new link.',
     'geaendert' => 'Your password has been changed',
     'bereits_verwendet' => 'The password must not match one of your recently used passwords.',
+    'haeufig' => 'This password is too common. Please choose a different one.',
     'mail' => [
         'betreff' => 'Reset password',
         'einleitung' => 'You are receiving this e-mail because a password reset was requested for your account. The link is valid for :minutes minutes.',

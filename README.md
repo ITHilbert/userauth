@@ -207,6 +207,15 @@ Neue Passwörter (Ändern, Zurücksetzen, Anlegen und Ändern durch den Admin, R
     ],
 ```
 
+#### Häufige Passwörter ablehnen
+Mit `haeufige_ablehnen` (Standard `false`, Umgebungsvariable `USERAUTH_PASSWORT_HAEUFIGE_ABLEHNEN`) lehnen die neuen Passwörter (Ändern, Zurücksetzen, Admin, Registrierung) Einträge der mitgelieferten Liste häufiger Passwörter ab. Groß-/Kleinschreibung und Randleerzeichen zählen nicht. Die Liste liegt im Paket (`src/Resources/daten/haeufige-passwoerter.txt`); es gibt keine Abfrage bei einem Drittdienst.
+Quelle: SecLists `Passwords/Common-Credentials/Pwdb_top-100000.txt` (bereinigt, klein geschrieben, ohne Duplikate), Lizenz MIT.
+```php
+    'passwort' => [
+        'haeufige_ablehnen' => env('USERAUTH_PASSWORT_HAEUFIGE_ABLEHNEN', false),
+    ],
+```
+
 #### Vite-Einträge
 Die Auth-Views laden bei vorhandenem Vite-Manifest nur die Einträge aus `vite_entries`, die darin stehen (bei `public/hot` alle). Fehlt jeder, entfällt `@vite`.
 ```php

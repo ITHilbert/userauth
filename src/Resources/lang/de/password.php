@@ -33,6 +33,7 @@ return [
     'link_ungueltig' => 'Der Link zum Zurücksetzen ist ungültig oder abgelaufen. Bitte fordern Sie einen neuen Link an.',
     'geaendert' => 'Passwort wurde geändert',
     'bereits_verwendet' => 'Das Passwort darf nicht einem der zuletzt verwendeten Passwörter entsprechen.',
+    'haeufig' => 'Dieses Passwort ist zu verbreitet. Bitte wählen Sie ein anderes.',
     'mail' => [
         'betreff' => 'Passwort zurücksetzen',
         'einleitung' => 'Sie erhalten diese E-Mail, weil für Ihr Konto das Zurücksetzen des Passworts angefordert wurde. Der Link ist :minutes Minuten gültig.',
