@@ -186,8 +186,13 @@ final class OidcAutoRedirectStandardTest extends TestCase
             'Die README nennt true nicht als Wert von USERAUTH_OIDC_AUTO_REDIRECT.',
         );
 
-        $changelog = substr((string) file_get_contents($wurzel.'/CHANGELOG.md'), 0, 3000);
-        $this->assertStringContainsString('4.3.0', $changelog);
+        // Abschnitt der Einführungsversion (4.3.0), unabhängig vom Abstand zum Dateianfang
+        $this->assertSame(
+            1,
+            preg_match('/^## 4\.3\.0\b.*?(?=^## |\z)/ms', (string) file_get_contents($wurzel.'/CHANGELOG.md'), $treffer),
+            'Abschnitt 4.3.0 fehlt im CHANGELOG.',
+        );
+        $changelog = $treffer[0];
         $this->assertStringContainsString('USERAUTH_OIDC_AUTO_REDIRECT', $changelog);
         $this->assertStringContainsString('abgemeldet', $changelog);
 

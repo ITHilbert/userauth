@@ -19,11 +19,11 @@ final class KernDokuTest extends TestCase
     }
 
     // AK11
-    public function test_ak11_composer_verlangt_laravel_kit_1_10(): void
+    public function test_ak11_composer_verlangt_laravel_kit_1_14(): void
     {
         $composer = json_decode($this->paketdatei('composer.json'), true);
 
-        $this->assertSame('^1.10', $composer['require']['ithilbert/laravel-kit'] ?? null);
+        $this->assertSame('^1.14', $composer['require']['ithilbert/laravel-kit'] ?? null);
     }
 
     // AK11
@@ -49,7 +49,8 @@ final class KernDokuTest extends TestCase
             if (! str_contains($absatz, 'dialog-delete')) {
                 continue;
             }
-            $this->assertMatchesRegularExpression('/nicht mehr (nötig|erforderlich|notwendig)|entfällt|entfallen/u', $absatz, 'dialog-delete steht nur als „nicht mehr nötig“ in der README: '.mb_substr($absatz, 0, 80));
+            // Die Vue-Insel `dialog-delete` ist nicht mehr nötig; die Blade-Component `<x-kit::dialog-delete>` ist der Lösch-Dialog (#2449)
+            $this->assertMatchesRegularExpression('/nicht mehr (nötig|erforderlich|notwendig)|entfällt|entfallen|<x-kit::dialog-delete>/u', $absatz, 'dialog-delete steht nur als „nicht mehr nötig“ oder als Blade-Component in der README: '.mb_substr($absatz, 0, 80));
         }
     }
 

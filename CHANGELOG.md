@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.7.0 – 2026-11-27
+
+### Geändert
+- Lösch-Dialog der Listen (Benutzer, Rollen, Rechte) ist jetzt die Blade-Component `<x-kit::dialog-delete>` aus laravel-kit 1.14 statt eigenem Markup mit Inline-Skript; das Formular `#formDelete` kommt aus der Component, die Texte der Knöpfe aus den Sprachdateien des Kits (`de`: „Abbrechen“/„Löschen“, `en`: „Cancel“/„Delete“) (#2449).
+- Neue Asset-Routen `userauth.assets.kit.loesch-dialog` (`/userauth/assets/kit/loesch-dialog.js`) und `userauth.assets.kit.loeschen` (`/userauth/assets/kit/loeschen.js`) liefern die zwei ES-Module des Kits aus (ohne Session, `Cache-Control: public, max-age=300`); die Listen laden `initLoeschDialog()` als `<script type="module">` (#2449).
+- `userauth-verwaltung.css`: feste Dialog-Ebene der Component (`.kit-dialog`), Dialogbreite bleibt 32rem (#2449).
+- Anforderung `ithilbert/laravel-kit` `^1.14` (#2449).
+
 ## 4.6.0 – 2026-11-27
 
 ### Geändert

@@ -42,6 +42,10 @@ use ITHilbert\UserAuth\Http\Middleware\VerlangtPasskeyBestaetigung;
 // Asset-Routen ohne Middleware-Gruppe `web`: keine Session, keine Cookies, kein CSRF (statische Antwort, cachebar)
 Route::get('userauth/assets/userauth.css', AuthCssController::class)->name('userauth.assets.css');
 Route::get('userauth/assets/userauth-verwaltung.css', [AuthCssController::class, 'verwaltung'])->name('userauth.assets.verwaltung');
+// ES-Module des Lösch-Dialogs aus laravel-kit (#2449): feste Whitelist, kein Dateiname-Parameter;
+// loesch-dialog.js importiert ./loeschen.js, darum liegen beide im selben Pfad
+Route::get('userauth/assets/kit/loesch-dialog.js', [AuthCssController::class, 'kitLoeschDialog'])->name('userauth.assets.kit.loesch-dialog');
+Route::get('userauth/assets/kit/loeschen.js', [AuthCssController::class, 'kitLoeschen'])->name('userauth.assets.kit.loeschen');
 // Skript der Passkey-Anmeldung, nur mit aktivem Passkey (sonst 404)
 Route::get('userauth/assets/passkey.js', [AuthCssController::class, 'passkey'])->name('userauth.assets.passkey')
     ->middleware(EnsurePasskeyEnabled::class);
