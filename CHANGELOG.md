@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.6.0 – 2026-11-27
+
+### Geändert
+- Optik der DataTables in der Verwaltung (Benutzer, Rollen, Rechte): Steuerleiste mit Suchfeld links und Anzahl-Auswahl rechts, kompakte Tabelle mit Sortier-Icons, Zeilen-Hover und Paginierung als Buttons im Kit-Stil; „Neu“-Button steht im Listenkopf über der Tabelle statt in der Tabellenkopfzeile; Spalte `id` rechtsbündig (#2369).
+
 ## 4.5.0 – 2026-11-27
 
 ### Hinzugefügt

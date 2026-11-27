@@ -11,17 +11,19 @@
         <x-kit::card-body>
             @include('include.message')
 
+            <div class="userauth-listenkopf">
+                @hasPermission('role_create')
+                    <x-kit::button-create :route="route('role.create')">@lang('userauth::button.addRole')</x-kit::button-create>
+                @endhasPermission()
+            </div>
+
             <table class="userauth-tabelle data-table">
                 <thead>
                     <tr>
                         <th>@lang('userauth::role.id')</th>
                         <th>@lang('userauth::role.role_display')</th>
                         <th>@lang('userauth::role.role')</th>
-                        <th>
-                            @hasPermission('role_create')
-                                <x-kit::button-create :route="route('role.create')">@lang('userauth::button.addRole')</x-kit::button-create>
-                            @endhasPermission()
-                        </th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -40,18 +42,21 @@
 @push('userauth-scripts')
 <script>
 (function () {
+    @include('userauth::partials.datatable-layout')
+
     function start() {
         new DataTable('.data-table', {
             processing: true,
             serverSide: true,
             responsive: true,
+            ...userauthDtLayout(),
             language: { url: "{{ asset("vendor/laravelkit/DataTable_DE.json") }}" },
             ajax: {
                 url: "{{ route('role') }}",
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },
             },
             columns: [
-                { data: 'id', name: 'id' },
+                { data: 'id', name: 'id', className: 'userauth-zahl' },
                 { data: 'role_display', name: 'role_display' },
                 { data: 'role', name: 'role' },
                 { data: 'action', name: 'action', orderable: false, searchable: false },
